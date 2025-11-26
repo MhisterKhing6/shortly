@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: shortly
+
+  mongodb:
+    uri: ${MONGO_URL}
+    
+  jackson:
+    mapper:
+      accept-case-insensitive-enums: true

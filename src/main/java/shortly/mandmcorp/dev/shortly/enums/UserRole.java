@@ -6,4 +6,5 @@ public enum UserRole {
     RECEIVER,
     USER,
     MANAGER
+
 }
