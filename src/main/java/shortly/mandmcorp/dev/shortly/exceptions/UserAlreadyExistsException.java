@@ -1,0 +1,9 @@
+package shortly.mandmcorp.dev.shortly.exceptions;
+
+
+public class UserAlreadyExistsException extends RuntimeException {
+    public UserAlreadyExistsException(String message) {
+        super(message);
+    }
+}
+

@@ -1,6 +1,6 @@
 package shortly.mandmcorp.dev.shortly.dto.request;
 
-public class LoginDto {
+public class UserLoginRequestDto {
     private String phoneNumber;
     private String password;
 }

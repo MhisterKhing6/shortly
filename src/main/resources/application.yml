@@ -4,7 +4,12 @@ spring:
 
   mongodb:
     uri: ${MONGO_URL}
-    
+
   jackson:
     mapper:
       accept-case-insensitive-enums: true
+
+mnotify:
+  accessKey: ${MNOTIFY_API}
+  sender: ShortlyPush
+  baseUrl: https://api.mnotify.com/api/sms
