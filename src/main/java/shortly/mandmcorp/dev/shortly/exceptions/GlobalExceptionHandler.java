@@ -36,4 +36,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
+    @ExceptionHandler(WrongCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleWrongCredentials(WrongCredentialsException ex) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .message(ex.getMessage())
+                .data(null)
+                .build();
+                
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+    }
+
 }  

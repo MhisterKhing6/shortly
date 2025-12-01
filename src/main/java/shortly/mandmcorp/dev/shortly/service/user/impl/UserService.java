@@ -1,6 +1,9 @@
 package shortly.mandmcorp.dev.shortly.service.user.impl;
 
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -10,6 +13,7 @@ import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.exceptions.UserAlreadyExistsException;
+import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
@@ -40,7 +44,8 @@ public class UserService implements UserServiceInterface {
 
         if(registeredUser != null) {
             throw new UserAlreadyExistsException("User already registered");  
-        }
+        } 
+
         String password = OtpUtil.generateUserPassword();
         userRequestDetails.setPassword(password);
         User newUser = userMapper.toEntity(userRequestDetails);
@@ -56,14 +61,13 @@ public class UserService implements UserServiceInterface {
     public UserLoginResponse login(UserLoginRequestDto loginDetails) {
         User userEntity = userRepository.findByPhoneNumber(loginDetails.getPhoneNumber());
         if(userEntity == null) {
-            throw new UserAlreadyExistsException("User does not exist");
+            throw new WrongCredentialsException ("phone number or password incorrect");
         }
         boolean isPasswordCorrect = passwordEncoder.matches(loginDetails.getPassword(), userEntity.getPasswordHash());
         if(!isPasswordCorrect) {
-            throw new UserAlreadyExistsException("Incorrect password");
+            throw new WrongCredentialsException("phone number or password incorrect");
         }
-        return userMapper.toUserLoginResponse(userEntity, loginDetails);
-        
+        return userMapper.toUserLoginResponse(userEntity, loginDetails);   
     }
 
 }
