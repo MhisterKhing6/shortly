@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.dto.request.UserLoginRequestDto;
 import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
@@ -26,13 +25,16 @@ public class UserService implements UserServiceInterface {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final NotificationInterface notification;
+    private final PasswordEncoder passwordEncoder;  
 
-    public UserService(UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification) {
+    public UserService(UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.notification = smsNotification;
+        this.passwordEncoder = passwordEncoder;
     }   
 
+    @Override
     public UserRegistrationResponse register(UserRegistrationRequest userRequestDetails) {
         User registeredUser = userRepository.findByPhoneNumber(userRequestDetails.getPhoneNumber());
 
@@ -50,9 +52,18 @@ public class UserService implements UserServiceInterface {
     }   
     
 
-    public UserLoginResponse login(UserLoginRequestDto user) {
-        return null;
-    
+    @Override
+    public UserLoginResponse login(UserLoginRequestDto loginDetails) {
+        User userEntity = userRepository.findByPhoneNumber(loginDetails.getPhoneNumber());
+        if(userEntity == null) {
+            throw new UserAlreadyExistsException("User does not exist");
+        }
+        boolean isPasswordCorrect = passwordEncoder.matches(loginDetails.getPassword(), userEntity.getPasswordHash());
+        if(!isPasswordCorrect) {
+            throw new UserAlreadyExistsException("Incorrect password");
+        }
+        return userMapper.toUserLoginResponse(userEntity, loginDetails);
+        
     }
 
 }

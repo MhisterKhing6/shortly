@@ -1,17 +1,17 @@
 package shortly.mandmcorp.dev.shortly.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import shortly.mandmcorp.dev.shortly.dto.request.UserLoginRequestDto;
 import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
+import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
-
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 
 
 
@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @AllArgsConstructor
 
 public class UserController {
-    private UserServiceInterface userService;
+    private final UserServiceInterface userService;
 
     @PostMapping("/register")
     public UserRegistrationResponse registerUser(@RequestBody @Valid UserRegistrationRequest userRegistrationRequest) {
@@ -28,9 +28,9 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public String userLogin(@RequestBody String entity) {
+    public UserLoginResponse userLogin(@RequestBody @Valid UserLoginRequestDto loginDetails) {
         
-        return entity;
+        return userService.login(loginDetails);
     }
     
     
