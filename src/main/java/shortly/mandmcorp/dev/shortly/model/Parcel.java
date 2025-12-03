@@ -1,13 +1,14 @@
-package shortly.mandmcorp.dev.shortly.dto.request;
+package shortly.mandmcorp.dev.shortly.model;
 
 import org.springframework.data.annotation.Id;
 
 import lombok.Data;
 
 @Data
-public class ParcelEntry {
+public class Parcel {
     @Id
-    private Integer parcelId;
+    private String parcelId;
+
     private String senderName;
     private String senderPhoneNumber;
     private String receiverName;
@@ -16,13 +17,13 @@ public class ParcelEntry {
     private String parcelDescription;
     private String driverName;
     private String driverPhoneNumber;
-    private String isPOD;
-    private String isDelivered;
-    private String isParcelAssigned;
-    private String inboundCost;
-    private Double pickUpCost;
-    private Boolean isFragile;
-    private Double deliveryCost;
-    private Double storageCost;
+    private boolean isPOD;
+    private boolean isDelivered;
+    private boolean isParcelAssigned;
+    private double inboundCost;
+    private double pickUpCost;
+    private boolean isFragile;
+    private double deliveryCost;
+    private double storageCost;
 
 }

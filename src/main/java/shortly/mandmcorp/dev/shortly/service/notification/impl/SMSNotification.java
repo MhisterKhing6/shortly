@@ -1,17 +1,14 @@
 package shortly.mandmcorp.dev.shortly.service.notification.impl;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
-import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.reactive.function.client.WebClient;
-import lombok.extern.slf4j.Slf4j;
-
-import lombok.AllArgsConstructor;
-
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.config.MNotifyConfig;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
