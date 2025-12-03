@@ -15,6 +15,7 @@ import shortly.mandmcorp.dev.shortly.model.User;
 @AllArgsConstructor
 public class UserMapper {
     PasswordEncoder passwordEncoder;
+
     public  UserRegistrationResponse toUserRegistrationResponse(User user) {
         return UserRegistrationResponse.builder()
                 .email(user.getEmail())
@@ -35,8 +36,7 @@ public class UserMapper {
                 .build();
     }
 
-    public UserLoginResponse toUserLoginResponse(User user, UserLoginRequestDto loginDetails) {
-        String token = passwordEncoder.encode(loginDetails.getPassword());
+    public UserLoginResponse toUserLoginResponse(User user, String token) {
         return UserLoginResponse.builder()
                 .token(token)
                 .userId(user.getUserId())

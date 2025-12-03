@@ -18,4 +18,9 @@ public class OtpUtil {
         }
         return password.toString();
     }
+
+    public static String generatVerificationCode() {
+        return String.format("%06d", random.nextInt(1000000));
+    }
+
 }

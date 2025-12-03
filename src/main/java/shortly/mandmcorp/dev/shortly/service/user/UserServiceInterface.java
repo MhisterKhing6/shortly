@@ -1,9 +1,15 @@
 package shortly.mandmcorp.dev.shortly.service.user;
 
+import shortly.mandmcorp.dev.shortly.dto.request.ForgetPasswordRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.ResetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserLoginRequestDto;
 import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.exceptions.UserAlreadyExistsException;
+
+
 
 /**
  * Service interface for user management operations including registration and authentication.
@@ -36,4 +42,28 @@ public interface UserServiceInterface {
      * @throws UserAlreadyExistsException if user does not exist or password is incorrect
      */
     public UserLoginResponse login(UserLoginRequestDto user);
+
+
+    /**
+     * Initiates a password reset process for a user who has forgotten their password.
+     * Validates the user exists, generates a secure OTP, and sends it via SMS notification.
+     * The OTP can be used to verify identity before allowing password reset.
+     * 
+     * @param passwordRequest the password reset request containing user's phone number
+     * @return UserResponse with reset status and user information (without sensitive data)
+     * @throws UserAlreadyExistsException if user with the provided phone number does not exist
+     * @throws RuntimeException if SMS notification fails to send
+     */
+    public UserResponse requestPasswordReset(ForgetPasswordRequest passwordRequest);
+
+    /**
+     * Resets user password after OTP verification.
+     * Validates the OTP code, checks expiration, and updates user password.
+     * 
+     * @param restPasswordRequest the reset request containing OTP and new password
+     * @return UserResponse with reset status and updated user information
+     * @throws UserAlreadyExistsException if user does not exist
+     * @throws IllegalArgumentException if OTP is invalid or expired
+     */
+    public UserResponse resetPassword(ResetPasswordRequest restPasswordRequest);
 }

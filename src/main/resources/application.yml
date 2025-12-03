@@ -9,7 +9,19 @@ spring:
     mapper:
       accept-case-insensitive-enums: true
 
+
+
 mnotify:
   accessKey: ${MNOTIFY_API}
   sender: ShortlyPush
   baseUrl: https://api.mnotify.com/api/sms
+
+backend-server:
+  baseUrl: ${BACKEND_HOST}
+  
+
+jwt:
+  secretKey: ${JWT_ACCESS_KEY}
+  refreshKey: ${JWT_REFERESH_KEY}
+  expirationTime: ${JWT_EXPIRATIONTIME}
+
