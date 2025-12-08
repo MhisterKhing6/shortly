@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 
@@ -38,8 +39,13 @@ public class FrontDeskController {
     }
 
     @PutMapping("/parcel/{id}")
-    public String updateParcel(@PathVariable String id, @RequestBody String entity) {
-        return null;
+    @Operation(summary = "Update a parcel", description = "Update parcel details by ID")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Parcel updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Parcel not found")
+    })
+    public ParcelResponse updateParcel(@PathVariable String id, @RequestBody @Valid ParcelUpdateRequest updateRequest) {
+        return parcelService.updateParcel(id, updateRequest);
     }
 
     @GetMapping("/parcel/{id}")

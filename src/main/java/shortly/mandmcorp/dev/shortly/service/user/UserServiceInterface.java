@@ -7,7 +7,6 @@ import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
-import shortly.mandmcorp.dev.shortly.exceptions.UserAlreadyExistsException;
 
 
 

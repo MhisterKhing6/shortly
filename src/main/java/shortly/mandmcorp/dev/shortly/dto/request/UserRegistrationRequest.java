@@ -22,4 +22,7 @@ public class UserRegistrationRequest {
 
     @NotNull
     private UserRole role;
+
+    @NotBlank(message= "Office ID is required")
+    private String officeId;
 }

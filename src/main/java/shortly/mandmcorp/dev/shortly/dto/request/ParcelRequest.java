@@ -42,4 +42,14 @@ public class ParcelRequest {
     private boolean isFragile;
     private double deliveryCost;
     private double storageCost;
+
+    @NotBlank(message ="shelf number is required ")
+    private String shelfNumber;
+
+    private boolean hasCalled = false;
+
+    @NotBlank(message = "Vehicle number is required")
+    private String vehicleNumber;
+    
+    private String officeId;
 }

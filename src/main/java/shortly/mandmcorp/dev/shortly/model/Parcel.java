@@ -1,22 +1,17 @@
 package shortly.mandmcorp.dev.shortly.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
 
 @Data
+@Document(collection = "parcels")
 public class Parcel {
     @Id
     private String parcelId;
-
-    private String senderName;
-    private String senderPhoneNumber;
-    private String receiverName;
-    private String receiverAddress;
-    private String recieverPhoneNumber;
     private String parcelDescription;
-    private String driverName;
-    private String driverPhoneNumber;
     private boolean isPOD;
     private boolean isDelivered;
     private boolean isParcelAssigned;
@@ -25,5 +20,19 @@ public class Parcel {
     private boolean isFragile;
     private double deliveryCost;
     private double storageCost;
+    private String shelfNumber;
+    private String hasCalled;
+
+    @DBRef
+    private Contacts driver;
+
+    @DBRef
+    private Contacts receiver;
+
+    @DBRef
+    private Contacts sender;
+    
+    @DBRef
+    private Office officeId;
 
 }

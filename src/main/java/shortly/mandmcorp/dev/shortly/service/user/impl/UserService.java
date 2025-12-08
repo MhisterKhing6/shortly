@@ -17,7 +17,6 @@ import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
-import shortly.mandmcorp.dev.shortly.exceptions.UserAlreadyExistsException;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.model.VerificationToken;
@@ -30,6 +29,7 @@ import shortly.mandmcorp.dev.shortly.utils.MessageUtility;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.OtpUtil;
 import shortly.mandmcorp.dev.shortly.utils.UserMapper;
+import shortly.mandmcorp.dev.shortly.exceptions.EntityAlreadyExist;
 
 @Service
 public class UserService implements UserServiceInterface {
@@ -59,7 +59,7 @@ public class UserService implements UserServiceInterface {
         User registeredUser = userRepository.findByPhoneNumber(userRequestDetails.getPhoneNumber());
 
         if(registeredUser != null) {
-            throw new UserAlreadyExistsException("User already registered");  
+            throw new EntityAlreadyExist("User already registered");  
         } 
 
         String password = OtpUtil.generateUserPassword();
