@@ -7,6 +7,12 @@ public class NotificationUtil {
     } 
 
     public static String loginCredentials(String password, String phoneNumber, String name, String role) {
-        return "Hello" + name + "Your login credentials on the Shortly app as a " + role + " are - Phone: " + phoneNumber + ", Password: " + password;
+        return "Hello " + name + "  Your login credentials on the Shortly app as a " + role + " are - Phone: " + phoneNumber + ", Password: " + password;
     } 
+
+
+    public static String generateResetPasswordMessage(String baseUrl, String token, String name) {
+        return "Hello, " + name + ".  use the below link to reset your password:"  + baseUrl + "/reset-password/" + token;
+    }
+    
 }

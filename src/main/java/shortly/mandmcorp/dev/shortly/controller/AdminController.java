@@ -1,5 +1,9 @@
 package shortly.mandmcorp.dev.shortly.controller;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -22,6 +26,8 @@ import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.LocationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.OfficeResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.impl.UserService;
 
@@ -85,5 +91,39 @@ public class AdminController {
     })
     public LocationResponse updateLocation(@PathVariable String id, @RequestBody @Valid LocationUpdateRequest updateRequest) {
         return officeService.updateLocation(id, updateRequest);
+    }
+
+    @PutMapping("/user/{userId}/status/{status}")
+    @Operation(summary = "Change user availability status", description = "Admin endpoint to change user availability status")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User status changed successfully"),
+        @ApiResponse(responseCode = "404", description = "User not found"),
+        @ApiResponse(responseCode = "400", description = "Invalid status value")
+    })
+    public UserResponse chageUserAvailabiltyStatus(@PathVariable String userId, @PathVariable String status) {
+        return userService.chageUserAvailabiltyStatus(userId, status);
+    }
+
+
+    @DeleteMapping("/user/{userId}")
+    @Operation(summary = "Delete a user", description = "Admin endpoint to delete a user")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User deleted successfully"),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    public UserResponse deleteUser(@PathVariable String userId) {
+        return userService.deleteUser(userId);
+    }
+    
+    @GetMapping("/users")
+    @Operation(summary = "Get all users", description = "Admin/Manager endpoint to retrieve all users with pagination")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
+    })
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userService.getAllUsers(pageable);
     }
 }

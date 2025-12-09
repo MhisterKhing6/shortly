@@ -1,5 +1,8 @@
 package shortly.mandmcorp.dev.shortly.service.user;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import shortly.mandmcorp.dev.shortly.dto.request.ForgetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ResetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserLoginRequestDto;
@@ -7,6 +10,7 @@ import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.model.User;
 
 
 
@@ -65,4 +69,12 @@ public interface UserServiceInterface {
      * @throws IllegalArgumentException if OTP is invalid or expired
      */
     public UserResponse resetPassword(ResetPasswordRequest restPasswordRequest);
+
+
+    public UserResponse deleteUser(String UserId);
+
+    public UserResponse chageUserAvailabiltyStatus(String userId, String status);
+
+    Page<User> getAllUsers(Pageable pageable);
+
 }

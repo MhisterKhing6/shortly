@@ -11,6 +11,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -23,7 +25,6 @@ import shortly.mandmcorp.dev.shortly.enums.UserStatusEnum;
 @Document(collection = "users")
 public class User implements UserDetails {
     @Id
-    @Field("_id")
     private String userId;
 
     @NotBlank
@@ -35,6 +36,7 @@ public class User implements UserDetails {
     private String email;
 
     @NotBlank
+    @JsonIgnore
     private String passwordHash;
 
     @NotNull
