@@ -19,4 +19,8 @@ public class NotificationUtil {
         return "Hello " + name + ", you have been assigned " + parcelCount + " new parcels for delivery. Please check your dashboard for details.";
     }
     
+
+    public static String generateParcelStatusUpdateMsg(String parcelCode, String status) {
+        return "The status of your parcel with code " + parcelCode + " has been updated to: " + status;
+    }
 }

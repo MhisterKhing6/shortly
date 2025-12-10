@@ -153,8 +153,19 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             assignment.setCompletedAt(System.currentTimeMillis());
             assignment.getOrderId().setDelivered(true);
             parcelRepository.save(assignment.getOrderId());
+            //send sms to rider
+            Parcel parcel = assignment.getOrderId();
+            String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
+            NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(message).to(parcel.getDriver().getPhoneNumber()).build();
+            notification.send(notify);
+            parcel.setDelivered(true);
+            parcelRepository.save(parcel);
         }
-        
+        else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
+            assignment.getOrderId().setDelivered(false);
+            assignment.getOrderId().setParcelAssigned(false);
+            parcelRepository.save(assignment.getOrderId());
+        }
         deliveryAssignmentsRepository.save(assignment);
         return new UserResponse("Delivery status updated successfully", rider.getPhoneNumber());
     }
