@@ -14,5 +14,9 @@ public class NotificationUtil {
     public static String generateResetPasswordMessage(String baseUrl, String token, String name) {
         return "Hello, " + name + ".  use the below link to reset your password:"  + baseUrl + "/reset-password/" + token;
     }
+
+    public static String genrateRiderAssMsg(String name, int parcelCount) {
+        return "Hello " + name + ", you have been assigned " + parcelCount + " new parcels for delivery. Please check your dashboard for details.";
+    }
     
 }

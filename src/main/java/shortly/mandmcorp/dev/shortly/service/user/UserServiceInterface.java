@@ -5,8 +5,10 @@ import org.springframework.data.domain.Pageable;
 
 import shortly.mandmcorp.dev.shortly.dto.request.ForgetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ResetPasswordRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserLoginRequestDto;
 import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.UserUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
@@ -76,5 +78,9 @@ public interface UserServiceInterface {
     public UserResponse chageUserAvailabiltyStatus(String userId, String status);
 
     Page<User> getAllUsers(Pageable pageable);
+    
+    UserResponse updateProfile(UserUpdateRequest updateRequest);
+    
+    UserResponse updateRiderStatus(RiderStatusUpdateRequest statusRequest);
 
 }

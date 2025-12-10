@@ -7,24 +7,32 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.config.BackenServerConfig;
 import shortly.mandmcorp.dev.shortly.config.security.JWTConfig;
-
 import shortly.mandmcorp.dev.shortly.dto.request.ForgetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ResetPasswordRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserLoginRequestDto;
 import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.UserUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.UserStatusEnum;
+import shortly.mandmcorp.dev.shortly.enums.UserRole;
+import shortly.mandmcorp.dev.shortly.exceptions.EntityAlreadyExist;
+import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
+import shortly.mandmcorp.dev.shortly.model.RiderStatusModel;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.model.VerificationToken;
+import shortly.mandmcorp.dev.shortly.repository.RiderStatusRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.repository.VerificationTokenRepository;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
@@ -33,8 +41,6 @@ import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.OtpUtil;
 import shortly.mandmcorp.dev.shortly.utils.UserMapper;
-import shortly.mandmcorp.dev.shortly.exceptions.EntityAlreadyExist;
-import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 
 /**
  * Service implementation for user management operations.
@@ -55,9 +61,10 @@ public class UserService implements UserServiceInterface {
     private final JWTConfig jwt;
     private final VerificationTokenRepository verificationTokenRepository;
     private final BackenServerConfig backendConfig;
+    private final RiderStatusRepository riderStatusRepository;
 
 
-    public UserService(BackenServerConfig backend,UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification, PasswordEncoder passwordEncoder, JWTConfig jwtConfig, VerificationTokenRepository verificationTokenRepository) {
+    public UserService(BackenServerConfig backend,UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification, PasswordEncoder passwordEncoder, JWTConfig jwtConfig, VerificationTokenRepository verificationTokenRepository, RiderStatusRepository riderStatusRepository) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.notification = smsNotification;
@@ -65,6 +72,7 @@ public class UserService implements UserServiceInterface {
         this.jwt = jwtConfig;
         this.verificationTokenRepository = verificationTokenRepository;
         this.backendConfig = backend;
+        this.riderStatusRepository = riderStatusRepository;
     }   
 
     /**
@@ -88,6 +96,15 @@ public class UserService implements UserServiceInterface {
         userRequestDetails.setPassword(password);
         User newUser = userMapper.toEntity(userRequestDetails);
         userRepository.save(newUser);
+        
+        // Create rider status if user is a rider
+        if(newUser.getRole() == UserRole.RIDER) {
+            RiderStatusModel riderStatus = new RiderStatusModel();
+            riderStatus.setRider(newUser);
+            riderStatus.setRiderStatus(shortly.mandmcorp.dev.shortly.enums.RiderStatus.OFFLINE);
+            riderStatusRepository.save(riderStatus);
+        }
+        
         String message = NotificationUtil.loginCredentials(password, newUser.getPhoneNumber(), newUser.getName(), newUser.getRole().name());
         NotificationRequestTemplate loginCredentails =  NotificationRequestTemplate.builder().body(message).to(newUser.getPhoneNumber()).build();
         notification.send(loginCredentails);
@@ -222,6 +239,71 @@ public class UserService implements UserServiceInterface {
     @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     public Page<User> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable);
+    }
+
+    /**
+     * Updates authenticated user's profile information.
+     * 
+     * @param updateRequest profile update data
+     * @return UserResponse with success message
+     * @throws WrongCredentialsException if user not authenticated
+     * @throws EntityAlreadyExist if phone number already exists
+     */
+    @Override
+    public UserResponse updateProfile(UserUpdateRequest updateRequest) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        
+        User user = (User) auth.getPrincipal();
+        User currentUser = userRepository.findById(user.getUserId())
+            .orElseThrow(() -> new EntityNotFound("User not found"));
+        
+        if(updateRequest.getPhoneNumber() != null && !updateRequest.getPhoneNumber().equals(currentUser.getPhoneNumber())) {
+            User existingUser = userRepository.findByPhoneNumber(updateRequest.getPhoneNumber());
+            if(existingUser != null) {
+                throw new EntityAlreadyExist("Phone number already exists");
+            }
+            currentUser.setPhoneNumber(updateRequest.getPhoneNumber());
+        }
+        
+        if(updateRequest.getName() != null) currentUser.setName(updateRequest.getName());
+        if(updateRequest.getEmail() != null) currentUser.setEmail(updateRequest.getEmail());
+        
+        userRepository.save(currentUser);
+        return new UserResponse("Profile updated successfully", currentUser.getPhoneNumber());
+    }
+
+    /**
+     * Updates rider status for authenticated rider.
+     * 
+     * @param statusRequest status update request
+     * @return UserResponse with success message
+     * @throws WrongCredentialsException if user not authenticated or not a rider
+     */
+    @Override
+    public UserResponse updateRiderStatus(RiderStatusUpdateRequest statusRequest) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        
+        User user = (User) auth.getPrincipal();
+        if(user.getRole() != UserRole.RIDER) {
+            throw new WrongCredentialsException("Only riders can update status");
+        }
+        
+        RiderStatusModel riderStatus = riderStatusRepository.findByRider(user);
+        if(riderStatus == null) {
+            riderStatus = new RiderStatusModel();
+            riderStatus.setRider(user);
+        }
+        
+        riderStatus.setRiderStatus(statusRequest.getRiderStatus());
+        riderStatusRepository.save(riderStatus);
+        
+        return new UserResponse("Rider status updated successfully", user.getPhoneNumber());
     }
 
 }

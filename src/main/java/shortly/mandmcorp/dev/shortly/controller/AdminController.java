@@ -9,15 +9,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.dto.request.LocationRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.LocationUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.OfficeRequest;
@@ -25,10 +26,12 @@ import shortly.mandmcorp.dev.shortly.dto.request.OfficeUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.LocationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.OfficeResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
+import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.impl.UserService;
 
 @RestController
@@ -37,7 +40,9 @@ import shortly.mandmcorp.dev.shortly.service.user.impl.UserService;
 @Tag(name = "Admin Management", description = "APIs for admin operations")
 public class AdminController {
     private final UserService userService;
-    private final OfficeServiceInterface officeService;  
+    private final OfficeServiceInterface officeService;
+    private final ParcelServiceInterface parcelService;
+
     @PostMapping("/register")
     @Operation(summary = "Register a new user", description = "Admin endpoint to register a new user")
     @SecurityRequirement(name = "Bearer Authentication")
@@ -125,5 +130,25 @@ public class AdminController {
     })
     public Page<User> getAllUsers(Pageable pageable) {
         return userService.getAllUsers(pageable);
+    }
+
+
+    @GetMapping("/parcels")
+    @Operation(summary = "Search parcels", description = "Search parcels with various filters and pagination")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully")
+    })
+    public Page<ParcelResponse> searchParcels(
+            @RequestParam(required = false) Boolean isPOD,
+            @RequestParam(required = false) Boolean isDelivered,
+            @RequestParam(required = false) Boolean isParcelAssigned,
+            @RequestParam(required = false) String officeId,
+            @RequestParam(required = false) String driverId,
+            @RequestParam(required = false) String hasCalled,
+             @RequestParam(required = false) String limit,
+            @RequestParam(required = false) String page,
+            Pageable pageable) {
+        return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, officeId, driverId, hasCalled, pageable, false);
     }
 }
