@@ -4,6 +4,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.mongodb.core.BulkOperations;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,8 +17,8 @@ import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
-import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
@@ -24,11 +29,11 @@ import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
-import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
+import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
 
 
 
@@ -49,14 +54,16 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     private final ParcelRepository parcelRepository;
     private final NotificationInterface notification;
     private final ParcelMapper parcelMapper;
+    private MongoTemplate mongoTemplate;
 
     public RiderServiceImplementation(DeliveryAssignmentsRepository deliveryAssignmentsRepository, UserRepository userRepository, ParcelRepository parcelRepository, 
-        @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper) {
+        @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate) {
         this.deliveryAssignmentsRepository = deliveryAssignmentsRepository;
         this.userRepository = userRepository;
         this.parcelRepository = parcelRepository;
         this.notification = notification;
         this.parcelMapper = parcelMapper;
+        this.mongoTemplate = mongoTemplate;
     }
     
     /**
@@ -209,5 +216,48 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         response.setAcceptedAt(assignment.getAcceptedAt());
         response.setCompletedAt(assignment.getCompletedAt());
         return response;
+    }
+
+    /**
+     * Gets all delivery assignments for a specific rider with payment filter.
+     * Returns assignments with full parcel details including driver, sender, and receiver.
+     * 
+     * @param riderId rider ID to get assignments for
+     * @param payed filter by payment status
+     * @return List of delivery assignments with full parcel details
+     * @throws EntityNotFound if rider not found
+     */
+    @Override
+    public List<DeliveryAssignmentResponse> getRiderAssignmentsByRiderId(String riderId, boolean payed) {
+        if(!userRepository.existsById(riderId)) {
+            throw new EntityNotFound("Rider not found");
+        }
+        
+        List<DeliveryAssignments> assignments = deliveryAssignmentsRepository.findByRiderIdUserIdAndPayed(riderId, payed);
+        return assignments.stream().map(this::toDeliveryAssignmentResponse).collect(Collectors.toList());
+    }
+
+    /**
+     * Marks multiple delivery assignments as paid for reconciliation.
+     * Uses MongoDB bulk operations for efficient batch updates.
+     * Non-existent assignment IDs are silently skipped without errors.
+     * 
+     * @param reconcilationRiderRequest contains rider ID and list of assignment IDs
+     * @return UserResponse with success message
+     */
+    @Override
+    public UserResponse reconcilation(ReconcilationRiderRequest reconcilationRiderRequest) {
+        log.info("Starting reconciliation for rider: {}", reconcilationRiderRequest.getRiderId());
+        
+        BulkOperations bulk = mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, DeliveryAssignments.class);
+        for(String id : reconcilationRiderRequest.getAssignmentIds()) {
+            bulk.updateOne(
+                Query.query(Criteria.where("assignmentId").is(id)),
+                Update.update("payed", true)
+            );
+        }
+        bulk.execute();
+        
+        return new UserResponse("Reconciliation completed successfully", reconcilationRiderRequest.getRiderId());
     }
 }

@@ -22,7 +22,6 @@ public class OfficeMapper {
         response.setName(office.getName());
         response.setCode(office.getCode());
         response.setAddress(office.getAddress());
-        response.setCreatedAt(office.getCreatedAt());
         if(office.getLocation() != null) {
             response.setLocationName(office.getLocation().getName());
         }

@@ -21,8 +21,12 @@ import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
+import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+
+import java.util.List;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 
@@ -84,5 +88,29 @@ public class FrontDeskController {
     })
     public UserResponse assignParcelsToRider(@RequestBody @Valid DeliveryAssignmentRequest assignmentRequest) {
         return riderService.assignParcelsToRider(assignmentRequest);
+    }
+
+    @PostMapping("/reconcilation-parcels")
+    @Operation(summary = "Reconcile rider payments", description = "Mark multiple delivery assignments as paid for reconciliation")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reconciliation completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid reconciliation data")
+    })
+    public UserResponse reconcilationRider(@RequestBody @Valid ReconcilationRiderRequest reconcilationRequest) {
+        return riderService.reconcilation(reconcilationRequest);
+    }
+
+    @GetMapping("/rider/{riderId}/assignments")
+    @Operation(summary = "Get rider assignments", description = "Get all delivery assignments for a specific rider with payment filter")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Assignments retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "Rider not found")
+    })
+    public List<DeliveryAssignmentResponse> getRiderAssignments(
+            @PathVariable String riderId,
+            @RequestParam(defaultValue = "true") boolean payed) {
+        return riderService.getRiderAssignmentsByRiderId(riderId, payed);
     }
 }

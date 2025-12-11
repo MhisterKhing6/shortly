@@ -1,7 +1,6 @@
 package shortly.mandmcorp.dev.shortly.service.office.impl;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -57,7 +56,6 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         Office office = officeMapper.toEntity(officeRequest);
         office.setCode(generateOfficeCode());
         office.setLocation(location);
-        office.setCreatedAt(System.currentTimeMillis());
         
         if(officeRequest.getManagerId() != null) {
             User manager = userRepository.findById(officeRequest.getManagerId()).orElse(null);
