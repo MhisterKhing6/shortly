@@ -7,7 +7,6 @@ import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -16,9 +15,7 @@ import lombok.Data;
 public class VerificationToken {
     
     @Id
-    @Field("_id")
-    private String Id;
-    @NotBlank
+    private String id;
 
     @DBRef
     private User userId;

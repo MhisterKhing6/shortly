@@ -9,6 +9,6 @@ public class ResetPasswordRequest {
     private String newPassword;
 
     @NotBlank
-    private String verificaionId; 
+    private String verificationId; 
     
 }

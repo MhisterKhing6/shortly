@@ -7,5 +7,5 @@ import lombok.Data;
 public class ForgetPasswordRequest {
 
    @NotBlank
-   private String phonNumber; 
+   private String phoneNumber; 
 }

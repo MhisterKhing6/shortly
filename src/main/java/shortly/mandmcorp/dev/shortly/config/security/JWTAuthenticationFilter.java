@@ -16,6 +16,9 @@ import shortly.mandmcorp.dev.shortly.security.UserDetailService;
 
 import java.io.IOException;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.ExpiredJwtException;
+
 @Component
 @AllArgsConstructor
 @EnableMethodSecurity(prePostEnabled = true)
@@ -38,21 +41,35 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
         }
 
         jwt = authHeader.substring(7);
-        phoneNumber = jwtConfig.extractPhoneNumber(jwt);
+        
+        try {
+            phoneNumber = jwtConfig.extractPhoneNumber(jwt);
 
-        if (phoneNumber != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailService.loadUserByUsername(phoneNumber);
+            if (phoneNumber != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailService.loadUserByUsername(phoneNumber);
 
-            if (jwtConfig.validateToken(jwt, phoneNumber)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (jwtConfig.validateToken(jwt, phoneNumber)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
+        } catch (ExpiredJwtException e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"JWT token has expired\",\"data\":null}");
+            return;
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"Invalid JWT token\",\"data\":null}");
+            return;
         }
+        
         filterChain.doFilter(request, response);
     }
 }

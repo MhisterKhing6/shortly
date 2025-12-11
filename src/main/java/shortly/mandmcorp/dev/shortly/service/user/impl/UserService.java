@@ -142,7 +142,7 @@ public class UserService implements UserServiceInterface {
      */
     @Override
     public UserResponse requestPasswordReset(ForgetPasswordRequest fr) {
-        User user = userRepository.findByPhoneNumber(fr.getPhonNumber());
+        User user = userRepository.findByPhoneNumber(fr.getPhoneNumber());
         if(user == null) {
             throw new WrongCredentialsException("User not found");
         }
@@ -170,8 +170,16 @@ public class UserService implements UserServiceInterface {
      */
     @Override
     public UserResponse resetPassword(ResetPasswordRequest fr) {
-        VerificationToken token = verificationTokenRepository.findById(fr.getVerificaionId())
-            .orElseThrow(() -> new WrongCredentialsException("Invalid token"));
+        String tokenId = fr.getVerificationId();
+        log.info("Resetting password for verification ID: {}", tokenId);
+        
+        VerificationToken token = verificationTokenRepository.findById(tokenId)
+            .orElseThrow(() -> {
+                log.error("Token not found in database: {}", tokenId);
+                return new WrongCredentialsException("Invalid token");
+            });
+        
+        log.info("Token found successfully for ID: {}", tokenId);
         
         if(token.getCreatedAt().plusMinutes(5).isBefore(LocalDateTime.now())) {
             throw new WrongCredentialsException("Token expired");
