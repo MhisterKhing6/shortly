@@ -27,6 +27,8 @@ public class Parcel {
     private String shelfNumber;
     private String hasCalled;
 
+    private String inboudPayed;
+
     @DBRef
     private Contacts driver;
 

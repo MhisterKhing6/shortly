@@ -162,4 +162,26 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         }
     }
 
+    /**
+     * Gets all parcels for a specific driver with POD and inbound payment filters.
+     * Returns parcels with driver, sender, and receiver resolved to objects.
+     * 
+     * @param driverId driver ID to get parcels for
+     * @param isPOD filter by POD status
+     * @param inboundPayed filter by inbound payment status
+     * @return List of parcels with resolved contact objects
+     * @throws EntityNotFound if driver not found
+     */
+    @Override
+    public java.util.List<ParcelResponse> getParcelsByDriverId(String driverId, boolean isPOD, String inboundPayed) {
+        if(!contactRepository.existsById(driverId)) {
+            throw new EntityNotFound("Driver not found");
+        }
+        
+        java.util.List<Parcel> parcels = parcelRepository.findByDriverIdAndIsPODAndInboudPayed(driverId, isPOD, inboundPayed);
+        return parcels.stream()
+            .map(parcel -> parcelMapper.toResponse(parcel, parcel.getDriver(), parcel.getSender(), parcel.getReceiver()))
+            .collect(java.util.stream.Collectors.toList());
+    }
+
 }

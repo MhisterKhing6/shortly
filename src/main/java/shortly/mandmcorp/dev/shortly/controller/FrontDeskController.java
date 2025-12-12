@@ -113,4 +113,18 @@ public class FrontDeskController {
             @RequestParam(defaultValue = "true") boolean payed) {
         return riderService.getRiderAssignmentsByRiderId(riderId, payed);
     }
+
+    @GetMapping("/driver/{driverId}/parcels")
+    @Operation(summary = "Get driver parcels", description = "Get all parcels for a specific driver with POD and inbound payment filters")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "Driver not found")
+    })
+    public List<ParcelResponse> getDriverParcels(
+            @PathVariable String driverId,
+            @RequestParam(defaultValue = "true") boolean isPOD,
+            @RequestParam(defaultValue = "false") String inboundPayed) {
+        return parcelService.getParcelsByDriverId(driverId, isPOD, inboundPayed);
+    }
 }

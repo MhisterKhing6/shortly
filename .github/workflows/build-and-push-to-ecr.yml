@@ -1,0 +1,43 @@
+name: Build and Push to ECR + Refresh ASG
+
+on:
+  push:
+    branches:
+      - deploy
+
+jobs:
+  build-push-refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }} 
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: your-ecr-repo-name  
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Start ASG instance refresh
+        run: |
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name your-asg-name \  # <<< REPLACE with your ASG name
+            --strategy Rolling \                       # Rolling (default): updates gradually; or Rolling:AllAtOnce for faster
+            --min-healthy-percentage 90 \              # Keep 90% healthy during refresh (adjust based on your app)
+            --instance-warmup 300                      # Seconds for new instances to warm up (e.g., health checks pass)

@@ -19,4 +19,6 @@ public interface ParcelRepository extends MongoRepository<Parcel, String> {
     
     @Query("{}")
     Page<Parcel> findAllParcels(Pageable pageable);
+    
+    java.util.List<Parcel> findByDriverIdAndIsPODAndInboudPayed(String driverId, boolean isPOD, String inboundPayed);
 }
