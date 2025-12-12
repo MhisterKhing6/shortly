@@ -120,7 +120,7 @@ public class UserController {
         @ApiResponse(responseCode = "200", description = "Application is healthy")
     })
     public String health() {
-        return "OK";
+        return "OK Ok";
     }
 
     

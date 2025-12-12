@@ -38,6 +38,5 @@ jobs:
       - name: Start ASG instance refresh
         run: |
           aws autoscaling start-instance-refresh \
-            --auto-scaling-group-name your-asg-name \  # <<< REPLACE with your ASG name
-            --strategy Rolling \
+            --auto-scaling-group-name parcel-automation-backend-servers \  
             --preferences '{"MinHealthyPercentage":90,"InstanceWarmup":300}'
