@@ -1,3 +1,7 @@
+server:
+  servlet:
+    context-path: /shortly
+
 spring:
   application:
     name: shortly
@@ -24,4 +28,7 @@ jwt:
   secretKey: ${JWT_ACCESS_KEY}
   refreshKey: ${JWT_REFERESH_KEY}
   expirationTime: ${JWT_EXPIRATIONTIME}
+
+springdoc:
+  dev-url: https://backend.mandmservicescorp.org/shortly
 

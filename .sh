@@ -68,4 +68,5 @@ docker run -d \
   -e JWT_REFRESH_KEY="mySecretRefreshKey987654321zyxwvutsrqponmlkjihgfedcba" \
   -e JWT_EXPIRATION_TIME="286400000" \
   -e FRONTEND_HOST="http://localhost:8080" \
+  -e APP_URL="https://web-server-1368246382.eu-north-1.elb.amazonaws.com" \
   $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
