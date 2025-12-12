@@ -196,7 +196,7 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         response.setRegion(location.getRegion());
         response.setCountry(location.getCountry());
         response.setOffices(offices.stream().map(officeMapper::toResponse).collect(Collectors.toList()));
-        
+
         return response;
     }
     

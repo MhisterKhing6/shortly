@@ -13,6 +13,9 @@ public class OfficeMapper {
         Office office = new Office();
         office.setName(request.getName());
         office.setAddress(request.getAddress());
+        office.setPhoneNumber(request.getPhoneNumber());
+        office.setCreatedAt(System.currentTimeMillis());
+        office.setUpdatedAt(System.currentTimeMillis());
         return office;
     }
     
@@ -22,6 +25,9 @@ public class OfficeMapper {
         response.setName(office.getName());
         response.setCode(office.getCode());
         response.setAddress(office.getAddress());
+        response.setPhoneNumber(office.getPhoneNumber());
+        response.setCreatedAt(office.getCreatedAt());
+        response.setUpdatedAt(office.getUpdatedAt());
         if(office.getLocation() != null) {
             response.setLocationName(office.getLocation().getName());
         }
