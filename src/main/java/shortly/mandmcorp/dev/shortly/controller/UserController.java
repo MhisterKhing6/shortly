@@ -19,7 +19,6 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.dto.request.ForgetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ResetPasswordRequest;
-import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserLoginRequestDto;
 import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserUpdateRequest;
@@ -113,6 +112,15 @@ public class UserController {
     })
     public UserResponse updateProfile(@RequestBody @Valid UserUpdateRequest updateRequest) {
         return userService.updateProfile(updateRequest);
+    }
+
+    @GetMapping("/health")
+    @Operation(summary = "Health check", description = "Returns application health status")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Application is healthy")
+    })
+    public String health() {
+        return "OK";
     }
 
     
