@@ -16,8 +16,8 @@ mnotify:
   sender: ShortlyPush
   baseUrl: https://api.mnotify.com/api/sms
 
-backend-server:
-  baseUrl: ${BACKEND_HOST}
+frontend-server:
+  baseUrl: ${FRONTEND_HOST}
   
 
 jwt:

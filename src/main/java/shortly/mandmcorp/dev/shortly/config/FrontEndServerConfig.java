@@ -8,6 +8,6 @@ import lombok.Data;
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "backend-server")
-public class BackenServerConfig {
+public class FrontEndServerConfig {
     private String baseUrl;
 }

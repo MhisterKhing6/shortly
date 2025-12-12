@@ -13,7 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
-import shortly.mandmcorp.dev.shortly.config.BackenServerConfig;
+import shortly.mandmcorp.dev.shortly.config.FrontEndServerConfig;
 import shortly.mandmcorp.dev.shortly.config.security.JWTConfig;
 import shortly.mandmcorp.dev.shortly.dto.request.ForgetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ResetPasswordRequest;
@@ -24,8 +24,8 @@ import shortly.mandmcorp.dev.shortly.dto.request.UserUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
-import shortly.mandmcorp.dev.shortly.enums.UserStatusEnum;
 import shortly.mandmcorp.dev.shortly.enums.UserRole;
+import shortly.mandmcorp.dev.shortly.enums.UserStatusEnum;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityAlreadyExist;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
@@ -60,18 +60,18 @@ public class UserService implements UserServiceInterface {
     private final PasswordEncoder passwordEncoder;
     private final JWTConfig jwt;
     private final VerificationTokenRepository verificationTokenRepository;
-    private final BackenServerConfig backendConfig;
+    private final FrontEndServerConfig frontendConfig;
     private final RiderStatusRepository riderStatusRepository;
 
 
-    public UserService(BackenServerConfig backend,UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification, PasswordEncoder passwordEncoder, JWTConfig jwtConfig, VerificationTokenRepository verificationTokenRepository, RiderStatusRepository riderStatusRepository) {
+    public UserService(FrontEndServerConfig frontend,UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification, PasswordEncoder passwordEncoder, JWTConfig jwtConfig, VerificationTokenRepository verificationTokenRepository, RiderStatusRepository riderStatusRepository) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.notification = smsNotification;
         this.passwordEncoder = passwordEncoder;
         this.jwt = jwtConfig;
         this.verificationTokenRepository = verificationTokenRepository;
-        this.backendConfig = backend;
+        this.frontendConfig = frontend;
         this.riderStatusRepository = riderStatusRepository;
     }   
 
@@ -153,7 +153,7 @@ public class UserService implements UserServiceInterface {
         token.setCreatedAt(LocalDateTime.now());
         verificationTokenRepository.save(token);
         
-        String otpMessage = NotificationUtil.generateResetPasswordMessage(backendConfig.getBaseUrl(), token.getId(), user.getName());
+        String otpMessage = NotificationUtil.generateResetPasswordMessage(frontendConfig.getBaseUrl(), token.getId(), user.getName());
         NotificationRequestTemplate otpRequest = NotificationRequestTemplate.builder().body(otpMessage).to(user.getPhoneNumber()).build();
         notification.send(otpRequest);
         UserResponse userResponse = new UserResponse("Otp sent kindly check sms", otp);
