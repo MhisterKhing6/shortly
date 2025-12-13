@@ -157,7 +157,7 @@ public class UserService implements UserServiceInterface {
         String otpMessage = NotificationUtil.generateOtpMessage(otp) ;
         NotificationRequestTemplate otpRequest = NotificationRequestTemplate.builder().body(otpMessage).to(user.getPhoneNumber()).build();
         notification.send(otpRequest);
-        UserResponse userResponse = new UserResponse("Otp sent kindly check sms", otp);
+        UserResponse userResponse = new UserResponse("Otp sent kindly check sms", token.getId());
         return userResponse;
     }
 
