@@ -26,6 +26,7 @@ public class ParcelRequest {
     @NotBlank(message = "Driver name is required")
     private String driverName;
 
+
     @NotBlank(message = "Driver phone number is required")
     @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Invalid phone number format")
     private String driverPhoneNumber;

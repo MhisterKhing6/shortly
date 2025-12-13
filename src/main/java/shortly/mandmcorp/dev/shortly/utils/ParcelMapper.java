@@ -9,6 +9,7 @@ import shortly.mandmcorp.dev.shortly.enums.ContactType;
 import shortly.mandmcorp.dev.shortly.model.Contacts;
 import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
+import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.repository.ContaceRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;   
 
@@ -19,7 +20,7 @@ public class ParcelMapper {
     private final ContaceRepository contactRepository;
     private final OfficeRepository officeRepository;
     
-    public Parcel toEntity(ParcelRequest request, Contacts driver, Contacts sender, Contacts receiver) {
+    public Parcel toEntity(ParcelRequest request, Contacts driver, Contacts sender, Contacts receiver, Shelf shelf) {
         Parcel parcel = new Parcel();
         parcel.setSender(sender);
         parcel.setReceiver(receiver);
@@ -32,7 +33,7 @@ public class ParcelMapper {
         parcel.setFragile(request.isFragile());
         parcel.setDeliveryCost(request.getDeliveryCost());
         parcel.setStorageCost(request.getStorageCost());
-        parcel.setShelfNumber(request.getShelfNumber());
+        parcel.setShelf(shelf);
         parcel.setDriver(driver);
         return parcel;
     }

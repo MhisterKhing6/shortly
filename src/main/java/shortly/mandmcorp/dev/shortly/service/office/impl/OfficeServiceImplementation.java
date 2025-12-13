@@ -13,16 +13,20 @@ import shortly.mandmcorp.dev.shortly.dto.request.LocationRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.LocationUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.OfficeRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.OfficeUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.ShelfRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.LocationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.LocationWithOfficesResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.OfficeResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityAlreadyExist;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.model.Location;
 import shortly.mandmcorp.dev.shortly.model.Office;
+import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.repository.LocationRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
+import shortly.mandmcorp.dev.shortly.repository.ShelfRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.utils.OfficeMapper;
@@ -36,6 +40,7 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
     private final UserRepository userRepository;
     private final LocationRepository locationRepository;
     private final OfficeMapper officeMapper;
+    private final ShelfRepository shelfRepository;
     
     @Override
     @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
@@ -198,6 +203,28 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         response.setOffices(offices.stream().map(officeMapper::toResponse).collect(Collectors.toList()));
 
         return response;
+    }
+
+    @Override
+    public UserResponse addShelf(ShelfRequest shelf ) {
+        Office office = officeRepository.findById(shelf.getOfficeId())
+            .orElseThrow(() -> new EntityNotFound("Office not found"));
+        Shelf savedShelf = shelfRepository.findByNameAndOffice(shelf.getName(), office);
+        if(savedShelf != null) {
+            throw new EntityAlreadyExist("Shelf with the same name already exist");
+        }
+        Shelf shelfEntity = new Shelf();
+        shelfEntity.setName(shelf.getName());
+        shelfEntity.setOffice(office);
+        shelfRepository.save(shelfEntity);
+        return new UserResponse("shelf saved successfully", shelfEntity.getId() );
+    }
+
+    @Override
+    public List<Shelf> getOfficeShelf(String officeId) {
+        Office office = officeRepository.findById(officeId)
+            .orElseThrow(() -> new EntityNotFound("Office not found"));
+        return shelfRepository.findByOffice(office);
     }
     
     private String generateOfficeCode() {

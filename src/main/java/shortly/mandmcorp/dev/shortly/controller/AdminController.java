@@ -1,5 +1,7 @@
 package shortly.mandmcorp.dev.shortly.controller;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,12 +25,14 @@ import shortly.mandmcorp.dev.shortly.dto.request.LocationRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.LocationUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.OfficeRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.OfficeUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.ShelfRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.LocationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.OfficeResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
@@ -63,6 +67,28 @@ public class AdminController {
     })
     public OfficeResponse addOffice(@RequestBody @Valid OfficeRequest officeRequest) {
         return officeService.addOffice(officeRequest);
+    }
+
+    @PostMapping("/shelf")
+    @Operation(summary = "Add a new office", description = "Admin endpoint and manager endpoint to add new office shelf")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "shelf added successfully"),
+        @ApiResponse(responseCode = "409", description = "shelf already exists")
+    })
+    public UserResponse addShelf(@RequestBody @Valid ShelfRequest shelf) {
+        return officeService.addShelf(shelf);
+    }
+
+    @GetMapping("/shelf/office/{id}")
+    @Operation(summary = "get a list of office shelf", description = "An endpoint to add shelfs")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "shelf retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "office not found")
+    })
+    public List<Shelf> getshelffsOffice(@PathVariable String id) {
+        return officeService.getOfficeShelf(id);
     }
     
     @PostMapping("/location")

@@ -20,7 +20,6 @@ public class Parcel {
     private boolean isFragile;
     private double deliveryCost;
     private double storageCost;
-    private String shelfNumber;
     private String hasCalled;
 
     private String inboudPayed;
@@ -30,6 +29,9 @@ public class Parcel {
 
     @DBRef
     private Contacts receiver;
+
+    @DBRef
+    private Shelf shelf;  
 
     @DBRef
     private Contacts sender;
