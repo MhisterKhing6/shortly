@@ -20,6 +20,9 @@ public class VerificationToken {
     @DBRef
     private User userId;
     
+    @DBRef
+    private String code;
+    
     @CreatedDate
     private LocalDateTime createdAt;
     

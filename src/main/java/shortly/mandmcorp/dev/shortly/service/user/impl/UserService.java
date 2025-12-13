@@ -151,9 +151,10 @@ public class UserService implements UserServiceInterface {
         VerificationToken token = new VerificationToken();
         token.setUserId(user);
         token.setCreatedAt(LocalDateTime.now());
+        token.setCode(otp);
         verificationTokenRepository.save(token);
         
-        String otpMessage = NotificationUtil.generateResetPasswordMessage(frontendConfig.getBaseUrl(), token.getId(), user.getName());
+        String otpMessage = NotificationUtil.generateOtpMessage(otp) ;
         NotificationRequestTemplate otpRequest = NotificationRequestTemplate.builder().body(otpMessage).to(user.getPhoneNumber()).build();
         notification.send(otpRequest);
         UserResponse userResponse = new UserResponse("Otp sent kindly check sms", otp);
@@ -178,7 +179,9 @@ public class UserService implements UserServiceInterface {
                 log.error("Token not found in database: {}", tokenId);
                 return new WrongCredentialsException("Invalid token");
             });
-        
+        if(token.getCode() != fr.getVerificationCode()) {
+            throw new WrongCredentialsException("Invalid code");
+        }
         log.info("Token found successfully for ID: {}", tokenId);
         
         if(token.getCreatedAt().plusMinutes(5).isBefore(LocalDateTime.now())) {

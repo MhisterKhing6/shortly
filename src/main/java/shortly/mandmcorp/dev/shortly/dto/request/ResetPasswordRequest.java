@@ -10,5 +10,8 @@ public class ResetPasswordRequest {
 
     @NotBlank
     private String verificationId; 
+
+    @NotBlank
+    private String verificationCode;
     
 }
