@@ -52,10 +52,10 @@ public class User implements UserDetails {
     private UserRole role;
 
     @CreatedDate
-    private LocalDateTime createdAt;
+    private Long createdAt;
 
     @LastModifiedDate
-    private LocalDateTime updatedAt;
+    private Long updatedAt;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

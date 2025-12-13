@@ -19,10 +19,10 @@ public class Location {
     private String country;
     
     @CreatedDate
-    private LocalDateTime createdAt;
+    private Long createdAt;
     
     @LastModifiedDate
-    private LocalDateTime updatedAt;
+    private Long updatedAt;
 
 }
 

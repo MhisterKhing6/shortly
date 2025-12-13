@@ -31,8 +31,8 @@ public class DeliveryAssignments {
     private boolean payed;
     
     @CreatedDate
-    private LocalDateTime createdAt;
+    private Long createdAt;
     
     @LastModifiedDate
-    private LocalDateTime updatedAt;
+    private Long updatedAt;
 }
