@@ -206,6 +206,7 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
     }
 
     @Override
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     public UserResponse addShelf(ShelfRequest shelf ) {
         Office office = officeRepository.findById(shelf.getOfficeId())
             .orElseThrow(() -> new EntityNotFound("Office not found"));

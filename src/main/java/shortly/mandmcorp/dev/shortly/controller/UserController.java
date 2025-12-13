@@ -1,8 +1,11 @@
 package shortly.mandmcorp.dev.shortly.controller;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,8 +30,11 @@ import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.ContactType;
 import shortly.mandmcorp.dev.shortly.model.Contacts;
+import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.service.contact.ContactServiceInterface;
+import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
+
 
 
 
@@ -39,6 +45,7 @@ import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 public class UserController {
     private final UserServiceInterface userService;
     private final ContactServiceInterface contactService;
+    private final OfficeServiceInterface officeService;
 
     @PostMapping("/admin/register")
     @Operation(summary = "Register a new user", description = "Admin endpoint to register a new user in the system")
@@ -72,6 +79,16 @@ public class UserController {
         return userService.requestPasswordReset(fr);
     }
     
+     @GetMapping("/shelf/office/{id}")
+    @Operation(summary = "get a list of office shelf", description = "An endpoint to add shelfs")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "shelf retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "office not found")
+    })
+    public List<Shelf> getshelffsOffice(@PathVariable String id) {
+        return officeService.getOfficeShelf(id);
+    }
 
     @PostMapping("/reset-password")
     @Operation(summary = "Reset password", description = "Reset user password using verification token and new password")

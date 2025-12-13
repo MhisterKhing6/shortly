@@ -80,16 +80,7 @@ public class AdminController {
         return officeService.addShelf(shelf);
     }
 
-    @GetMapping("/shelf/office/{id}")
-    @Operation(summary = "get a list of office shelf", description = "An endpoint to add shelfs")
-    @SecurityRequirement(name = "Bearer Authentication")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "shelf retrieved successfully"),
-        @ApiResponse(responseCode = "404", description = "office not found")
-    })
-    public List<Shelf> getshelffsOffice(@PathVariable String id) {
-        return officeService.getOfficeShelf(id);
-    }
+   
     
     @PostMapping("/location")
     @Operation(summary = "Add a new location", description = "Admin endpoint to add a new location")
