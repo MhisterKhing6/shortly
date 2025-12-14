@@ -106,6 +106,10 @@ public class UserService implements UserServiceInterface {
         userRequestDetails.setPassword(password);
         User newUser = userMapper.toEntity(userRequestDetails);
         newUser.setOfficeId(office);
+    if(userRequestDetails.getRole() == UserRole.MANAGER) {
+        office.setManager(newUser);
+        officeRepository.save(office);
+        } 
         userRepository.save(newUser);
         
         // Create rider status if user is a rider
