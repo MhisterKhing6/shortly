@@ -29,9 +29,11 @@ import shortly.mandmcorp.dev.shortly.enums.UserStatusEnum;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityAlreadyExist;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
+import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.RiderStatusModel;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.model.VerificationToken;
+import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.RiderStatusRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.repository.VerificationTokenRepository;
@@ -62,9 +64,12 @@ public class UserService implements UserServiceInterface {
     private final VerificationTokenRepository verificationTokenRepository;
     private final FrontEndServerConfig frontendConfig;
     private final RiderStatusRepository riderStatusRepository;
+    private final OfficeRepository officeRepository;
 
 
-    public UserService(FrontEndServerConfig frontend,UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification, PasswordEncoder passwordEncoder, JWTConfig jwtConfig, VerificationTokenRepository verificationTokenRepository, RiderStatusRepository riderStatusRepository) {
+    public UserService(FrontEndServerConfig frontend,UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification, 
+    PasswordEncoder passwordEncoder, JWTConfig jwtConfig, VerificationTokenRepository verificationTokenRepository, 
+    RiderStatusRepository riderStatusRepository, OfficeRepository officeRepository) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.notification = smsNotification;
@@ -73,6 +78,7 @@ public class UserService implements UserServiceInterface {
         this.verificationTokenRepository = verificationTokenRepository;
         this.frontendConfig = frontend;
         this.riderStatusRepository = riderStatusRepository;
+        this.officeRepository = officeRepository;
     }   
 
     /**
@@ -92,9 +98,14 @@ public class UserService implements UserServiceInterface {
             throw new EntityAlreadyExist("User already registered");  
         } 
 
+        Office office = officeRepository.findById(userRequestDetails.getOfficeId())
+            .orElseThrow(() -> new EntityNotFound("Office not found"));
+        
+         userRequestDetails.setOfficeId(office.getId());
         String password = OtpUtil.generateUserPassword();
         userRequestDetails.setPassword(password);
         User newUser = userMapper.toEntity(userRequestDetails);
+        newUser.setOfficeId(office);
         userRepository.save(newUser);
         
         // Create rider status if user is a rider
