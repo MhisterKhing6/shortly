@@ -6,7 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
 
-@Document(collation = "shelfs")
+@Document(collection = "shelfs")
 @Data
 public class Shelf {
     @Id
