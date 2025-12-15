@@ -21,7 +21,7 @@ public class Parcel {
     private double storageCost;
     private String hasCalled;
     private String driverId;
-    private Office officeId;
+    private String officeId;
     private String driverName;
     private String driverPhoneNumber;
     private String vehicleNumber;

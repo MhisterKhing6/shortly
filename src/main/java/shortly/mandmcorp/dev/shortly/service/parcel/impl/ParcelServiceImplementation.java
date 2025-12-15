@@ -69,16 +69,22 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         Parcel parcel = parcelMapper.toEntity(parcelRequest, driver, sender, receiver, null);
 
         if (parcelRequest.getOfficeId() != null) {
-            parcel.setOfficeId(parcelMapper.getOfficeById(parcelRequest.getOfficeId()));
+            Office office = officeRepository.findById(parcelRequest.getOfficeId())
+                    .orElseThrow(() -> new EntityNotFound("Office not found"));
+            parcel.setOfficeId(office.getId());
         } else {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.getPrincipal() instanceof User user) {
-                parcel.setOfficeId(user.getOfficeId());
+                parcel.setOfficeId(user.getOfficeId().getId());
             }
         }
 
         Shelf shelf = shelfRepository.findById(parcelRequest.getShelfNumber())
                 .orElseThrow(() -> new EntityNotFound("Shelf not found"));
+
+        if( !shelf.getOffice().getId().equals(parcel.getOfficeId())) {
+            throw new WrongCredentialsException("Shelf does not belong to the specified office");
+        }
         parcel.setShelfName(shelf.getName());
         parcel.setShelfId(shelf.getId());
         Parcel saved = parcelRepository.save(parcel);
