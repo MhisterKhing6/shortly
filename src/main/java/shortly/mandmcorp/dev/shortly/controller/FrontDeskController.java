@@ -1,5 +1,7 @@
 package shortly.mandmcorp.dev.shortly.controller;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,8 +27,7 @@ import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
-
-import java.util.List;
+import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 
@@ -57,7 +58,7 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "200", description = "Parcel updated successfully"),
         @ApiResponse(responseCode = "404", description = "Parcel not found")
     })
-    public ParcelResponse updateParcel(@PathVariable String id, @RequestBody @Valid ParcelUpdateRequest updateRequest) {
+    public Parcel updateParcel(@PathVariable String id, @RequestBody @Valid ParcelUpdateRequest updateRequest) {
         return parcelService.updateParcel(id, updateRequest);
     }
 
@@ -67,7 +68,7 @@ public class FrontDeskController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully")
     })
-    public Page<ParcelResponse> searchParcels(
+    public Page<Parcel> searchParcels(
             @RequestParam(required = false) Boolean isPOD,
             @RequestParam(required = false) Boolean isDelivered,
             @RequestParam(required = false) Boolean isParcelAssigned,
@@ -121,7 +122,7 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully"),
         @ApiResponse(responseCode = "404", description = "Driver not found")
     })
-    public List<ParcelResponse> getDriverParcels(
+    public List<Parcel> getDriverParcels(
             @PathVariable String driverId,
             @RequestParam(defaultValue = "true") boolean isPOD,
             @RequestParam(defaultValue = "false") String inboundPayed) {

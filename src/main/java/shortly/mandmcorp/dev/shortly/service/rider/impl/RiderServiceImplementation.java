@@ -162,7 +162,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             parcelRepository.save(assignment.getOrderId());
             Parcel parcel = assignment.getOrderId();
             String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
-            NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(message).to(parcel.getDriver().getPhoneNumber()).build();
+            NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(message).to(parcel.getDriverPhoneNumber()).build();
             notification.send(notify);
             parcel.setDelivered(true);
             parcelRepository.save(parcel);
@@ -208,8 +208,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         DeliveryAssignmentResponse response = new DeliveryAssignmentResponse();
         response.setAssignmentId(assignment.getAssignmentId());
         response.setRiderName(assignment.getRiderId().getName());
-        response.setParcel(parcelMapper.toResponse(assignment.getOrderId(), assignment.getOrderId().getDriver(), 
-                                                  assignment.getOrderId().getSender(), assignment.getOrderId().getReceiver()));
+        response.setParcel(assignment.getOrderId());
         response.setStatus(assignment.getStatus());
         response.setAssignedAt(assignment.getAssignedAt());
         response.setAcceptedAt(assignment.getAcceptedAt());

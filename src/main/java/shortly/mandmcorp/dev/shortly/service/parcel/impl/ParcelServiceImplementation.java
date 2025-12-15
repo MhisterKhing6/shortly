@@ -1,11 +1,21 @@
 package shortly.mandmcorp.dev.shortly.service.parcel.impl;
 
+import java.util.ArrayList;
+import java.util.List;
 
+import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import com.mongodb.DBRef;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +30,6 @@ import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
-import shortly.mandmcorp.dev.shortly.repository.ContaceRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.ShelfRepository;
@@ -28,171 +37,215 @@ import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
 
-
 @Service
 @Slf4j
 @AllArgsConstructor
 public class ParcelServiceImplementation implements ParcelServiceInterface {
-    
+
     private final ParcelRepository parcelRepository;
     private final ParcelMapper parcelMapper;
-    private final ContaceRepository contactRepository;
     private final OfficeRepository officeRepository;
     private final UserRepository userRepository;
     private final ShelfRepository shelfRepository;
+    private final MongoTemplate mongoTemplate;
 
     @Override
     public ParcelResponse addParcel(ParcelRequest parcelRequest) {
-        log.info("Adding new parcel for sender: {}", parcelRequest.getSenderName());
-        
-        Contacts sender = parcelMapper.getOrCreateSender(parcelRequest.getSenderPhoneNumber(), parcelRequest.getSenderName());
-        Contacts receiver = parcelMapper.getOrCreateReceiver(parcelRequest.getRecieverPhoneNumber(), parcelRequest.getReceiverName(), parcelRequest.getReceiverAddress());
-        Contacts driver = parcelMapper.getOrCreateDriver(parcelRequest.getDriverPhoneNumber(), parcelRequest.getDriverName(), parcelRequest.getVehicleNumber());
-        
+        Contacts sender = parcelMapper.getOrCreateSender(
+                parcelRequest.getSenderPhoneNumber(),
+                parcelRequest.getSenderName()
+        );
+        Contacts receiver = parcelMapper.getOrCreateReceiver(
+                parcelRequest.getRecieverPhoneNumber(),
+                parcelRequest.getReceiverName(),
+                parcelRequest.getReceiverAddress()
+        );
+        Contacts driver = parcelMapper.getOrCreateDriver(
+                parcelRequest.getDriverPhoneNumber(),
+                parcelRequest.getDriverName(),
+                parcelRequest.getVehicleNumber()
+        );
+
         Parcel parcel = parcelMapper.toEntity(parcelRequest, driver, sender, receiver, null);
-        
-        // Set officeId from request or authenticated user
-        if(parcelRequest.getOfficeId() != null) {
+
+        if (parcelRequest.getOfficeId() != null) {
             parcel.setOfficeId(parcelMapper.getOfficeById(parcelRequest.getOfficeId()));
         } else {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if(auth != null && auth.getPrincipal() instanceof User) {
-                User user = (User) auth.getPrincipal();
+            if (auth != null && auth.getPrincipal() instanceof User user) {
                 parcel.setOfficeId(user.getOfficeId());
             }
         }
-        log.debug("Mapped ParcelRequest to Parcel entity");
 
         Shelf shelf = shelfRepository.findById(parcelRequest.getShelfNumber())
-            .orElseThrow(() -> new EntityNotFound("Shelf not found"));
+                .orElseThrow(() -> new EntityNotFound("Shelf not found"));
+        parcel.setShelfName(shelf.getName());
+        parcel.setShelfId(shelf.getId());
+        Parcel saved = parcelRepository.save(parcel);
+        return parcelMapper.toResponse(saved, driver, sender, receiver);
+    }
 
-        parcel.setShelf(shelf);
-        Parcel savedParcel = parcelRepository.save(parcel);
-        log.info("Parcel saved successfully with ID: {}", savedParcel.getParcelId());
-        
-        return parcelMapper.toResponse(savedParcel, driver, sender, receiver);
+    @Override
+    public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
+    Parcel parcel = parcelRepository.findById(parcelId)
+            .orElseThrow(() -> new WrongCredentialsException("Parcel not found"));
+
+    if (updateRequest.getDriverPhoneNumber() != null) {
+        parcel.setDriverPhoneNumber(updateRequest.getDriverPhoneNumber());
+        parcel.setDriverName(updateRequest.getDriverName());
+        parcel.setVehicleNumber(updateRequest.getVehicleNumber());
+    }
+
+    if (updateRequest.getSenderPhoneNumber() != null) {
+        parcel.setSenderPhoneNumber(updateRequest.getSenderPhoneNumber());
+        parcel.setSenderName(updateRequest.getSenderName());
+    }
+
+    if (updateRequest.getReceiverAddress() != null) {
+        parcel.setReceiverAddress(updateRequest.getReceiverAddress());
+    }
+    if (updateRequest.getReceiverName() != null) {
+        parcel.setReceiverName(updateRequest.getReceiverName());
+    }
+    if (updateRequest.getRecieverPhoneNumber() != null) {
+        parcel.setRecieverPhoneNumber(updateRequest.getRecieverPhoneNumber());
+    }
+
+    if (updateRequest.getParcelDescription() != null) {
+        parcel.setParcelDescription(updateRequest.getParcelDescription());
+    }
+    parcel.setPOD(updateRequest.isPOD());
+    parcel.setDelivered(updateRequest.isDelivered());
+    parcel.setParcelAssigned(updateRequest.isParcelAssigned());
+    parcel.setInboundCost(updateRequest.getInboundCost());
+    parcel.setPickUpCost(updateRequest.getPickUpCost());
+    parcel.setFragile(updateRequest.isFragile());
+    parcel.setDeliveryCost(updateRequest.getDeliveryCost());
+    parcel.setStorageCost(updateRequest.getStorageCost());
+
+    // Update shelf info
+    if (updateRequest.getShelfNumber() != null) {
+        parcel.setShelfId(updateRequest.getShelfNumber());
+        Shelf shelf = shelfRepository.findById(updateRequest.getShelfNumber())
+                .orElseThrow(() -> new EntityNotFound("Shelf not found"));
+        parcel.setShelfName(shelf.getName());
+    }
+
+    Parcel updated = parcelRepository.save(parcel);
+
+    return updated;
     }
     
-    @Override
-    public ParcelResponse updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
-        log.info("Updating parcel with ID: {}", parcelId);
-        
-        Parcel parcel = parcelRepository.findById(parcelId)
-            .orElseThrow(() -> new WrongCredentialsException("Parcel not found"));
-        
-        if(updateRequest.getDriverPhoneNumber() != null) {
-            Contacts driver = parcelMapper.getOrCreateDriver(updateRequest.getDriverPhoneNumber(), updateRequest.getDriverName(), updateRequest.getVehicleNumber());
-            parcel.setDriver(driver);
-        }
-        
-        if(updateRequest.getSenderPhoneNumber() != null) {
-            Contacts sender = parcelMapper.getOrCreateSender(updateRequest.getSenderPhoneNumber(), updateRequest.getSenderName());
-            parcel.setSender(sender);
-        }
-        
-        if(updateRequest.getReceiverAddress() != null) {
-            parcel.getReceiver().setAddress(updateRequest.getReceiverAddress());
-            contactRepository.save(parcel.getReceiver());
-        }
-        
-        if(updateRequest.getParcelDescription() != null) parcel.setParcelDescription(updateRequest.getParcelDescription());
-        parcel.setPOD(updateRequest.isPOD());
-        parcel.setDelivered(updateRequest.isDelivered());
-        parcel.setParcelAssigned(updateRequest.isParcelAssigned());
-        parcel.setInboundCost(updateRequest.getInboundCost());
-        parcel.setPickUpCost(updateRequest.getPickUpCost());
-        parcel.setFragile(updateRequest.isFragile());
-        parcel.setDeliveryCost(updateRequest.getDeliveryCost());
-        parcel.setStorageCost(updateRequest.getStorageCost());
-        if(updateRequest.getShelfNumber() != null) {
-            Shelf shelf = shelfRepository.findById(updateRequest.getShelfNumber())
-                .orElseThrow(() -> new EntityNotFound("Shelf not found"));
-            parcel.setShelf(shelf);
-        } 
-        
-        Parcel updatedParcel = parcelRepository.save(parcel);
-        log.info("Parcel updated successfully with ID: {}", updatedParcel.getParcelId());
-        
-        return parcelMapper.toResponse(updatedParcel, parcel.getDriver(), parcel.getSender(), parcel.getReceiver());
-    }
 
     @Override
-    public Page<ParcelResponse> searchParcels(Boolean isPOD, Boolean isDelivered, Boolean isParcelAssigned, 
-                                            String officeId, String driverId, String hasCalled, Pageable pageable, boolean isFrontDesk) {
-        log.info("Searching parcels with filters - isPOD: {}, isDelivered: {}, isAssigned: {}, officeId: {}, driverId: {}, hasCalled: {}", 
-                isPOD, isDelivered, isParcelAssigned, officeId, driverId, hasCalled);
-        
-        Page<Parcel> parcels;
+    public Page<Parcel> searchParcels(
+        Boolean isPOD,
+        Boolean isDelivered,
+        Boolean isParcelAssigned,
+        String officeId,
+        String driverPhoneNumber,
+        String hasCalled,
+        Pageable pageable,
+        boolean isFrontDesk) {
 
-        if(isFrontDesk) {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if(auth.getPrincipal() instanceof User) {
-                User user = (User) auth.getPrincipal();
-                Office userOffice = user.getOfficeId();
-                if(userOffice != null) {
-                    officeId = userOffice.getId();
-                }
+    if (isFrontDesk) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User user) {
+            if (user.getOfficeId() != null) {
+                officeId = user.getOfficeId().getId();
             }
         }
-        
-        if(isPOD != null) {
-            parcels = parcelRepository.findByIsPOD(isPOD, pageable);
-        } else if(isDelivered != null) {
-            parcels = parcelRepository.findByIsDelivered(isDelivered, pageable);
-        } else if(isParcelAssigned != null) {
-            parcels = parcelRepository.findByIsParcelAssigned(isParcelAssigned, pageable);
-        } else if(officeId != null) {
-            Office office = officeRepository.findById(officeId)
-                .orElseThrow(() -> new EntityNotFound("Office not found"));
-            parcels = parcelRepository.findByOfficeId(office, pageable);
-        } else if(driverId != null) {
-            Contacts driver = contactRepository.findById(driverId)
-                .orElseThrow(() -> new EntityNotFound("Driver not found"));
-            parcels = parcelRepository.findByDriver(driver, pageable);
-        } else if(hasCalled != null) {
-            parcels = parcelRepository.findByHasCalled(hasCalled, pageable);
-        } else {
-            parcels = parcelRepository.findAllParcels(pageable);
+    }
+
+    Query query = new Query();
+    List<Criteria> criteria = new ArrayList<>();
+
+    if (isPOD != null) {
+        criteria.add(Criteria.where("isPOD").is(isPOD));
+    }
+
+    if (isDelivered != null) {
+        criteria.add(Criteria.where("isDelivered").is(isDelivered));
+    }
+
+    if (isParcelAssigned != null) {
+        criteria.add(Criteria.where("isParcelAssigned").is(isParcelAssigned));
+    }
+
+    if (hasCalled != null) {
+        criteria.add(Criteria.where("hasCalled").is(hasCalled));
+    }
+
+    if (officeId != null) {
+        criteria.add(Criteria.where("officeId").is(officeId));
+    }
+
+    if (driverPhoneNumber != null) {
+        criteria.add(Criteria.where("driverPhoneNumber").is(driverPhoneNumber));
+    }
+
+    if (!criteria.isEmpty()) {
+        query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+    }
+
+    query.with(pageable);
+
+    long total = mongoTemplate.count(query, Parcel.class);
+    List<Parcel> parcels = mongoTemplate.find(query, Parcel.class);
+
+    return new PageImpl<>(parcels, pageable, total);
+}
+
+    /**
+     * Extracts the ObjectId (as hex string) from a DBRef or a nested Document representation.
+     */
+    private String extractRefId(Object ref) {
+        if (ref == null) {
+            return null;
         }
-        
-        return parcels.map(parcel -> parcelMapper.toResponse(parcel, parcel.getDriver(), parcel.getSender(), parcel.getReceiver()));
+
+        // Case 1: Legacy DBRef object
+        if (ref instanceof DBRef dbRef) {
+            Object id = dbRef.getId();
+            if (id instanceof ObjectId objectId) {
+                return objectId.toHexString();
+            }
+            return id.toString();
+        }
+
+        // Case 2: Nested Document { "$ref": "contacts", "$id": ObjectId(...) }
+        if (ref instanceof Document document) {
+            Object idObj = document.get("$id");
+            if (idObj instanceof ObjectId objectId) {
+                return objectId.toHexString();
+            }
+            if (idObj != null) {
+                return idObj.toString();
+            }
+        }
+
+        return null;
     }
 
     public UserResponse changeOffice(String officeId) {
-        log.info("Changing office to: {}", officeId);
         Office office = officeRepository.findById(officeId)
-            .orElseThrow(() -> new EntityNotFound("Office not found"));
+                .orElseThrow(() -> new EntityNotFound("Office not found"));
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if(auth != null && auth.getPrincipal() instanceof User) {
-            User user = (User) auth.getPrincipal();
-            user.setOfficeId(office);
-            userRepository.save(user);
-            return new UserResponse("Office changed successfully", user.getPhoneNumber());
-        } else {
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
             throw new WrongCredentialsException("User not authenticated");
         }
+
+        user.setOfficeId(office);
+        userRepository.save(user);
+
+        return new UserResponse("Office changed successfully", user.getPhoneNumber());
     }
 
-    /**
-     * Gets all parcels for a specific driver with POD and inbound payment filters.
-     * Returns parcels with driver, sender, and receiver resolved to objects.
-     * 
-     * @param driverId driver ID to get parcels for
-     * @param isPOD filter by POD status
-     * @param inboundPayed filter by inbound payment status
-     * @return List of parcels with resolved contact objects
-     * @throws EntityNotFound if driver not found
-     */
     @Override
-    public java.util.List<ParcelResponse> getParcelsByDriverId(String driverId, boolean isPOD, String inboundPayed) {
-        if(!contactRepository.existsById(driverId)) {
-            throw new EntityNotFound("Driver not found");
-        }
+    public List<Parcel> getParcelsByDriverId(String driverId, boolean isPOD, String inboundPayed) {
+       
+        return null;
         
-        java.util.List<Parcel> parcels = parcelRepository.findByDriverIdAndIsPODAndInboudPayed(driverId, isPOD, inboundPayed);
-        return parcels.stream()
-            .map(parcel -> parcelMapper.toResponse(parcel, parcel.getDriver(), parcel.getSender(), parcel.getReceiver()))
-            .collect(java.util.stream.Collectors.toList());
     }
-
 }

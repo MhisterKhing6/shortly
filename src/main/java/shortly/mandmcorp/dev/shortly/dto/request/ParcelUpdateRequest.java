@@ -13,6 +13,9 @@ public class ParcelUpdateRequest {
     private String senderPhoneNumber;
     private String senderName;
     private String receiverAddress;
+    private String receiverName;
+    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Invalid phone number format")
+    private String recieverPhoneNumber;
     private String parcelDescription;
     private boolean isPOD;
     private boolean isDelivered;

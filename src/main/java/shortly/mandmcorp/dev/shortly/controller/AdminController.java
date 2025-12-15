@@ -1,7 +1,5 @@
 package shortly.mandmcorp.dev.shortly.controller;
 
-import java.util.List;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,10 +27,9 @@ import shortly.mandmcorp.dev.shortly.dto.request.ShelfRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.LocationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.OfficeResponse;
-import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
-import shortly.mandmcorp.dev.shortly.model.Shelf;
+import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
@@ -156,7 +153,7 @@ public class AdminController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully")
     })
-    public Page<ParcelResponse> searchParcels(
+    public Page<Parcel> searchParcels(
             @RequestParam(required = false) Boolean isPOD,
             @RequestParam(required = false) Boolean isDelivered,
             @RequestParam(required = false) Boolean isParcelAssigned,
