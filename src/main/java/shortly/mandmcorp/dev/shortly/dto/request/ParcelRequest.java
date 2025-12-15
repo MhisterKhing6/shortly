@@ -10,8 +10,7 @@ import lombok.Data;
 public class ParcelRequest {
     private String senderName;
 
-    @NotBlank(message = "Sender phone number is required")
-    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Invalid phone number format")
+    
     private String senderPhoneNumber;
     
     private String receiverName;
