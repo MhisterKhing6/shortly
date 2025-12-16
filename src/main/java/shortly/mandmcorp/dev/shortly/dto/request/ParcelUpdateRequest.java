@@ -26,4 +26,6 @@ public class ParcelUpdateRequest {
     private double deliveryCost;
     private double storageCost;
     private String shelfNumber;
+    private boolean homeDelivery;
+    private boolean hasCalled;
 }

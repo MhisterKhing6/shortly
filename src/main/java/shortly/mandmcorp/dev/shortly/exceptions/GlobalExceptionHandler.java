@@ -40,6 +40,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
+    @ExceptionHandler(ActionNotAllowed.class)
+    public ResponseEntity<ErrorResponse> handleActionNotAllowed(ActionNotAllowed ex) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .message(ex.getMessage())
+                .data(null)
+                .build();
+                
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
     @ExceptionHandler(EntityNotFound.class)
     public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFound ex) {
         ErrorResponse errorResponse = ErrorResponse.builder()

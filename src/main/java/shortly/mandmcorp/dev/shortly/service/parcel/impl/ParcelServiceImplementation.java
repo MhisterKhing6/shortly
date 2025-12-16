@@ -80,7 +80,9 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
                 parcel.setOfficeId(user.getOfficeId());
             }
         }
-
+        if(parcelRequest.isHasCalled()) {
+            parcel.setHasCalled(true);
+        } 
         Shelf shelf = shelfRepository.findById(parcelRequest.getShelfNumber())
                 .orElseThrow(() -> new EntityNotFound("Shelf not found"));
 
@@ -130,6 +132,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     parcel.setFragile(updateRequest.isFragile());
     parcel.setDeliveryCost(updateRequest.getDeliveryCost());
     parcel.setStorageCost(updateRequest.getStorageCost());
+    parcel.setHomeDelivery(updateRequest.isHomeDelivery());
+    parcel.setHasCalled(updateRequest.isHasCalled());
 
     if (updateRequest.getShelfNumber() != null) {
         parcel.setShelfId(updateRequest.getShelfNumber());

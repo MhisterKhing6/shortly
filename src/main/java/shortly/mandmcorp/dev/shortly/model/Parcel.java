@@ -19,7 +19,7 @@ public class Parcel {
     private boolean isFragile;
     private double deliveryCost;
     private double storageCost;
-    private String hasCalled;
+    private boolean  hasCalled;
     private String driverId;
     private String officeId;
     private String driverName;

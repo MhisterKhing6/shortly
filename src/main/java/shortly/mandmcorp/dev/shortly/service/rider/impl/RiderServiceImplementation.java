@@ -87,6 +87,10 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         for(String parcelId : assignmentRequest.getParcelIds()) {
             Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found: " + parcelId));
+            if(!parcel.isHasCalled() ||!parcel.isHomeDelivery()) {
+                log.warn("Parcel {} has not been called. Skipping assignment.", parcelId);
+                continue;
+            }
             
             DeliveryAssignments assignment = new DeliveryAssignments();
             assignment.setRiderId(rider);
