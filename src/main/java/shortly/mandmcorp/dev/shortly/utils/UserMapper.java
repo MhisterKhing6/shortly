@@ -8,12 +8,13 @@ import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.model.User;
-
+import shortly.mandmcorp.dev.shortly.model.Office;
 
 @Component
 @AllArgsConstructor
 public class UserMapper {
     PasswordEncoder passwordEncoder;
+    
 
     public  UserRegistrationResponse toUserRegistrationResponse(User user) {
         return UserRegistrationResponse.builder()
@@ -35,14 +36,14 @@ public class UserMapper {
                 .build();
     }
 
-    public UserLoginResponse toUserLoginResponse(User user, String token) {
+    public UserLoginResponse toUserLoginResponse(User user, String token, Office office) {
         return UserLoginResponse.builder()
                 .token(token)
                 .userId(user.getUserId())
                 .name(user.getName())
                 .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole().name())
-                .officeId(user.getOfficeId())
+                .office(office)
                 .build();
     }   
 }

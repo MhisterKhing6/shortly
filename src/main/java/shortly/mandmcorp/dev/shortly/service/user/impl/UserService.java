@@ -146,7 +146,9 @@ public class UserService implements UserServiceInterface {
             throw new WrongCredentialsException("phone number or password incorrect");
         }
         String token = jwt.generateAccessToken(userEntity);
-        return userMapper.toUserLoginResponse(userEntity, token);   
+        Office office = officeRepository.findById(userEntity.getOfficeId())
+        .orElseThrow(()-> new EntityNotFound("office not found"));
+        return userMapper.toUserLoginResponse(userEntity, token, office);   
     }
 
     /**
