@@ -28,8 +28,10 @@ import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
+import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
+import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 
 
 
@@ -41,6 +43,7 @@ public class FrontDeskController {
     
     private final ParcelServiceInterface parcelService;
     private final RiderServiceInterface riderService;
+    private final UserServiceInterface userService;
 
     @PostMapping("/parcel")
     @Operation(summary = "Add a new parcel", description = "Create a new parcel entry in the system")
@@ -127,5 +130,15 @@ public class FrontDeskController {
             @RequestParam(defaultValue = "true") boolean isPOD,
             @RequestParam(defaultValue = "false") String inboundPayed) {
         return parcelService.getParcelsByDriverId(driverId, isPOD, inboundPayed);
+    }
+
+    @GetMapping("/riders/office")
+    @Operation(summary = "get a list of availagle rider  in an office", description = "An endpoint to get riders in an office")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "shelf retrieved successfully"),
+    })
+    public List<User> getRiderOffice(@RequestParam(defaultValue = "true") boolean availability) {
+        return userService.getRidersByOfficeId(availability);
     }
 }

@@ -38,6 +38,9 @@ public class User implements UserDetails {
 
     private String email;
 
+    @Builder.Default
+    private boolean availability = true;
+
     @NotBlank
     @JsonIgnore
     private String passwordHash;
@@ -45,8 +48,8 @@ public class User implements UserDetails {
     @NotNull
     private UserStatusEnum status;
 
-    @DBRef
-    private Office officeId;
+    
+    private String officeId;
 
     @NotNull
     private UserRole role;

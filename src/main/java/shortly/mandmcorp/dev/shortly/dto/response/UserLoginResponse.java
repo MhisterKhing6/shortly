@@ -12,6 +12,6 @@ public class UserLoginResponse {
     private String phoneNumber;
     private String name;
     private String role;
-    private Office office;
+    private String officeId;
     
 }

@@ -33,6 +33,7 @@ public class ParcelRequest {
     private boolean isDelivered = false;
     private boolean isParcelAssigned = false;
     private double inboundCost;
+    private boolean homeDelivery;
 
     @NotNull(message = "Pick up cost is required")
     private double pickUpCost;

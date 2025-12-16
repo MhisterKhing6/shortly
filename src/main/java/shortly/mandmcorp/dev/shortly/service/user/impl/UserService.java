@@ -2,6 +2,7 @@ package shortly.mandmcorp.dev.shortly.service.user.impl;
 
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -105,7 +106,7 @@ public class UserService implements UserServiceInterface {
         String password = OtpUtil.generateUserPassword();
         userRequestDetails.setPassword(password);
         User newUser = userMapper.toEntity(userRequestDetails);
-        newUser.setOfficeId(office);
+        newUser.setOfficeId(office.getId());
     if(userRequestDetails.getRole() == UserRole.MANAGER) {
         office.setManager(newUser);
         officeRepository.save(office);
@@ -309,6 +310,7 @@ public class UserService implements UserServiceInterface {
      * @throws WrongCredentialsException if user not authenticated or not a rider
      */
     @Override
+    @PreAuthorize("hasRole('RIDER')")
     public UserResponse updateRiderStatus(RiderStatusUpdateRequest statusRequest) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
@@ -330,6 +332,19 @@ public class UserService implements UserServiceInterface {
         riderStatusRepository.save(riderStatus);
         
         return new UserResponse("Rider status updated successfully", user.getPhoneNumber());
+    }
+
+    @Override
+    @PreAuthorize("hasRole('MANAGER') or hasRole('FRONTDESK')")
+    public List<User> getRidersByOfficeId(boolean availability) {
+         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        
+        User user = (User) auth.getPrincipal();
+        
+        return userRepository.findByRoleAndOfficeIdAndAvailability(UserRole.RIDER, user.getOfficeId(), availability);
     }
 
 }

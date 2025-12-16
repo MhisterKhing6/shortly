@@ -39,6 +39,7 @@ public class ParcelMapper {
         parcel.setVehicleNumber(driver.getVehicleNumber());
         parcel.setDriverName(driver.getName());
         parcel.setDriverPhoneNumber(driver.getPhoneNumber());
+        parcel.setHomeDelivery(request.getHomeDelivery());
         return parcel;
     }
 

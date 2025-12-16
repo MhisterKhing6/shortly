@@ -33,6 +33,7 @@ public class Parcel {
     private String shelfName;
     private String inboudPayed;
     private String shelfId;
+    private boolean homeDelivery;
 
 
     

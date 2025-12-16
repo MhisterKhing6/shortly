@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final MongoTemplate mongoTemplate;
 
     @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
     public ParcelResponse addParcel(ParcelRequest parcelRequest) {
         Contacts sender = parcelMapper.getOrCreateSender(
                 parcelRequest.getSenderPhoneNumber(),
@@ -75,7 +77,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         } else {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.getPrincipal() instanceof User user) {
-                parcel.setOfficeId(user.getOfficeId().getId());
+                parcel.setOfficeId(user.getOfficeId());
             }
         }
 
@@ -129,7 +131,6 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     parcel.setDeliveryCost(updateRequest.getDeliveryCost());
     parcel.setStorageCost(updateRequest.getStorageCost());
 
-    // Update shelf info
     if (updateRequest.getShelfNumber() != null) {
         parcel.setShelfId(updateRequest.getShelfNumber());
         Shelf shelf = shelfRepository.findById(updateRequest.getShelfNumber())
@@ -158,7 +159,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof User user) {
             if (user.getOfficeId() != null) {
-                officeId = user.getOfficeId().getId();
+                officeId = user.getOfficeId();
             }
         }
     }
@@ -242,7 +243,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             throw new WrongCredentialsException("User not authenticated");
         }
 
-        user.setOfficeId(office);
+        user.setOfficeId(office.getId());
         userRepository.save(user);
 
         return new UserResponse("Office changed successfully", user.getPhoneNumber());

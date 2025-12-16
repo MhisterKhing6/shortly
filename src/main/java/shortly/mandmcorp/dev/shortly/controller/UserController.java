@@ -31,6 +31,7 @@ import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.ContactType;
 import shortly.mandmcorp.dev.shortly.model.Contacts;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
+import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.contact.ContactServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
@@ -140,5 +141,7 @@ public class UserController {
         return "OK Ok";
     }
 
+
+  
     
 }
