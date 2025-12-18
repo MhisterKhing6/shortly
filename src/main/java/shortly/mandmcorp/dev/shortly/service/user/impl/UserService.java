@@ -197,7 +197,7 @@ public class UserService implements UserServiceInterface {
                 log.error("Token not found in database: {}", tokenId);
                 return new WrongCredentialsException("Invalid token");
             });
-        if(token.getCode() != fr.getVerificationCode()) {
+        if( !token.getCode().equals(fr.getVerificationCode()) ) {
             throw new WrongCredentialsException("Invalid code");
         }
         log.info("Token found successfully for ID: {}", tokenId);
