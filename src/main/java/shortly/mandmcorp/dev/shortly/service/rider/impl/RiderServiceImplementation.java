@@ -290,6 +290,6 @@ for (String id : reconcilationRiderRequest.getAssignmentIds()) {
 }
     bulk.execute();
         
-        return new UserResponse("Reconciliation completed successfully", reconcilationRiderRequest.getRiderId());
+        return new UserResponse("Reconciliation completed successfully", null);
     }
 }
