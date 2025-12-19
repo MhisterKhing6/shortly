@@ -273,7 +273,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
      */
     @Override
     public UserResponse reconcilation(ReconcilationRiderRequest reconcilationRiderRequest) {
-        log.info("Starting reconciliation for rider: {}", reconcilationRiderRequest.getRiderId());
+        log.info("Starting reconciliation for rider");
 
 BulkOperations bulk =
         mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, DeliveryAssignments.class);
