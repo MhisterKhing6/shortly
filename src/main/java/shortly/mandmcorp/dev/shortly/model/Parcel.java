@@ -31,7 +31,7 @@ public class Parcel {
     private String receiverAddress;
     private String recieverPhoneNumber;
     private String shelfName;
-    private String inboudPayed;
+    private boolean inboudPayed;
     private String shelfId;
     private boolean homeDelivery;
 

@@ -1,7 +1,5 @@
 package shortly.mandmcorp.dev.shortly.model;
 
-import java.time.LocalDateTime;
-
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -23,6 +21,7 @@ public class DeliveryAssignments {
     @DBRef
     private Parcel orderId;
     
+    private String officeId;
     private DeliveryStatus status;
     private long assignedAt;
     private long acceptedAt;

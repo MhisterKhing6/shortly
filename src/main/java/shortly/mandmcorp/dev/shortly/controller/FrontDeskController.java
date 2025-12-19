@@ -27,6 +27,7 @@ import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
@@ -81,6 +82,19 @@ public class FrontDeskController {
             @RequestParam(required = false) String page,
             Pageable pageable) {
         return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, null, driverId, hasCalled, pageable, true);
+    }
+
+
+    @GetMapping("/parcel-assignment")
+    @Operation(summary = "return rider assignment", description = "Search parcels with various filters and pagination")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully")
+    })
+    public List<DeliveryAssignmentResponse> orderAssignemnts(
+          
+        @RequestParam(defaultValue = "DELIVERED") DeliveryStatus status) {
+        return riderService.getOrderAssignmentByStatus(status);
     }
 
     @PostMapping("/assign-parcels")

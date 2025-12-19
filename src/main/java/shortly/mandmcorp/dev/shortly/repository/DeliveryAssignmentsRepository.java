@@ -19,4 +19,6 @@ public interface DeliveryAssignmentsRepository extends MongoRepository<DeliveryA
     List<DeliveryAssignments> findByRiderAndReceiverPhoneAndNotDelivered(User rider, String receiverPhone);
     
     List<DeliveryAssignments> findByRiderIdUserIdAndPayed(String riderId, boolean payed);
+    List<DeliveryAssignments> findByStatusAndOfficeId(DeliveryStatus status, String officeId);
+
 }

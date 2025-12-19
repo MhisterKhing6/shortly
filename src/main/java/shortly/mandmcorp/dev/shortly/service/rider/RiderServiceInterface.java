@@ -7,6 +7,7 @@ import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 
 public interface RiderServiceInterface {
     /**
@@ -59,4 +60,10 @@ public interface RiderServiceInterface {
      * @return UserResponse with success message
      */
     UserResponse reconcilation(ReconcilationRiderRequest reconcilationRiderRequest);
+
+    /**
+     * get all as
+     */
+    public List<DeliveryAssignmentResponse> getOrderAssignmentByStatus(DeliveryStatus status) ;
+
 }

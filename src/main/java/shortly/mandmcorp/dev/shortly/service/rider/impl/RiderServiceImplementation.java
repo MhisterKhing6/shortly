@@ -1,5 +1,6 @@
 package shortly.mandmcorp.dev.shortly.service.rider.impl;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -239,6 +240,29 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         return assignments.stream().map(this::toDeliveryAssignmentResponse).collect(Collectors.toList());
     }
 
+
+    /**
+     * Gets all assignmet for delivered parcels issued by am office.
+     * 
+     * @param staus status of the order default completed
+     * @param officeId the id of the office
+     * @return List of delivery assignment
+     */
+    @Override
+    //has role frontdesk or admin
+    @PreAuthorize("hasRole('FRONTDESK') or hasRole('MANAGER') or hasRole('ADMIN')")
+
+    public List<DeliveryAssignmentResponse> getOrderAssignmentByStatus(DeliveryStatus status) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        
+        User frontDesk = (User) auth.getPrincipal();
+        List<DeliveryAssignments> assignments = deliveryAssignmentsRepository.findByStatusAndOfficeId(status, frontDesk.getOfficeId());
+        return assignments.stream().map(this::toDeliveryAssignmentResponse).collect(Collectors.toList());
+    }
+
     /**
      * Marks multiple delivery assignments as paid for reconciliation.
      * Uses MongoDB bulk operations for efficient batch updates.
@@ -250,15 +274,21 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     @Override
     public UserResponse reconcilation(ReconcilationRiderRequest reconcilationRiderRequest) {
         log.info("Starting reconciliation for rider: {}", reconcilationRiderRequest.getRiderId());
-        
-        BulkOperations bulk = mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, DeliveryAssignments.class);
-        for(String id : reconcilationRiderRequest.getAssignmentIds()) {
-            bulk.updateOne(
-                Query.query(Criteria.where("assignmentId").is(id)),
-                Update.update("payed", true)
-            );
-        }
-        bulk.execute();
+
+BulkOperations bulk =
+        mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, DeliveryAssignments.class);
+
+for (String id : reconcilationRiderRequest.getAssignmentIds()) {
+
+    Update update = new Update()
+            .set("status", DeliveryStatus.COMPLETED.name())
+            .set("payed", true);
+    bulk.updateOne(
+            Query.query(Criteria.where("assignmentId").is(id)),
+            update
+    );
+}
+    bulk.execute();
         
         return new UserResponse("Reconciliation completed successfully", reconcilationRiderRequest.getRiderId());
     }
