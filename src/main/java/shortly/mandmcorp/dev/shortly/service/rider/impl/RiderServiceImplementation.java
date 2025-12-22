@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.management.Notification;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -22,11 +24,14 @@ import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
+import shortly.mandmcorp.dev.shortly.exceptions.ActionNotAllowed;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
+import shortly.mandmcorp.dev.shortly.model.CancelationReason;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.User;
+import shortly.mandmcorp.dev.shortly.repository.CancelationReasonRepository;
 import shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
@@ -34,6 +39,7 @@ import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
+import shortly.mandmcorp.dev.shortly.utils.OtpUtil;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
 
 
@@ -56,15 +62,17 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     private final NotificationInterface notification;
     private final ParcelMapper parcelMapper;
     private MongoTemplate mongoTemplate;
+    private final CancelationReasonRepository cancelationReasonRepo;
 
     public RiderServiceImplementation(DeliveryAssignmentsRepository deliveryAssignmentsRepository, UserRepository userRepository, ParcelRepository parcelRepository, 
-        @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate) {
+        @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate, CancelationReasonRepository cancelationReasonRepo) {
         this.deliveryAssignmentsRepository = deliveryAssignmentsRepository;
         this.userRepository = userRepository;
         this.parcelRepository = parcelRepository;
         this.notification = notification;
         this.parcelMapper = parcelMapper;
         this.mongoTemplate = mongoTemplate;
+        this.cancelationReasonRepo = cancelationReasonRepo;
     }
     
     /**
@@ -84,7 +92,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             .orElseThrow(() -> new EntityNotFound("Rider not found"));
         
         long assignedAt = System.currentTimeMillis();
-        
+        String confirmationCode = "";
         for(String parcelId : assignmentRequest.getParcelIds()) {
             Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found: " + parcelId));
@@ -92,15 +100,21 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 log.warn("Parcel {} has not been called. Skipping assignment.", parcelId);
                 continue;
             }
+            confirmationCode = OtpUtil.generateOtp();
             
             DeliveryAssignments assignment = new DeliveryAssignments();
             assignment.setRiderId(rider);
             assignment.setOrderId(parcel);
             assignment.setStatus(DeliveryStatus.ASSIGNED);
+            assignment.setConfirmationCode(confirmationCode);
             assignment.setAssignedAt(assignedAt);
             parcel.setParcelAssigned(true);
             deliveryAssignmentsRepository.save(assignment);
             parcelRepository.save(parcel);
+        String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(rider.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
+        NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
+        .to(parcel.getRecieverPhoneNumber()).build();
+        notification.send(notify);
             
         }
         
@@ -159,11 +173,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         }
         
         assignment.setStatus(statusRequest.getStatus());
-        if(statusRequest.getStatus() == DeliveryStatus.ACCEPTED) {
-            assignment.setAcceptedAt(System.currentTimeMillis());
-        } else if(statusRequest.getStatus() == DeliveryStatus.DELIVERED) {
+        if(statusRequest.getStatus() == DeliveryStatus.DELIVERED) {
             assignment.setCompletedAt(System.currentTimeMillis());
+            if( !statusRequest.getConfirmationCode().equals(assignment.getConfirmationCode())) {
+                throw new ActionNotAllowed("Invalid confirmation code");
+            }
             assignment.getOrderId().setDelivered(true);
+            assignment.setStatus(DeliveryStatus.DELIVERED);
             parcelRepository.save(assignment.getOrderId());
             Parcel parcel = assignment.getOrderId();
             String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
@@ -173,7 +189,10 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             parcelRepository.save(parcel);
         }
         else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
+            CancelationReason cancelationReason = cancelationReasonRepo.findById(statusRequest.getReasonId())
+            .orElseThrow(() -> new EntityNotFound("Reason not found"));
             assignment.getOrderId().setDelivered(false);
+            assignment.setCancelation(cancelationReason);
             assignment.getOrderId().setParcelAssigned(false);
             parcelRepository.save(assignment.getOrderId());
         }

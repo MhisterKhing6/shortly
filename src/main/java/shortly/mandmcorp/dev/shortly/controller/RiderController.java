@@ -20,6 +20,8 @@ import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.model.CancelationReason;
+import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 
@@ -29,6 +31,7 @@ import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 public class RiderController {
     private final UserServiceInterface userService;
     private final RiderServiceInterface riderService;
+    private final ParcelServiceInterface parcelService;
 
     @PutMapping("/rider-status")
     @Operation(summary = "Update rider status", description = "Update authenticated rider's status (BUSY, OFFLINE, READY, ON_TRIP)")
@@ -75,5 +78,15 @@ public class RiderController {
     public List<DeliveryAssignmentResponse> searchByReceiverPhone(
             @RequestParam String receiverPhone) {
         return riderService.searchByReceiverPhone(receiverPhone);
+    }
+
+    @GetMapping("/cancellation-reasons")
+    @Operation(summary = "get a list of cancelation reason ", description = "An endpoint to get cancelation reasons")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "cancelation reason returns successfully"),
+    })
+    public List<CancelationReason> getCancelationReason() {
+        return parcelService.cancleationReasons();
     }
 }

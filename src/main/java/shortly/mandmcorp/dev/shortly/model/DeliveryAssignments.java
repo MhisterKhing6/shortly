@@ -28,6 +28,11 @@ public class DeliveryAssignments {
     private long completedAt;
 
     private boolean payed;
+
+    private String confirmationCode;
+
+    @DBRef
+    private CancelationReason cancelation;
     
     @CreatedDate
     private Long createdAt;
