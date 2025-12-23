@@ -180,6 +180,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             }
             assignment.getOrderId().setDelivered(true);
             assignment.setStatus(DeliveryStatus.DELIVERED);
+            assignment.setCompletedBy(rider);
             parcelRepository.save(assignment.getOrderId());
             Parcel parcel = assignment.getOrderId();
             String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
@@ -189,16 +190,64 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             parcelRepository.save(parcel);
         }
         else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
-            CancelationReason cancelationReason = cancelationReasonRepo.findById(statusRequest.getReasonId())
-            .orElseThrow(() -> new EntityNotFound("Reason not found"));
+            
             assignment.getOrderId().setDelivered(false);
-            assignment.setCancelation(cancelationReason);
+            assignment.setCancelationReason(statusRequest.getCancelationReason());
             assignment.getOrderId().setParcelAssigned(false);
             parcelRepository.save(assignment.getOrderId());
         }
         deliveryAssignmentsRepository.save(assignment);
         return new UserResponse("Delivery status updated successfully", rider.getPhoneNumber());
     }
+
+    /**
+     * Updates delivery assignment status.
+     * Auto-updates timestamps and parcel delivery flag.
+     * 
+     * @param assignmentId assignment to update
+     * @param statusRequest new status
+     * @return UserResponse with success message
+     * @throws EntityNotFound if assignment not found
+     * @throws WrongCredentialsException if not authorized
+     */
+    @Override
+    //manager or admin
+    @PreAuthorize("asRole('ADMIN') or hasRole('MANAGER')")
+    public UserResponse managerUpdateDeliveryStatus (String assignmentId, DeliveryStatusUpdateRequest statusRequest) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        
+        User manager = (User) auth.getPrincipal();
+        DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(assignmentId)
+            .orElseThrow(() -> new EntityNotFound("Assignment not found"));
+            
+        assignment.setStatus(statusRequest.getStatus());
+        if(statusRequest.getStatus() == DeliveryStatus.DELIVERED) {
+            assignment.setCompletedAt(System.currentTimeMillis());
+            assignment.getOrderId().setDelivered(true);
+            assignment.setStatus(DeliveryStatus.DELIVERED);
+            assignment.setCompletedBy(manager);
+            parcelRepository.save(assignment.getOrderId());
+            Parcel parcel = assignment.getOrderId();
+            String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
+            NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(message).to(parcel.getDriverPhoneNumber()).build();
+            notification.send(notify);
+            parcel.setDelivered(true);
+            parcelRepository.save(parcel);
+        }
+        else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
+            
+            assignment.getOrderId().setDelivered(false);
+            assignment.setCancelationReason(statusRequest.getCancelationReason());
+            assignment.getOrderId().setParcelAssigned(false);
+            parcelRepository.save(assignment.getOrderId());
+        }
+        deliveryAssignmentsRepository.save(assignment);
+        return new UserResponse("Delivery status updated successfully", assignment.getRiderId().getPhoneNumber());
+    }
+
 
     /**
      * Searches rider's undelivered assignments by receiver phone number.
@@ -310,5 +359,17 @@ for (String id : reconcilationRiderRequest.getAssignmentIds()) {
     bulk.execute();
         
         return new UserResponse("Reconciliation completed successfully", null);
+    }
+
+
+    @Override
+    public UserResponse resendConfirmationCodeToReceiver(String assignmentId) {
+         DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(assignmentId)
+            .orElseThrow(() -> new EntityNotFound("Assignment not found"));
+        String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(assignment.getRiderId().getPhoneNumber(), assignment.getRiderId().getName(), assignment.getConfirmationCode(),  assignment.getOrderId().getReceiverName(), assignment.getOrderId().getParcelId());
+        NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
+        .to(assignment.getOrderId().getRecieverPhoneNumber()).build();
+        notification.send(notify);
+        return UserResponse.builder().message("Successful sent").build();
     }
 }

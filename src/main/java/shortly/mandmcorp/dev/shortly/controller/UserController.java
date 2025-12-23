@@ -34,6 +34,8 @@ import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.contact.ContactServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
+import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
+import shortly.mandmcorp.dev.shortly.service.rider.impl.RiderServiceImplementation;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 
 
@@ -47,6 +49,7 @@ public class UserController {
     private final UserServiceInterface userService;
     private final ContactServiceInterface contactService;
     private final OfficeServiceInterface officeService;
+    private final RiderServiceInterface riderService;
 
     @PostMapping("/admin/register")
     @Operation(summary = "Register a new user", description = "Admin endpoint to register a new user in the system")
@@ -89,6 +92,17 @@ public class UserController {
     })
     public List<Shelf> getshelffsOffice(@PathVariable String id) {
         return officeService.getOfficeShelf(id);
+    }
+
+    @GetMapping("/assignment/resend-confirmation-code/{id}")
+    @Operation(summary = "get a list of office shelf", description = "An endpoint to add shelfs")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "shelf retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "office not found")
+    })
+    public UserResponse resendConfirmationCode(@PathVariable String id) {
+        return riderService.resendConfirmationCodeToReceiver(id);
     }
 
     @PostMapping("/reset-password")
@@ -142,6 +156,6 @@ public class UserController {
     }
 
 
-  
+
     
 }

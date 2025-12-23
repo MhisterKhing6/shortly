@@ -34,6 +34,15 @@ public interface RiderServiceInterface {
      * @return UserResponse with success message
      */
     UserResponse updateDeliveryStatus(String assignmentId, DeliveryStatusUpdateRequest statusRequest);
+
+    /**
+     * Updates delivery assignment status with automatic timestamp tracking.
+     * 
+     * @param assignmentId assignment to update
+     * @param statusRequest new delivery status
+     * @return UserResponse with success message
+     */
+    UserResponse managerUpdateDeliveryStatus(String assignmentId, DeliveryStatusUpdateRequest statusRequest);
     
     /**
      * Searches rider's undelivered assignments by receiver phone number.
@@ -62,8 +71,15 @@ public interface RiderServiceInterface {
     UserResponse reconcilation(ReconcilationRiderRequest reconcilationRiderRequest);
 
     /**
-     * get all as
+     * get all assignment
      */
-    public List<DeliveryAssignmentResponse> getOrderAssignmentByStatus(DeliveryStatus status) ;
+    List<DeliveryAssignmentResponse> getOrderAssignmentByStatus(DeliveryStatus status) ;
+
+    /**
+     * resend confirmation code to receiver
+     * @param assignmentId
+     * @return User response
+     */
+    UserResponse resendConfirmationCodeToReceiver(String assignmentId);
 
 }

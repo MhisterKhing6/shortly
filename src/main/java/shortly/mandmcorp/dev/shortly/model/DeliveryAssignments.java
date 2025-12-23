@@ -31,8 +31,11 @@ public class DeliveryAssignments {
 
     private String confirmationCode;
 
+    
+    private String cancelationReason;
+
     @DBRef
-    private CancelationReason cancelation;
+    private User completedBy;
     
     @CreatedDate
     private Long createdAt;

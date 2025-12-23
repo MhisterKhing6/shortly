@@ -8,6 +8,6 @@ import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 public class DeliveryStatusUpdateRequest {
     @NotNull(message = "Delivery status is required")
     private DeliveryStatus status;
-    private String reasonId;
+    private String cancelationReason;
     private String confirmationCode;
 }

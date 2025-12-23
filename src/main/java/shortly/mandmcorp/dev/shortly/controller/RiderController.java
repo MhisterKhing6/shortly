@@ -69,6 +69,18 @@ public class RiderController {
         return riderService.updateDeliveryStatus(assignmentId, statusRequest);
     }
 
+    @PutMapping("/manager/assignments/{assignmentId}/status")
+    @Operation(summary = "Update delivery status", description = "Update delivery assignment status by manger or admin")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Status updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Assignment not found")
+    })
+    public UserResponse adminUpdateAssignment(@PathVariable String assignmentId, 
+                                           @RequestBody @Valid DeliveryStatusUpdateRequest statusRequest) {
+        return riderService.managerUpdateDeliveryStatus(assignmentId, statusRequest);
+    }
+
     @GetMapping("/search")
     @Operation(summary = "Search by receiver phone", description = "Search undelivered assignments by receiver phone number")
     @SecurityRequirement(name = "Bearer Authentication")
