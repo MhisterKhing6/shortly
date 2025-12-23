@@ -329,7 +329,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         }
         
         User frontDesk = (User) auth.getPrincipal();
-        List<DeliveryAssignments> assignments = deliveryAssignmentsRepository.findByStatusAndOfficeId(status, frontDesk.getOfficeId());
+        List<DeliveryAssignments> assignments = deliveryAssignmentsRepository.findByStatus(status);
         return assignments.stream().map(this::toDeliveryAssignmentResponse).collect(Collectors.toList());
     }
 
