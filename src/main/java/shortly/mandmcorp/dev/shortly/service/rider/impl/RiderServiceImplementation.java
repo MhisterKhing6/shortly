@@ -24,12 +24,14 @@ import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
+import shortly.mandmcorp.dev.shortly.enums.ReconcilationType;
 import shortly.mandmcorp.dev.shortly.exceptions.ActionNotAllowed;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.CancelationReason;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
+import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.repository.CancelationReasonRepository;
 import shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository;
@@ -342,11 +344,20 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     @Override
     public UserResponse reconcilation(ReconcilationRiderRequest reconcilationRiderRequest) {
         log.info("Starting reconciliation for rider");
-
-BulkOperations bulk =
+    
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        
+        User frontDesk = (User) auth.getPrincipal();
+    BulkOperations bulk =
         mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, DeliveryAssignments.class);
 
-for (String id : reconcilationRiderRequest.getAssignmentIds()) {
+    BulkOperations reconcilationData =
+        mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, Reconcilations.class);
+
+    for (String id : reconcilationRiderRequest.getAssignmentIds()) {
 
     Update update = new Update()
             .set("status", DeliveryStatus.COMPLETED.name())
@@ -355,10 +366,15 @@ for (String id : reconcilationRiderRequest.getAssignmentIds()) {
             Query.query(Criteria.where("assignmentId").is(id)),
             update
     );
-}
+    Reconcilations reconcilation = new Reconcilations();
+    reconcilation.setAssignmentId(id);
+    reconcilation.setPayedTo(frontDesk.getUserId());
+    reconcilation.setType(ReconcilationType.RIDER);
+    reconcilationData.insert(reconcilation);
+    }
     bulk.execute();
-        
-        return new UserResponse("Reconciliation completed successfully", null);
+    reconcilationData.execute();
+    return new UserResponse("Reconciliation completed successfully", null);
     }
 
 
