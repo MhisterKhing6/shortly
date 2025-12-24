@@ -27,7 +27,6 @@ import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
-import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.model.CancelationReason;
@@ -55,7 +54,7 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "200", description = "Parcel added successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid parcel data")
     })
-    public ParcelResponse addParcel(@RequestBody @Valid ParcelRequest parcelRequest) {
+    public Parcel addParcel(@RequestBody @Valid ParcelRequest parcelRequest) {
         return parcelService.addParcel(parcelRequest);
     }
 

@@ -20,13 +20,13 @@ public class ParcelMapper {
     private final ContaceRepository contactRepository;
     private final OfficeRepository officeRepository;
 
-    public Parcel toEntity(ParcelRequest request, Contacts driver, Contacts sender, Contacts receiver, Shelf shelf) {
+    public Parcel toEntity(ParcelRequest request, Shelf shelf) {
         Parcel parcel = new Parcel();
-        parcel.setSenderName(sender.getName());
-        parcel.setSenderPhoneNumber(sender.getPhoneNumber());
-        parcel.setReceiverName(receiver.getName());
-        parcel.setReceiverAddress(receiver.getAddress());
-        parcel.setRecieverPhoneNumber(receiver.getPhoneNumber());
+        parcel.setSenderName(request.getSenderName());
+        parcel.setSenderPhoneNumber(request.getSenderPhoneNumber());
+        parcel.setReceiverName(request.getReceiverName());
+        parcel.setReceiverAddress(request.getReceiverAddress());
+        parcel.setRecieverPhoneNumber(request.getRecieverPhoneNumber());
         parcel.setParcelDescription(request.getParcelDescription());
         parcel.setPOD(request.isPOD());
         parcel.setDelivered(request.isDelivered());
@@ -36,9 +36,9 @@ public class ParcelMapper {
         parcel.setFragile(request.isFragile());
         parcel.setDeliveryCost(request.getDeliveryCost());
         parcel.setStorageCost(request.getStorageCost());
-        parcel.setVehicleNumber(driver.getVehicleNumber());
-        parcel.setDriverName(driver.getName());
-        parcel.setDriverPhoneNumber(driver.getPhoneNumber());
+        parcel.setVehicleNumber(request.getVehicleNumber());
+        parcel.setDriverName(request.getDriverName());
+        parcel.setDriverPhoneNumber(request.getDriverPhoneNumber());
         parcel.setHomeDelivery(request.isHomeDelivery());
         return parcel;
     }

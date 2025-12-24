@@ -8,13 +8,12 @@ import org.springframework.data.domain.Pageable;
 import shortly.mandmcorp.dev.shortly.dto.request.CancelationReasonRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
-import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.model.CancelationReason;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 
 public interface ParcelServiceInterface {
-    ParcelResponse addParcel(ParcelRequest parcelRequest);
+    Parcel addParcel(ParcelRequest parcelRequest);
     Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest);
     Page<Parcel> searchParcels(Boolean isPOD, Boolean isDelivered, Boolean isParcelAssigned, 
                                       String officeId, String driverId, String hasCalled, Pageable pageable, boolean isFrontDesk);

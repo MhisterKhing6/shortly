@@ -56,23 +56,10 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
-    public ParcelResponse addParcel(ParcelRequest parcelRequest) {
-        Contacts sender = parcelMapper.getOrCreateSender(
-                parcelRequest.getSenderPhoneNumber(),
-                parcelRequest.getSenderName()
-        );
-        Contacts receiver = parcelMapper.getOrCreateReceiver(
-                parcelRequest.getRecieverPhoneNumber(),
-                parcelRequest.getReceiverName(),
-                parcelRequest.getReceiverAddress()
-        );
-        Contacts driver = parcelMapper.getOrCreateDriver(
-                parcelRequest.getDriverPhoneNumber(),
-                parcelRequest.getDriverName(),
-                parcelRequest.getVehicleNumber()
-        );
+    public Parcel addParcel(ParcelRequest parcelRequest) {
+      
 
-        Parcel parcel = parcelMapper.toEntity(parcelRequest, driver, sender, receiver, null);
+        Parcel parcel = parcelMapper.toEntity(parcelRequest,  null);
 
         if (parcelRequest.getOfficeId() != null) {
             Office office = officeRepository.findById(parcelRequest.getOfficeId())
@@ -95,8 +82,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         }
         parcel.setShelfName(shelf.getName());
         parcel.setShelfId(shelf.getId());
-        Parcel saved = parcelRepository.save(parcel);
-        return parcelMapper.toResponse(saved, driver, sender, receiver);
+        Parcel savedParcel = parcelRepository.save(parcel);
+        return savedParcel;
     }
 
     @Override
