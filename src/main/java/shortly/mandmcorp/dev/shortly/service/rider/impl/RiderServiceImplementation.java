@@ -1,10 +1,7 @@
 package shortly.mandmcorp.dev.shortly.service.rider.impl;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import javax.management.Notification;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.BulkOperations;
@@ -28,7 +25,6 @@ import shortly.mandmcorp.dev.shortly.enums.ReconcilationType;
 import shortly.mandmcorp.dev.shortly.exceptions.ActionNotAllowed;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
-import shortly.mandmcorp.dev.shortly.model.CancelationReason;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
@@ -106,6 +102,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             
             DeliveryAssignments assignment = new DeliveryAssignments();
             assignment.setRiderId(rider);
+            assignment.setOfficeId(rider.getOfficeId());
             assignment.setOrderId(parcel);
             assignment.setStatus(DeliveryStatus.ASSIGNED);
             assignment.setConfirmationCode(confirmationCode);
@@ -329,7 +326,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         }
         
         User frontDesk = (User) auth.getPrincipal();
-        List<DeliveryAssignments> assignments = deliveryAssignmentsRepository.findByStatus(status);
+        List<DeliveryAssignments> assignments = deliveryAssignmentsRepository.findByStatusAndOfficeId(status, frontDesk.getOfficeId());
         return assignments.stream().map(this::toDeliveryAssignmentResponse).collect(Collectors.toList());
     }
 
