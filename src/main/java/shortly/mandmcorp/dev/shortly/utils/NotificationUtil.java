@@ -7,7 +7,7 @@ public class NotificationUtil {
     } 
 
     public static String loginCredentials(String password, String phoneNumber, String name, String role) {
-        return "Hello " + name + "  Your login credentials on the Shortly app as a " + role + " are - Phone: " + phoneNumber + ", Password: " + password;
+        return "Hello " + name + "  Your login credentials on the Shortly app as a " + role + " are - Phone: " + phoneNumber + ", Password: " + password  + " login here: https://mnm-parcels.vercel.app";
     } 
 
 
