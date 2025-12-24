@@ -23,12 +23,10 @@ import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.dto.request.CancelationReasonRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
-import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.CancelationReason;
-import shortly.mandmcorp.dev.shortly.model.Contacts;
 import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
@@ -87,27 +85,39 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     }
 
     @Override
-    public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
+public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
+
     Parcel parcel = parcelRepository.findById(parcelId)
             .orElseThrow(() -> new WrongCredentialsException("Parcel not found"));
 
     if (updateRequest.getDriverPhoneNumber() != null) {
         parcel.setDriverPhoneNumber(updateRequest.getDriverPhoneNumber());
+    }
+
+    if (updateRequest.getDriverName() != null) {
         parcel.setDriverName(updateRequest.getDriverName());
+    }
+
+    if (updateRequest.getVehicleNumber() != null) {
         parcel.setVehicleNumber(updateRequest.getVehicleNumber());
     }
 
     if (updateRequest.getSenderPhoneNumber() != null) {
         parcel.setSenderPhoneNumber(updateRequest.getSenderPhoneNumber());
+    }
+
+    if (updateRequest.getSenderName() != null) {
         parcel.setSenderName(updateRequest.getSenderName());
     }
 
     if (updateRequest.getReceiverAddress() != null) {
         parcel.setReceiverAddress(updateRequest.getReceiverAddress());
     }
+
     if (updateRequest.getReceiverName() != null) {
         parcel.setReceiverName(updateRequest.getReceiverName());
     }
+
     if (updateRequest.getRecieverPhoneNumber() != null) {
         parcel.setRecieverPhoneNumber(updateRequest.getRecieverPhoneNumber());
     }
@@ -115,29 +125,57 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     if (updateRequest.getParcelDescription() != null) {
         parcel.setParcelDescription(updateRequest.getParcelDescription());
     }
-    parcel.setPOD(updateRequest.isPOD());
-    parcel.setDelivered(updateRequest.isDelivered());
-    parcel.setParcelAssigned(updateRequest.isParcelAssigned());
-    parcel.setInboundCost(updateRequest.getInboundCost());
-    parcel.setPickUpCost(updateRequest.getPickUpCost());
-    parcel.setFragile(updateRequest.isFragile());
-    parcel.setDeliveryCost(updateRequest.getDeliveryCost());
-    parcel.setStorageCost(updateRequest.getStorageCost());
-    parcel.setHomeDelivery(updateRequest.isHomeDelivery());
-    parcel.setHasCalled(updateRequest.isHasCalled());
+
+    if (updateRequest.getIsPOD() != null) {
+        parcel.setPOD(updateRequest.getIsPOD());
+    }
+
+    if (updateRequest.getIsDelivered() != null) {
+        parcel.setDelivered(updateRequest.getIsDelivered());
+    }
+
+    if (updateRequest.getIsParcelAssigned() != null) {
+        parcel.setParcelAssigned(updateRequest.getIsParcelAssigned());
+    }
+
+    if (updateRequest.getInboundCost() != null) {
+        parcel.setInboundCost(updateRequest.getInboundCost());
+    }
+
+    if (updateRequest.getPickUpCost() != null) {
+        parcel.setPickUpCost(updateRequest.getPickUpCost());
+    }
+
+    if (updateRequest.getIsFragile() != null) {
+        parcel.setFragile(updateRequest.getIsFragile());
+    }
+
+    if (updateRequest.getDeliveryCost() != null) {
+        parcel.setDeliveryCost(updateRequest.getDeliveryCost());
+    }
+
+    if (updateRequest.getStorageCost() != null) {
+        parcel.setStorageCost(updateRequest.getStorageCost());
+    }
+
+    if (updateRequest.getHomeDelivery() != null) {
+        parcel.setHomeDelivery(updateRequest.getHomeDelivery());
+    }
+
+    if (updateRequest.getHasCalled() != null) {
+        parcel.setHasCalled(updateRequest.getHasCalled());
+    }
 
     if (updateRequest.getShelfNumber() != null) {
-        parcel.setShelfId(updateRequest.getShelfNumber());
         Shelf shelf = shelfRepository.findById(updateRequest.getShelfNumber())
                 .orElseThrow(() -> new EntityNotFound("Shelf not found"));
+        parcel.setShelfId(shelf.getId());
         parcel.setShelfName(shelf.getName());
     }
 
-    Parcel updated = parcelRepository.save(parcel);
+    return parcelRepository.save(parcel);
+}
 
-    return updated;
-    }
-    
     @Override
     public List<CancelationReason> cancleationReasons() {
         return cancelationsReasonRepository.findAll();
