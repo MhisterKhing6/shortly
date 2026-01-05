@@ -37,6 +37,7 @@ import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.impl.RiderServiceImplementation;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
+import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 
 
 
@@ -59,6 +60,7 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Invalid input data"),
         @ApiResponse(responseCode = "409", description = "User already exists")
     })
+    @TrackUserAction(action = "REGISTER_USER", description = "Admin registered a new user")
     public UserRegistrationResponse registerUser(@RequestBody @Valid UserRegistrationRequest userRegistrationRequest) {
         return  userService.register(userRegistrationRequest);
     }
@@ -69,6 +71,7 @@ public class UserController {
         @ApiResponse(responseCode = "200", description = "Login successful"),
         @ApiResponse(responseCode = "401", description = "Invalid credentials")
     })
+    @TrackUserAction(action = "USER_LOGIN", description = "User logged into the system")
     public UserLoginResponse userLogin(@RequestBody @Valid UserLoginRequestDto loginDetails) {
         return userService.login(loginDetails);
     }
@@ -79,6 +82,7 @@ public class UserController {
         @ApiResponse(responseCode = "200", description = "OTP sent successfully"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
+    @TrackUserAction(action = "REQUEST_PASSWORD_RESET", description = "User requested password reset")
     public UserResponse requestPasswordReset(@RequestBody @Valid ForgetPasswordRequest fr) {
         return userService.requestPasswordReset(fr);
     }
@@ -112,6 +116,7 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Invalid token or expired"),
         @ApiResponse(responseCode = "404", description = "Token not found")
     })
+    @TrackUserAction(action = "RESET_PASSWORD", description = "User reset their password")
     public UserResponse resetPassword(@RequestBody @Valid ResetPasswordRequest fr) {
         return userService.resetPassword(fr);
     }
@@ -142,6 +147,7 @@ public class UserController {
         @ApiResponse(responseCode = "409", description = "Phone number already exists"),
         @ApiResponse(responseCode = "401", description = "User not authenticated")
     })
+    @TrackUserAction(action = "UPDATE_PROFILE", description = "User updated their profile")
     public UserResponse updateProfile(@RequestBody @Valid UserUpdateRequest updateRequest) {
         return userService.updateProfile(updateRequest);
     }

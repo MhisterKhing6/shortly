@@ -24,6 +24,7 @@ import shortly.mandmcorp.dev.shortly.model.CancelationReason;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
+import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 
 @AllArgsConstructor
 @RestController
@@ -40,6 +41,7 @@ public class RiderController {
         @ApiResponse(responseCode = "200", description = "Rider status updated successfully"),
         @ApiResponse(responseCode = "401", description = "User not authenticated or not a rider")
     })
+    @TrackUserAction(action = "UPDATE_RIDER_STATUS", description = "Rider updated their status")
     public UserResponse updateRiderStatus(@RequestBody @Valid RiderStatusUpdateRequest statusRequest) {
         return userService.updateRiderStatus(statusRequest);
     }
@@ -64,7 +66,8 @@ public class RiderController {
         @ApiResponse(responseCode = "200", description = "Status updated successfully"),
         @ApiResponse(responseCode = "404", description = "Assignment not found")
     })
-    public UserResponse updateDeliveryStatus(@PathVariable String assignmentId, 
+    @TrackUserAction(action = "UPDATE_DELIVERY_STATUS", description = "Rider updated delivery assignment status")
+    public UserResponse updateDeliveryStatus(@PathVariable String assignmentId,
                                            @RequestBody @Valid DeliveryStatusUpdateRequest statusRequest) {
         return riderService.updateDeliveryStatus(assignmentId, statusRequest);
     }

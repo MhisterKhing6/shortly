@@ -35,6 +35,7 @@ import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
+import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 
 
 
@@ -54,6 +55,7 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "200", description = "Parcel added successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid parcel data")
     })
+    @TrackUserAction(action = "ADD_PARCEL", description = "Front desk added a new parcel")
     public Parcel addParcel(@RequestBody @Valid ParcelRequest parcelRequest) {
         return parcelService.addParcel(parcelRequest);
     }
@@ -64,6 +66,7 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "200", description = "Parcel updated successfully"),
         @ApiResponse(responseCode = "404", description = "Parcel not found")
     })
+    @TrackUserAction(action = "UPDATE_PARCEL", description = "Front desk updated a parcel")
     public Parcel updateParcel(@PathVariable String id, @RequestBody @Valid ParcelUpdateRequest updateRequest) {
         return parcelService.updateParcel(id, updateRequest);
     }
