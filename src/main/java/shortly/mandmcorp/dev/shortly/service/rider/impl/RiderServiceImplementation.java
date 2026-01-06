@@ -211,7 +211,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
      */
     @Override
     //manager or admin
-    @PreAuthorize("asRole('ADMIN') or hasRole('MANAGER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     public UserResponse managerUpdateDeliveryStatus (String assignmentId, DeliveryStatusUpdateRequest statusRequest) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
