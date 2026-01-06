@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
@@ -24,7 +25,6 @@ import shortly.mandmcorp.dev.shortly.model.CancelationReason;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
-import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 
 @AllArgsConstructor
 @RestController
