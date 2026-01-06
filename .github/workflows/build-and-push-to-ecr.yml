@@ -3,7 +3,7 @@ name: Build and Push to ECR + Refresh ASG
 on:
   push:
     branches:
-      - deploy
+      - master
 
 jobs:
   build-push-refresh:
