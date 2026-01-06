@@ -9,6 +9,7 @@ public class OfficeRequest {
     private String name;
     
     private String address;
+    private String phoneNumber;
     private String managerId;
     
     @NotBlank(message = "Location ID is required")

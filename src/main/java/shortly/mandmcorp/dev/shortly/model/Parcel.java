@@ -1,11 +1,6 @@
 package shortly.mandmcorp.dev.shortly.model;
 
-import java.time.LocalDateTime;
-
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
@@ -24,27 +19,24 @@ public class Parcel {
     private boolean isFragile;
     private double deliveryCost;
     private double storageCost;
-    private String shelfNumber;
-    private String hasCalled;
+    private boolean  hasCalled;
+    private String driverId;
+    private String officeId;
+    private String driverName;
+    private String driverPhoneNumber;
+    private String vehicleNumber;
+    private String senderName;
+    private String senderPhoneNumber;
+    private String receiverName;
+    private String receiverAddress;
+    private String recieverPhoneNumber;
+    private String shelfName;
+    private boolean inboudPayed;
+    private String shelfId;
+    private boolean homeDelivery;
 
-    private String inboudPayed;
 
-    @DBRef
-    private Contacts driver;
-
-    @DBRef
-    private Contacts receiver;
-
-    @DBRef
-    private Contacts sender;
     
-    @DBRef
-    private Office officeId;
     
-    @CreatedDate
-    private LocalDateTime createdAt;
-    
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
 
 }

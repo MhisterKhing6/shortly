@@ -8,7 +8,6 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
@@ -20,6 +19,8 @@ public class VerificationToken {
 
     @DBRef
     private User userId;
+    
+    private String code;
     
     @CreatedDate
     private LocalDateTime createdAt;

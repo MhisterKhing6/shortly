@@ -7,6 +7,7 @@ import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 
 public interface RiderServiceInterface {
     /**
@@ -33,6 +34,15 @@ public interface RiderServiceInterface {
      * @return UserResponse with success message
      */
     UserResponse updateDeliveryStatus(String assignmentId, DeliveryStatusUpdateRequest statusRequest);
+
+    /**
+     * Updates delivery assignment status with automatic timestamp tracking.
+     * 
+     * @param assignmentId assignment to update
+     * @param statusRequest new delivery status
+     * @return UserResponse with success message
+     */
+    UserResponse managerUpdateDeliveryStatus(String assignmentId, DeliveryStatusUpdateRequest statusRequest);
     
     /**
      * Searches rider's undelivered assignments by receiver phone number.
@@ -59,4 +69,17 @@ public interface RiderServiceInterface {
      * @return UserResponse with success message
      */
     UserResponse reconcilation(ReconcilationRiderRequest reconcilationRiderRequest);
+
+    /**
+     * get all assignment
+     */
+    List<DeliveryAssignmentResponse> getOrderAssignmentByStatus(DeliveryStatus status) ;
+
+    /**
+     * resend confirmation code to receiver
+     * @param assignmentId
+     * @return User response
+     */
+    UserResponse resendConfirmationCodeToReceiver(String assignmentId);
+
 }

@@ -1,5 +1,7 @@
 package shortly.mandmcorp.dev.shortly.service.user;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -82,5 +84,7 @@ public interface UserServiceInterface {
     UserResponse updateProfile(UserUpdateRequest updateRequest);
     
     UserResponse updateRiderStatus(RiderStatusUpdateRequest statusRequest);
+
+    List<User> getRidersByOfficeId(boolean availability);
 
 }

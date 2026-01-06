@@ -1,8 +1,11 @@
 package shortly.mandmcorp.dev.shortly.controller;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,8 +30,15 @@ import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.ContactType;
 import shortly.mandmcorp.dev.shortly.model.Contacts;
+import shortly.mandmcorp.dev.shortly.model.Shelf;
+import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.contact.ContactServiceInterface;
+import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
+import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
+import shortly.mandmcorp.dev.shortly.service.rider.impl.RiderServiceImplementation;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
+import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
+
 
 
 
@@ -39,6 +49,8 @@ import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 public class UserController {
     private final UserServiceInterface userService;
     private final ContactServiceInterface contactService;
+    private final OfficeServiceInterface officeService;
+    private final RiderServiceInterface riderService;
 
     @PostMapping("/admin/register")
     @Operation(summary = "Register a new user", description = "Admin endpoint to register a new user in the system")
@@ -48,6 +60,7 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Invalid input data"),
         @ApiResponse(responseCode = "409", description = "User already exists")
     })
+    @TrackUserAction(action = "REGISTER_USER", description = "Admin registered a new user")
     public UserRegistrationResponse registerUser(@RequestBody @Valid UserRegistrationRequest userRegistrationRequest) {
         return  userService.register(userRegistrationRequest);
     }
@@ -58,6 +71,7 @@ public class UserController {
         @ApiResponse(responseCode = "200", description = "Login successful"),
         @ApiResponse(responseCode = "401", description = "Invalid credentials")
     })
+    @TrackUserAction(action = "USER_LOGIN", description = "User logged into the system")
     public UserLoginResponse userLogin(@RequestBody @Valid UserLoginRequestDto loginDetails) {
         return userService.login(loginDetails);
     }
@@ -68,10 +82,32 @@ public class UserController {
         @ApiResponse(responseCode = "200", description = "OTP sent successfully"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
+    @TrackUserAction(action = "REQUEST_PASSWORD_RESET", description = "User requested password reset")
     public UserResponse requestPasswordReset(@RequestBody @Valid ForgetPasswordRequest fr) {
         return userService.requestPasswordReset(fr);
     }
     
+     @GetMapping("/shelf/office/{id}")
+    @Operation(summary = "get a list of office shelf", description = "An endpoint to add shelfs")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "shelf retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "office not found")
+    })
+    public List<Shelf> getshelffsOffice(@PathVariable String id) {
+        return officeService.getOfficeShelf(id);
+    }
+
+    @GetMapping("/assignment/resend-confirmation-code/{id}")
+    @Operation(summary = "get a list of office shelf", description = "An endpoint to add shelfs")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "shelf retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "office not found")
+    })
+    public UserResponse resendConfirmationCode(@PathVariable String id) {
+        return riderService.resendConfirmationCodeToReceiver(id);
+    }
 
     @PostMapping("/reset-password")
     @Operation(summary = "Reset password", description = "Reset user password using verification token and new password")
@@ -80,6 +116,7 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Invalid token or expired"),
         @ApiResponse(responseCode = "404", description = "Token not found")
     })
+    @TrackUserAction(action = "RESET_PASSWORD", description = "User reset their password")
     public UserResponse resetPassword(@RequestBody @Valid ResetPasswordRequest fr) {
         return userService.resetPassword(fr);
     }
@@ -110,6 +147,7 @@ public class UserController {
         @ApiResponse(responseCode = "409", description = "Phone number already exists"),
         @ApiResponse(responseCode = "401", description = "User not authenticated")
     })
+    @TrackUserAction(action = "UPDATE_PROFILE", description = "User updated their profile")
     public UserResponse updateProfile(@RequestBody @Valid UserUpdateRequest updateRequest) {
         return userService.updateProfile(updateRequest);
     }
@@ -120,8 +158,10 @@ public class UserController {
         @ApiResponse(responseCode = "200", description = "Application is healthy")
     })
     public String health() {
-        return "OK";
+        return "OK Ok";
     }
+
+
 
     
 }

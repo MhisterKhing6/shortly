@@ -1,6 +1,5 @@
 package shortly.mandmcorp.dev.shortly.model;
 
-import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -26,6 +25,8 @@ public class Office {
 
     private String address;
     
+    private String phoneNumber;
+    
     @DBRef
     private Location location;
 
@@ -33,8 +34,8 @@ public class Office {
     private User manager;
 
     @CreatedDate
-    private LocalDateTime createdAt;
+    private Long createdAt;
     
     @LastModifiedDate
-    private LocalDateTime updatedAt;
+    private Long updatedAt;
 }

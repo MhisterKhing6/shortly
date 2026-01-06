@@ -16,10 +16,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.model.CancelationReason;
+import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 
@@ -29,6 +32,7 @@ import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 public class RiderController {
     private final UserServiceInterface userService;
     private final RiderServiceInterface riderService;
+    private final ParcelServiceInterface parcelService;
 
     @PutMapping("/rider-status")
     @Operation(summary = "Update rider status", description = "Update authenticated rider's status (BUSY, OFFLINE, READY, ON_TRIP)")
@@ -37,6 +41,7 @@ public class RiderController {
         @ApiResponse(responseCode = "200", description = "Rider status updated successfully"),
         @ApiResponse(responseCode = "401", description = "User not authenticated or not a rider")
     })
+    @TrackUserAction(action = "UPDATE_RIDER_STATUS", description = "Rider updated their status")
     public UserResponse updateRiderStatus(@RequestBody @Valid RiderStatusUpdateRequest statusRequest) {
         return userService.updateRiderStatus(statusRequest);
     }
@@ -61,9 +66,22 @@ public class RiderController {
         @ApiResponse(responseCode = "200", description = "Status updated successfully"),
         @ApiResponse(responseCode = "404", description = "Assignment not found")
     })
-    public UserResponse updateDeliveryStatus(@PathVariable String assignmentId, 
+    @TrackUserAction(action = "UPDATE_DELIVERY_STATUS", description = "Rider updated delivery assignment status")
+    public UserResponse updateDeliveryStatus(@PathVariable String assignmentId,
                                            @RequestBody @Valid DeliveryStatusUpdateRequest statusRequest) {
         return riderService.updateDeliveryStatus(assignmentId, statusRequest);
+    }
+
+    @PutMapping("/manager/assignments/{assignmentId}/status")
+    @Operation(summary = "Update delivery status", description = "Update delivery assignment status by manger or admin")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Status updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Assignment not found")
+    })
+    public UserResponse adminUpdateAssignment(@PathVariable String assignmentId, 
+                                           @RequestBody @Valid DeliveryStatusUpdateRequest statusRequest) {
+        return riderService.managerUpdateDeliveryStatus(assignmentId, statusRequest);
     }
 
     @GetMapping("/search")
@@ -75,5 +93,15 @@ public class RiderController {
     public List<DeliveryAssignmentResponse> searchByReceiverPhone(
             @RequestParam String receiverPhone) {
         return riderService.searchByReceiverPhone(receiverPhone);
+    }
+
+    @GetMapping("/cancellation-reasons")
+    @Operation(summary = "get a list of cancelation reason ", description = "An endpoint to get cancelation reasons")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "cancelation reason returns successfully"),
+    })
+    public List<CancelationReason> getCancelationReason() {
+        return parcelService.cancleationReasons();
     }
 }

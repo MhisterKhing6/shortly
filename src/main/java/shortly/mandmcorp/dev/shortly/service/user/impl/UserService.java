@@ -2,6 +2,7 @@ package shortly.mandmcorp.dev.shortly.service.user.impl;
 
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -29,9 +30,11 @@ import shortly.mandmcorp.dev.shortly.enums.UserStatusEnum;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityAlreadyExist;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
+import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.RiderStatusModel;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.model.VerificationToken;
+import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.RiderStatusRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.repository.VerificationTokenRepository;
@@ -62,9 +65,12 @@ public class UserService implements UserServiceInterface {
     private final VerificationTokenRepository verificationTokenRepository;
     private final FrontEndServerConfig frontendConfig;
     private final RiderStatusRepository riderStatusRepository;
+    private final OfficeRepository officeRepository;
 
 
-    public UserService(FrontEndServerConfig frontend,UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification, PasswordEncoder passwordEncoder, JWTConfig jwtConfig, VerificationTokenRepository verificationTokenRepository, RiderStatusRepository riderStatusRepository) {
+    public UserService(FrontEndServerConfig frontend,UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification, 
+    PasswordEncoder passwordEncoder, JWTConfig jwtConfig, VerificationTokenRepository verificationTokenRepository, 
+    RiderStatusRepository riderStatusRepository, OfficeRepository officeRepository) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.notification = smsNotification;
@@ -73,6 +79,7 @@ public class UserService implements UserServiceInterface {
         this.verificationTokenRepository = verificationTokenRepository;
         this.frontendConfig = frontend;
         this.riderStatusRepository = riderStatusRepository;
+        this.officeRepository = officeRepository;
     }   
 
     /**
@@ -92,11 +99,21 @@ public class UserService implements UserServiceInterface {
             throw new EntityAlreadyExist("User already registered");  
         } 
 
+        Office office = officeRepository.findById(userRequestDetails.getOfficeId())
+            .orElseThrow(() -> new EntityNotFound("Office not found"));
+        
+         userRequestDetails.setOfficeId(office.getId());
         String password = OtpUtil.generateUserPassword();
         userRequestDetails.setPassword(password);
         User newUser = userMapper.toEntity(userRequestDetails);
+        newUser.setOfficeId(office.getId());
+    if(userRequestDetails.getRole() == UserRole.MANAGER) {
         userRepository.save(newUser);
-        
+        office.setManager(newUser);
+        officeRepository.save(office);
+        } else {
+        userRepository.save(newUser);
+        }
         // Create rider status if user is a rider
         if(newUser.getRole() == UserRole.RIDER) {
             RiderStatusModel riderStatus = new RiderStatusModel();
@@ -130,7 +147,9 @@ public class UserService implements UserServiceInterface {
             throw new WrongCredentialsException("phone number or password incorrect");
         }
         String token = jwt.generateAccessToken(userEntity);
-        return userMapper.toUserLoginResponse(userEntity, token);   
+        Office office = officeRepository.findById(userEntity.getOfficeId())
+        .orElseThrow(()-> new EntityNotFound("office not found"));
+        return userMapper.toUserLoginResponse(userEntity, token, office);   
     }
 
     /**
@@ -151,12 +170,13 @@ public class UserService implements UserServiceInterface {
         VerificationToken token = new VerificationToken();
         token.setUserId(user);
         token.setCreatedAt(LocalDateTime.now());
+        token.setCode(otp);
         verificationTokenRepository.save(token);
         
-        String otpMessage = NotificationUtil.generateResetPasswordMessage(frontendConfig.getBaseUrl(), token.getId(), user.getName());
+        String otpMessage = NotificationUtil.generateOtpMessage(otp) ;
         NotificationRequestTemplate otpRequest = NotificationRequestTemplate.builder().body(otpMessage).to(user.getPhoneNumber()).build();
         notification.send(otpRequest);
-        UserResponse userResponse = new UserResponse("Otp sent kindly check sms", otp);
+        UserResponse userResponse = new UserResponse("Otp sent kindly check sms", token.getId());
         return userResponse;
     }
 
@@ -178,7 +198,9 @@ public class UserService implements UserServiceInterface {
                 log.error("Token not found in database: {}", tokenId);
                 return new WrongCredentialsException("Invalid token");
             });
-        
+        if( !token.getCode().equals(fr.getVerificationCode()) ) {
+            throw new WrongCredentialsException("Invalid code");
+        }
         log.info("Token found successfully for ID: {}", tokenId);
         
         if(token.getCreatedAt().plusMinutes(5).isBefore(LocalDateTime.now())) {
@@ -291,6 +313,7 @@ public class UserService implements UserServiceInterface {
      * @throws WrongCredentialsException if user not authenticated or not a rider
      */
     @Override
+    @PreAuthorize("hasRole('RIDER')")
     public UserResponse updateRiderStatus(RiderStatusUpdateRequest statusRequest) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
@@ -312,6 +335,19 @@ public class UserService implements UserServiceInterface {
         riderStatusRepository.save(riderStatus);
         
         return new UserResponse("Rider status updated successfully", user.getPhoneNumber());
+    }
+
+    @Override
+    @PreAuthorize("hasRole('MANAGER') or hasRole('FRONTDESK')")
+    public List<User> getRidersByOfficeId(boolean availability) {
+         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        
+        User user = (User) auth.getPrincipal();
+        
+        return userRepository.findByRoleAndOfficeIdAndAvailability(UserRole.RIDER, user.getOfficeId(), availability);
     }
 
 }

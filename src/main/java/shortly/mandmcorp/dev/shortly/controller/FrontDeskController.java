@@ -1,7 +1,10 @@
 package shortly.mandmcorp.dev.shortly.controller;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,17 +21,21 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import shortly.mandmcorp.dev.shortly.dto.request.CancelationReasonRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
-import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
-
-import java.util.List;
+import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
+import shortly.mandmcorp.dev.shortly.model.CancelationReason;
+import shortly.mandmcorp.dev.shortly.model.Parcel;
+import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
+import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
+import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 
 
 
@@ -40,6 +47,7 @@ public class FrontDeskController {
     
     private final ParcelServiceInterface parcelService;
     private final RiderServiceInterface riderService;
+    private final UserServiceInterface userService;
 
     @PostMapping("/parcel")
     @Operation(summary = "Add a new parcel", description = "Create a new parcel entry in the system")
@@ -47,7 +55,8 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "200", description = "Parcel added successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid parcel data")
     })
-    public ParcelResponse addParcel(@RequestBody @Valid ParcelRequest parcelRequest) {
+    @TrackUserAction(action = "ADD_PARCEL", description = "Front desk added a new parcel")
+    public Parcel addParcel(@RequestBody @Valid ParcelRequest parcelRequest) {
         return parcelService.addParcel(parcelRequest);
     }
 
@@ -57,7 +66,8 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "200", description = "Parcel updated successfully"),
         @ApiResponse(responseCode = "404", description = "Parcel not found")
     })
-    public ParcelResponse updateParcel(@PathVariable String id, @RequestBody @Valid ParcelUpdateRequest updateRequest) {
+    @TrackUserAction(action = "UPDATE_PARCEL", description = "Front desk updated a parcel")
+    public Parcel updateParcel(@PathVariable String id, @RequestBody @Valid ParcelUpdateRequest updateRequest) {
         return parcelService.updateParcel(id, updateRequest);
     }
 
@@ -67,7 +77,7 @@ public class FrontDeskController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully")
     })
-    public Page<ParcelResponse> searchParcels(
+    public Page<Parcel> searchParcels(
             @RequestParam(required = false) Boolean isPOD,
             @RequestParam(required = false) Boolean isDelivered,
             @RequestParam(required = false) Boolean isParcelAssigned,
@@ -77,6 +87,19 @@ public class FrontDeskController {
             @RequestParam(required = false) String page,
             Pageable pageable) {
         return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, null, driverId, hasCalled, pageable, true);
+    }
+
+
+    @GetMapping("/parcel-assignment")
+    @Operation(summary = "return rider assignment", description = "Search parcels with various filters and pagination")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully")
+    })
+    public List<DeliveryAssignmentResponse> orderAssignemnts(
+          
+        @RequestParam(defaultValue = "DELIVERED") DeliveryStatus status) {
+        return riderService.getOrderAssignmentByStatus(status);
     }
 
     @PostMapping("/assign-parcels")
@@ -121,10 +144,42 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully"),
         @ApiResponse(responseCode = "404", description = "Driver not found")
     })
-    public List<ParcelResponse> getDriverParcels(
+    public List<Parcel> getDriverParcels(
             @PathVariable String driverId,
             @RequestParam(defaultValue = "true") boolean isPOD,
             @RequestParam(defaultValue = "false") String inboundPayed) {
         return parcelService.getParcelsByDriverId(driverId, isPOD, inboundPayed);
+    }
+
+    @GetMapping("/riders/office")
+    @Operation(summary = "get a list of availagle rider  in an office", description = "An endpoint to get riders in an office")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "shelf retrieved successfully"),
+    })
+    public List<User> getRiderOffice(@RequestParam(defaultValue = "true") boolean availability) {
+        return userService.getRidersByOfficeId(availability);
+    }
+
+
+    @GetMapping("/cancellation-reasons")
+    @Operation(summary = "get a list of cancelation reason ", description = "An endpoint to get cancelation reasons")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "cancelation reason returns successfully"),
+    })
+    public List<CancelationReason> getCancelationReason() {
+        return parcelService.cancleationReasons();
+    }
+
+    @PostMapping("/cancellation-reasons")
+    @Operation(summary = "add cancelation reason ", description = "An endpoint to add cancelation reason")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "cancelation reason wass added successfule"),
+    })
+
+    public UserResponse addCancelationReason(@RequestBody @Valid CancelationReasonRequest cancelRequest) {
+        return parcelService.addCancelationReason(cancelRequest);
     }
 }

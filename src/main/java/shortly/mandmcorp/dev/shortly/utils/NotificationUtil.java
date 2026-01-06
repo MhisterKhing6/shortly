@@ -7,7 +7,7 @@ public class NotificationUtil {
     } 
 
     public static String loginCredentials(String password, String phoneNumber, String name, String role) {
-        return "Hello " + name + "  Your login credentials on the Shortly app as a " + role + " are - Phone: " + phoneNumber + ", Password: " + password;
+        return "Hello " + name + "  Your login credentials on the Shortly app as a " + role + " are - Phone: " + phoneNumber + ", Password: " + password  + " login here: https://mnm-parcels.vercel.app";
     } 
 
 
@@ -23,4 +23,12 @@ public class NotificationUtil {
     public static String generateParcelStatusUpdateMsg(String parcelCode, String status) {
         return "The status of your parcel with code " + parcelCode + " has been updated to: " + status;
     }
+
+    public static String generateAssignmentMessgeCustomer(String riderPhoneNumber, String riderName, String vCode, String receiverName, String pId) {
+        return "Hello " + receiverName
+                + " Your parcel with Id " + pId
+                + " delivers today by rider " + riderName
+                + " / " + riderPhoneNumber
+                + ". with verification code " + vCode;
+            }
 }

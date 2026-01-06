@@ -24,8 +24,8 @@ public class RiderStatusModel {
   private RiderStatus riderStatus;
   
   @CreatedDate
-  private LocalDateTime createdAt;
+  private Long createdAt;
   
   @LastModifiedDate
-  private LocalDateTime updatedAt;
+  private Long updatedAt;
 }

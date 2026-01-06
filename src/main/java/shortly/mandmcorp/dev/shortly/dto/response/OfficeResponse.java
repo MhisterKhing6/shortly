@@ -8,7 +8,9 @@ public class OfficeResponse {
     private String name;
     private String code;
     private String address;
+    private String phoneNumber;
     private String locationName;
     private String managerName;
-    private long createdAt;
+    private Long createdAt;
+    private Long updatedAt;
 }

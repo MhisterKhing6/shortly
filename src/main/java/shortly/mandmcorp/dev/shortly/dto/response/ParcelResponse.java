@@ -21,4 +21,5 @@ public class ParcelResponse {
     private boolean isFragile;
     private double deliveryCost;
     private double storageCost;
+    private String vehicleNumber;
 }
