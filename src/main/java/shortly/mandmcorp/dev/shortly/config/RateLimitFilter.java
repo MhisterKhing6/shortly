@@ -1,5 +1,5 @@
 package shortly.mandmcorp.dev.shortly.config;
-
+/* 
 import java.io.IOException;
 import java.time.Duration;
 
@@ -37,3 +37,4 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 }
 
+*/

@@ -1,6 +1,6 @@
 package shortly.mandmcorp.dev.shortly.aspect;
 
-import org.aspectj.lang.JoinPoint;
+/*import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
@@ -53,4 +53,4 @@ public class UserActionAspect {
             log.error("Error tracking user action", e);
         }
     }
-}
+} */
