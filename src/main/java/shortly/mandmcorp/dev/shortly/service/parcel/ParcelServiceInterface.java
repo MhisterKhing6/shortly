@@ -15,8 +15,8 @@ import shortly.mandmcorp.dev.shortly.model.Parcel;
 public interface ParcelServiceInterface {
     Parcel addParcel(ParcelRequest parcelRequest);
     Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest);
-    Page<Parcel> searchParcels(Boolean isPOD, Boolean isDelivered, Boolean isParcelAssigned, 
-                                      String officeId, String driverId, String hasCalled, Pageable pageable, boolean isFrontDesk);
+    Page<Parcel> searchParcels(Boolean isPOD, Boolean isDelivered, Boolean isParcelAssigned,
+                                      String officeId, String driverId, Boolean hasCalled, Pageable pageable, boolean isFrontDesk);
     
     /**
      * Gets all parcels for a specific driver with POD and inbound payment filters.
@@ -31,4 +31,12 @@ public interface ParcelServiceInterface {
     List<CancelationReason> cancleationReasons();
 
     UserResponse addCancelationReason(CancelationReasonRequest cancelationReasonRequest);
+
+    /**
+     * Gets parcels available for office pickup (not home delivery, not delivered, in user's office).
+     *
+     * @param pageable pagination parameters
+     * @return Page of parcels that are in the user's office, not delivered, and not for home delivery
+     */
+    Page<Parcel> getHomeDeliveryParcels(Pageable pageable);
 }

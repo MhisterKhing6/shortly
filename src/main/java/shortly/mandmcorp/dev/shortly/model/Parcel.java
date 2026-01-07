@@ -1,6 +1,8 @@
 package shortly.mandmcorp.dev.shortly.model;
 
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
@@ -35,8 +37,10 @@ public class Parcel {
     private String shelfId;
     private boolean homeDelivery;
 
+    @CreatedDate
+    private Long createdAt;
 
-    
-    
+    @LastModifiedDate
+    private Long updatedAt;
 
 }
