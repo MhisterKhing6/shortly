@@ -112,6 +112,18 @@ public class FrontDeskController {
         return parcelService.getHomeDeliveryParcels(pageable);
     }
 
+    @GetMapping("/parcels-uncalled")
+    @Operation(summary = "Get uncalled parcels", description = "Get parcels that have not been called in the user's office")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Uncalled parcels retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated")
+    })
+    @TrackUserAction(action = "VIEW_UNCALLED_PARCELS", description = "User viewed uncalled parcels")
+    public Page<Parcel> getUncalledParcels(Pageable pageable) {
+        return parcelService.getUncalledParcels(pageable);
+    }
+
     @PostMapping("/assign-parcels")
     @Operation(summary = "Assign parcels to rider", description = "Assign multiple parcels to a specific rider")
     @SecurityRequirement(name = "Bearer Authentication")
