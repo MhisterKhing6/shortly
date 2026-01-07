@@ -77,7 +77,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
 
         if( !shelf.getOffice().getId().equals(parcel.getOfficeId())) {
             throw new WrongCredentialsException("Shelf does not belong to the specified office");
-        }
+        } 
         parcel.setShelfName(shelf.getName());
         parcel.setShelfId(shelf.getId());
         Parcel savedParcel = parcelRepository.save(parcel);
@@ -196,7 +196,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         Boolean isParcelAssigned,
         String officeId,
         String driverPhoneNumber,
-        String hasCalled,
+        Boolean hasCalled,
         Pageable pageable,
         boolean isFrontDesk) {
 
@@ -208,7 +208,6 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
             }
         }
     }
-
     Query query = new Query();
     List<Criteria> criteria = new ArrayList<>();
 
@@ -236,13 +235,29 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         criteria.add(Criteria.where("driverPhoneNumber").is(driverPhoneNumber));
     }
 
+    // Apply criteria if any
     if (!criteria.isEmpty()) {
         query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
     }
 
-    query.with(pageable);
+    // Apply default sorting BEFORE counting and pagination
+    org.springframework.data.domain.Sort sort;
+    if (pageable.getSort().isSorted()) {
+        sort = pageable.getSort();
+    } else {
+        sort = org.springframework.data.domain.Sort.by(
+            org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+    }
+    query.with(sort);
 
+    // Count total documents matching criteria
     long total = mongoTemplate.count(query, Parcel.class);
+
+    // Apply pagination
+    query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+    query.limit(pageable.getPageSize());
+
+    // Execute query
     List<Parcel> parcels = mongoTemplate.find(query, Parcel.class);
 
     return new PageImpl<>(parcels, pageable, total);
@@ -296,8 +311,55 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     @Override
     public List<Parcel> getParcelsByDriverId(String driverId, boolean isPOD, String inboundPayed) {
-       
+
         return null;
+
+    }
+
+    @Override
+    public Page<Parcel> getHomeDeliveryParcels(Pageable pageable) {
         
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        String officeId = user.getOfficeId();
+        if (officeId == null) {
+            throw new WrongCredentialsException("User has no office assigned");
+        }
+
+        
+        Query query = new Query();
+        List<Criteria> criteria = new ArrayList<>();
+
+        criteria.add(Criteria.where("homeDelivery").is(true));
+
+        criteria.add(Criteria.where("isDelivered").is(false));
+
+        criteria.add(Criteria.where("officeId").is(officeId));
+
+        query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+
+        org.springframework.data.domain.Sort sort;
+        if (pageable.getSort().isSorted()) {
+            sort = pageable.getSort();
+        } else {
+            sort = org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+        }
+        query.with(sort);
+
+        // Count total documents matching criteria
+        long total = mongoTemplate.count(query, Parcel.class);
+
+        // Apply pagination
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(300); //pageable.getPageSize());
+
+        // Execute query
+        List<Parcel> parcels = mongoTemplate.find(query, Parcel.class);
+
+        return new PageImpl<>(parcels, pageable, total);
     }
 }

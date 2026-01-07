@@ -162,9 +162,7 @@ public class AdminController {
             @RequestParam(required = false) Boolean isParcelAssigned,
             @RequestParam(required = false) String officeId,
             @RequestParam(required = false) String driverId,
-            @RequestParam(required = false) String hasCalled,
-             @RequestParam(required = false) String limit,
-            @RequestParam(required = false) String page,
+            @RequestParam(required = false) Boolean hasCalled,
             Pageable pageable) {
         return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, officeId, driverId, hasCalled, pageable, false);
     }

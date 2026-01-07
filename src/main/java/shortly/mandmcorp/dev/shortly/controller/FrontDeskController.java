@@ -82,9 +82,7 @@ public class FrontDeskController {
             @RequestParam(required = false) Boolean isDelivered,
             @RequestParam(required = false) Boolean isParcelAssigned,
             @RequestParam(required = false) String driverId,
-            @RequestParam(required = false) String hasCalled,
-            @RequestParam(required = false) String limit,
-            @RequestParam(required = false) String page,
+            @RequestParam(required = false) Boolean hasCalled,
             Pageable pageable) {
         return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, null, driverId, hasCalled, pageable, true);
     }
@@ -97,9 +95,21 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully")
     })
     public List<DeliveryAssignmentResponse> orderAssignemnts(
-          
+
         @RequestParam(defaultValue = "DELIVERED") DeliveryStatus status) {
         return riderService.getOrderAssignmentByStatus(status);
+    }
+
+    @GetMapping("/parcels/home-delivery")
+    @Operation(summary = "Get office pickup parcels", description = "Get parcels available for pickup at the user's office (not home delivery, not delivered)")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Office pickup parcels retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated")
+    })
+    @TrackUserAction(action = "VIEW_OFFICE_PICKUP_PARCELS", description = "User viewed office pickup parcels")
+    public Page<Parcel> getOfficePickupParcels(Pageable pageable) {
+        return parcelService.getHomeDeliveryParcels(pageable);
     }
 
     @PostMapping("/assign-parcels")
