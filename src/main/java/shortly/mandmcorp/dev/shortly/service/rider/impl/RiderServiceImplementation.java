@@ -174,9 +174,9 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         assignment.setStatus(statusRequest.getStatus());
         if(statusRequest.getStatus() == DeliveryStatus.DELIVERED) {
             assignment.setCompletedAt(System.currentTimeMillis());
-            if( !statusRequest.getConfirmationCode().equals(assignment.getConfirmationCode())) {
+           /* if( !statusRequest.getConfirmationCode().equals(assignment.getConfirmationCode())) {
                 throw new ActionNotAllowed("Invalid  confirmation code");
-            }
+            } */
             assignment.getOrderId().setDelivered(true);
             assignment.setStatus(DeliveryStatus.DELIVERED);
             assignment.setCompletedBy(rider);
