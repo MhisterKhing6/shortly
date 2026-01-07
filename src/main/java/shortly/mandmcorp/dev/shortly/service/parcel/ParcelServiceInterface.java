@@ -39,4 +39,12 @@ public interface ParcelServiceInterface {
      * @return Page of parcels that are in the user's office, not delivered, and not for home delivery
      */
     Page<Parcel> getHomeDeliveryParcels(Pageable pageable);
+
+    /**
+     * Gets parcels that have not been called in the user's office.
+     *
+     * @param pageable pagination parameters
+     * @return Page of parcels that are uncalled in the user's office
+     */
+    Page<Parcel> getUncalledParcels(Pageable pageable);
 }

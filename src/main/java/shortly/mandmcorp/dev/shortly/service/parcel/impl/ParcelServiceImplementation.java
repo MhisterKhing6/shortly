@@ -318,7 +318,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     @Override
     public Page<Parcel> getHomeDeliveryParcels(Pageable pageable) {
-        
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
             throw new WrongCredentialsException("User not authenticated");
@@ -329,7 +329,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
             throw new WrongCredentialsException("User has no office assigned");
         }
 
-        
+
         Query query = new Query();
         List<Criteria> criteria = new ArrayList<>();
 
@@ -354,8 +354,53 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         long total = mongoTemplate.count(query, Parcel.class);
 
         // Apply pagination
-        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        //query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
         query.limit(300); //pageable.getPageSize());
+
+        // Execute query
+        List<Parcel> parcels = mongoTemplate.find(query, Parcel.class);
+
+        return new PageImpl<>(parcels, pageable, total);
+    }
+
+    @Override
+    public Page<Parcel> getUncalledParcels(Pageable pageable) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        String officeId = user.getOfficeId();
+        if (officeId == null) {
+            throw new WrongCredentialsException("User has no office assigned");
+        }
+
+
+        Query query = new Query();
+        List<Criteria> criteria = new ArrayList<>();
+
+        criteria.add(Criteria.where("hasCalled").is(false));
+
+        criteria.add(Criteria.where("officeId").is(officeId));
+
+        query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+
+        org.springframework.data.domain.Sort sort;
+        if (pageable.getSort().isSorted()) {
+            sort = pageable.getSort();
+        } else {
+            sort = org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+        }
+        query.with(sort);
+
+        // Count total documents matching criteria
+        long total = mongoTemplate.count(query, Parcel.class);
+
+        // Apply pagination
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
 
         // Execute query
         List<Parcel> parcels = mongoTemplate.find(query, Parcel.class);
