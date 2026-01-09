@@ -26,6 +26,7 @@ import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.enums.ReconcilationType;
+import shortly.mandmcorp.dev.shortly.enums.UserRole;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
@@ -98,7 +99,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         
         User rider = userRepository.findById(assignmentRequest.getRiderId())
             .orElseThrow(() -> new EntityNotFound("Rider not found"));
-        
+        User officeManager = null;
+        List<User>  managers = userRepository.findByRoleAndOfficeId(UserRole.MANAGER, rider.getOfficeId());
+        if(!managers.isEmpty()) {
+            officeManager = managers.get(0);
+        } else {
+            officeManager = rider;
+        }
         long assignedAt = System.currentTimeMillis();
         String confirmationCode = "";
         for(String parcelId : assignmentRequest.getParcelIds()) {
@@ -150,8 +157,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             reconcilation.setParcelId(parcel.getParcelId());
             reconcilation.setCreatedAt(System.currentTimeMillis());
             reconcilationRepository.save(reconcilation);
-
-        String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(rider.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
+        
+        String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(officeManager.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
         .to(parcel.getRecieverPhoneNumber()).build();
         notification.send(notify);
@@ -338,16 +345,15 @@ public class RiderServiceImplementation implements RiderServiceInterface {
      * @throws WrongCredentialsException if user not authenticated
      */
     @Override
-    public List<DeliveryAssignmentResponse> searchByReceiverPhone(String receiverPhone) {
+    public List<DeliveryAssignments> searchByReceiverPhone(String receiverPhone) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
             throw new WrongCredentialsException("User not authenticated");
         }
         
         User rider = (User) auth.getPrincipal();
-        List<DeliveryAssignments> assignments = deliveryAssignmentsRepository.findByRiderAndReceiverPhoneAndNotDelivered(rider.getUserId(), receiverPhone);
+        return deliveryAssignmentsRepository.findByRiderAndReceiverPhoneAndNotDelivered(rider.getUserId(), receiverPhone);
 
-        return assignments.stream().map(this::toDeliveryAssignmentResponse).collect(Collectors.toList());
     }
 
     /**

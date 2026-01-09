@@ -22,6 +22,7 @@ import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.model.CancelationReason;
+import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
@@ -91,7 +92,7 @@ public class RiderController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search results retrieved successfully")
     })
-    public List<DeliveryAssignmentResponse> searchByReceiverPhone(
+    public List<DeliveryAssignments> searchByReceiverPhone(
             @RequestParam String receiverPhone) {
         return riderService.searchByReceiverPhone(receiverPhone);
     }

@@ -52,11 +52,11 @@ public interface RiderServiceInterface {
     
     /**
      * Searches rider's undelivered assignments by receiver phone number.
-     * 
+     *
      * @param receiverPhone receiver's phone number to search
      * @return List of matching undelivered assignments
      */
-    List<DeliveryAssignmentResponse> searchByReceiverPhone(String receiverPhone);
+    List<DeliveryAssignments> searchByReceiverPhone(String receiverPhone);
 
     /**
      * Gets all delivery assignments for a specific rider with payment filter.
