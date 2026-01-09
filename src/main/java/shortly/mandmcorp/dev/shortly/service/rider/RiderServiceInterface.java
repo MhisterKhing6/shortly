@@ -2,6 +2,9 @@ package shortly.mandmcorp.dev.shortly.service.rider;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
@@ -10,8 +13,7 @@ import shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 
 public interface RiderServiceInterface {
     /**
@@ -50,11 +52,11 @@ public interface RiderServiceInterface {
     
     /**
      * Searches rider's undelivered assignments by receiver phone number.
-     * 
+     *
      * @param receiverPhone receiver's phone number to search
      * @return List of matching undelivered assignments
      */
-    List<DeliveryAssignmentResponse> searchByReceiverPhone(String receiverPhone);
+    List<DeliveryAssignments> searchByReceiverPhone(String receiverPhone);
 
     /**
      * Gets all delivery assignments for a specific rider with payment filter.
@@ -63,7 +65,7 @@ public interface RiderServiceInterface {
      * @param payed filter by payment status (default true)
      * @return List of delivery assignments with full parcel details
      */
-    List<DeliveryAssignmentResponse> getRiderAssignmentsByRiderId(String riderId, boolean payed);
+    List<DeliveryAssignments> getRiderAssignmentsByRiderId(String riderId, boolean payed);
     
     /**
      * Marks multiple delivery assignments as paid for reconciliation.
@@ -111,5 +113,12 @@ public interface RiderServiceInterface {
      * @return ReconciliationStatsResponse with completed and not completed counts and amounts
      */
     ReconciliationStatsResponse getReconciliationStats(String period);
+
+    /**
+     * Gets all reconciliations for the authenticated rider.
+     *
+     * @return List of reconciliations sorted by createdAt descending
+     */
+    List<Reconcilations> getRiderReconciliations();
 
 }

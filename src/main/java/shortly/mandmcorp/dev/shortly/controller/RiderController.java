@@ -22,6 +22,8 @@ import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.model.CancelationReason;
+import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
+import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
@@ -90,7 +92,7 @@ public class RiderController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Search results retrieved successfully")
     })
-    public List<DeliveryAssignmentResponse> searchByReceiverPhone(
+    public List<DeliveryAssignments> searchByReceiverPhone(
             @RequestParam String receiverPhone) {
         return riderService.searchByReceiverPhone(receiverPhone);
     }
@@ -103,5 +105,17 @@ public class RiderController {
     })
     public List<CancelationReason> getCancelationReason() {
         return parcelService.cancleationReasons();
+    }
+
+    @GetMapping("/reconciliations")
+    @Operation(summary = "Get rider reconciliations", description = "Get all reconciliations for authenticated rider sorted by creation date")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reconciliations retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated")
+    })
+    @TrackUserAction(action = "VIEW_RIDER_RECONCILIATIONS", description = "Rider viewed their reconciliations")
+    public List<Reconcilations> getRiderReconciliations() {
+        return riderService.getRiderReconciliations();
     }
 }

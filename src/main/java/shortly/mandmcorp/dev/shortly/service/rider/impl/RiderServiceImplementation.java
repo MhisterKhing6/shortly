@@ -5,7 +5,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -24,16 +26,19 @@ import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.enums.ReconcilationType;
-import shortly.mandmcorp.dev.shortly.exceptions.ActionNotAllowed;
+import shortly.mandmcorp.dev.shortly.enums.UserRole;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
+import shortly.mandmcorp.dev.shortly.model.ParcelInfo;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
+import shortly.mandmcorp.dev.shortly.model.RiderInfo;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.repository.CancelationReasonRepository;
 import shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
+import shortly.mandmcorp.dev.shortly.repository.ReconcilationRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
@@ -41,9 +46,6 @@ import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.OtpUtil;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import shortly.mandmcorp.dev.shortly.repository.ReconcilationRepository;
 
 
 /**
@@ -97,7 +99,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         
         User rider = userRepository.findById(assignmentRequest.getRiderId())
             .orElseThrow(() -> new EntityNotFound("Rider not found"));
-        
+        User officeManager = null;
+        List<User>  managers = userRepository.findByRoleAndOfficeId(UserRole.MANAGER, rider.getOfficeId());
+        if(!managers.isEmpty()) {
+            officeManager = managers.get(0);
+        } else {
+            officeManager = rider;
+        }
         long assignedAt = System.currentTimeMillis();
         String confirmationCode = "";
         for(String parcelId : assignmentRequest.getParcelIds()) {
@@ -108,11 +116,29 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 continue;
             }
             confirmationCode = OtpUtil.generateOtp();
-            
+
+            // Create embedded RiderInfo
+            RiderInfo riderInfo = RiderInfo.builder()
+                .riderId(rider.getUserId())
+                .riderName(rider.getName())
+                .riderPhoneNumber(rider.getPhoneNumber())
+                .build();
+
+            // Create embedded ParcelInfo
+            ParcelInfo parcelInfo = ParcelInfo.builder()
+                .parcelId(parcel.getParcelId())
+                .parcelDescription(parcel.getParcelDescription())
+                .receiverName(parcel.getReceiverName())
+                .receiverPhoneNumber(parcel.getRecieverPhoneNumber())
+                .receiverAddress(parcel.getReceiverAddress())
+                .senderName(parcel.getSenderName())
+                .senderPhoneNumber(parcel.getSenderPhoneNumber())
+                .build();
+
             DeliveryAssignments assignment = new DeliveryAssignments();
-            assignment.setRiderId(rider);
+            assignment.setRiderInfo(riderInfo);
             assignment.setOfficeId(rider.getOfficeId());
-            assignment.setOrderId(parcel);
+            assignment.setParcelInfo(parcelInfo);
             assignment.setStatus(DeliveryStatus.ASSIGNED);
             assignment.setConfirmationCode(confirmationCode);
             assignment.setAssignedAt(assignedAt);
@@ -131,8 +157,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             reconcilation.setParcelId(parcel.getParcelId());
             reconcilation.setCreatedAt(System.currentTimeMillis());
             reconcilationRepository.save(reconcilation);
-
-        String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(rider.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
+        
+        String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(officeManager.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
         .to(parcel.getRecieverPhoneNumber()).build();
         notification.send(notify);
@@ -161,10 +187,10 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         }
         
         User rider = (User) auth.getPrincipal();
-        List<DeliveryAssignments> assignments = onlyUndelivered 
-            ? deliveryAssignmentsRepository.findByRiderIdAndStatusNot(rider, DeliveryStatus.DELIVERED)
-            : deliveryAssignmentsRepository.findByRiderId(rider);
-        
+        List<DeliveryAssignments> assignments = onlyUndelivered
+            ? deliveryAssignmentsRepository.findByRiderInfoRiderIdAndStatusNot(rider.getUserId(), DeliveryStatus.DELIVERED)
+            : deliveryAssignmentsRepository.findByRiderInfoRiderId(rider.getUserId());
+
         return assignments.stream().map(this::toDeliveryAssignmentResponse).collect(Collectors.toList());
     }
 
@@ -188,38 +214,55 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         User rider = (User) auth.getPrincipal();
         DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(assignmentId)
             .orElseThrow(() -> new EntityNotFound("Assignment not found"));
-        
-        if(!assignment.getRiderId().getUserId().equals(rider.getUserId())) {
+
+        // Check if rider is authorized using embedded RiderInfo
+        String assignedRiderId = assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderId() : null;
+        if(assignedRiderId == null || !assignedRiderId.equals(rider.getUserId())) {
             throw new WrongCredentialsException("Not authorized to update this assignment");
         }
-        
+
         assignment.setStatus(statusRequest.getStatus());
         if(statusRequest.getStatus() == DeliveryStatus.DELIVERED) {
             assignment.setCompletedAt(System.currentTimeMillis());
            /* if( !statusRequest.getConfirmationCode().equals(assignment.getConfirmationCode())) {
                 throw new ActionNotAllowed("Invalid  confirmation code");
             } */
-            assignment.getOrderId().setDelivered(true);
+
+            // Fetch and update the parcel using parcelId from embedded ParcelInfo
+            String parcelId = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : null;
+            if(parcelId != null) {
+                Parcel parcel = parcelRepository.findById(parcelId)
+                    .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+
+                parcel.setDelivered(true);
+                parcelRepository.save(parcel);
+
+                String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
+                NotificationRequestTemplate notify = NotificationRequestTemplate.builder()
+                    .body(message)
+                    .to(parcel.getDriverPhoneNumber())
+                    .build();
+                notification.send(notify);
+            }
+
             assignment.setStatus(DeliveryStatus.DELIVERED);
-            assignment.setCompletedBy(rider);
             assignment.setPayed(true);
             assignment.setPayementMethod(statusRequest.getPayementMethod());
-            parcelRepository.save(assignment.getOrderId());
-            Parcel parcel = assignment.getOrderId();
-            String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
-            NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(message).to(parcel.getDriverPhoneNumber()).build();
-            notification.send(notify);
-            parcel.setDelivered(true);
-            parcelRepository.save(parcel);
         }
         else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
-            Parcel parcel = assignment.getOrderId();
-            assignment.setCancelationReason(statusRequest.getCancelationReason());
-            assignment.setStatus(DeliveryStatus.CANCELLED);
-            parcel.setCancelationCount(parcel.getCancelationCount() + 1);
-            parcel.setDelivered(false);
-            parcel.setParcelAssigned(false);
-            parcelRepository.save(parcel);
+            // Fetch and update the parcel using parcelId from embedded ParcelInfo
+            String parcelId = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : null;
+            if(parcelId != null) {
+                Parcel parcel = parcelRepository.findById(parcelId)
+                    .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+
+                assignment.setCancelationReason(statusRequest.getCancelationReason());
+                assignment.setStatus(DeliveryStatus.CANCELLED);
+                parcel.setCancelationCount(parcel.getCancelationCount() + 1);
+                parcel.setDelivered(false);
+                parcel.setParcelAssigned(false);
+                parcelRepository.save(parcel);
+            }
         }
         deliveryAssignmentsRepository.save(assignment);
         return new UserResponse("Delivery status updated successfully", rider.getPhoneNumber());
@@ -247,31 +290,49 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         User manager = (User) auth.getPrincipal();
         DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(assignmentId)
             .orElseThrow(() -> new EntityNotFound("Assignment not found"));
-            
+
         assignment.setStatus(statusRequest.getStatus());
         if(statusRequest.getStatus() == DeliveryStatus.DELIVERED) {
             assignment.setCompletedAt(System.currentTimeMillis());
-            assignment.getOrderId().setDelivered(true);
+
+            // Fetch and update the parcel using parcelId from embedded ParcelInfo
+            String parcelId = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : null;
+            if(parcelId != null) {
+                Parcel parcel = parcelRepository.findById(parcelId)
+                    .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+
+                parcel.setDelivered(true);
+                parcelRepository.save(parcel);
+
+                String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
+                NotificationRequestTemplate notify = NotificationRequestTemplate.builder()
+                    .body(message)
+                    .to(parcel.getDriverPhoneNumber())
+                    .build();
+                notification.send(notify);
+            }
+
             assignment.setStatus(DeliveryStatus.DELIVERED);
             assignment.setPayed(true);
-            assignment.setCompletedBy(manager);
-            parcelRepository.save(assignment.getOrderId());
-            Parcel parcel = assignment.getOrderId();
-            String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
-            NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(message).to(parcel.getDriverPhoneNumber()).build();
-            notification.send(notify);
-            parcel.setDelivered(true);
-            parcelRepository.save(parcel);
         }
         else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
-            
-            assignment.getOrderId().setDelivered(false);
-            assignment.setCancelationReason(statusRequest.getCancelationReason());
-            assignment.getOrderId().setParcelAssigned(false);
-            parcelRepository.save(assignment.getOrderId());
+            // Fetch and update the parcel using parcelId from embedded ParcelInfo
+            String parcelId = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : null;
+            if(parcelId != null) {
+                Parcel parcel = parcelRepository.findById(parcelId)
+                    .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+
+                assignment.setCancelationReason(statusRequest.getCancelationReason());
+                parcel.setDelivered(false);
+                parcel.setParcelAssigned(false);
+                parcelRepository.save(parcel);
+            }
         }
         deliveryAssignmentsRepository.save(assignment);
-        return new UserResponse("Delivery status updated successfully", assignment.getRiderId().getPhoneNumber());
+
+        // Get rider phone from embedded RiderInfo
+        String riderPhone = assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderPhoneNumber() : "";
+        return new UserResponse("Delivery status updated successfully", riderPhone);
     }
 
 
@@ -284,16 +345,15 @@ public class RiderServiceImplementation implements RiderServiceInterface {
      * @throws WrongCredentialsException if user not authenticated
      */
     @Override
-    public List<DeliveryAssignmentResponse> searchByReceiverPhone(String receiverPhone) {
+    public List<DeliveryAssignments> searchByReceiverPhone(String receiverPhone) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
             throw new WrongCredentialsException("User not authenticated");
         }
         
         User rider = (User) auth.getPrincipal();
-        List<DeliveryAssignments> assignments = deliveryAssignmentsRepository.findByRiderAndReceiverPhoneAndNotDelivered(rider, receiverPhone);
-        
-        return assignments.stream().map(this::toDeliveryAssignmentResponse).collect(Collectors.toList());
+        return deliveryAssignmentsRepository.findByRiderAndReceiverPhoneAndNotDelivered(rider.getUserId(), receiverPhone);
+
     }
 
     /**
@@ -306,8 +366,19 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     private DeliveryAssignmentResponse toDeliveryAssignmentResponse(DeliveryAssignments assignment) {
         DeliveryAssignmentResponse response = new DeliveryAssignmentResponse();
         response.setAssignmentId(assignment.getAssignmentId());
-        response.setRiderName(assignment.getRiderId().getName());
-        response.setParcel(assignment.getOrderId());
+
+        // Set rider information from embedded RiderInfo
+        if (assignment.getRiderInfo() != null) {
+            response.setRiderName(assignment.getRiderInfo().getRiderName());
+            response.setRiderId(assignment.getRiderInfo().getRiderId());
+        }
+
+        // Fetch and set the full Parcel object if needed by the response
+        if (assignment.getParcelInfo() != null && assignment.getParcelInfo().getParcelId() != null) {
+            Parcel parcel = parcelRepository.findById(assignment.getParcelInfo().getParcelId()).orElse(null);
+            response.setParcel(parcel);
+        }
+
         response.setStatus(assignment.getStatus());
         response.setAssignedAt(assignment.getAssignedAt());
         response.setAcceptedAt(assignment.getAcceptedAt());
@@ -325,13 +396,12 @@ public class RiderServiceImplementation implements RiderServiceInterface {
      * @throws EntityNotFound if rider not found
      */
     @Override
-    public List<DeliveryAssignmentResponse> getRiderAssignmentsByRiderId(String riderId, boolean payed) {
+    public List<DeliveryAssignments> getRiderAssignmentsByRiderId(String riderId, boolean payed) {
         if(!userRepository.existsById(riderId)) {
             throw new EntityNotFound("Rider not found");
         }
-        
-        List<DeliveryAssignments> assignments = deliveryAssignmentsRepository.findByRiderIdUserIdAndPayed(riderId, payed);
-        return assignments.stream().map(this::toDeliveryAssignmentResponse).collect(Collectors.toList());
+
+        return deliveryAssignmentsRepository.findByRiderIdAndPayed(riderId, payed);
     }
 
 
@@ -369,16 +439,12 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         }
         query.with(sort);
 
-        // Count total documents matching criteria
         long total = mongoTemplate.count(query, DeliveryAssignments.class);
 
-        // Apply pagination
         query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
         query.limit(pageable.getPageSize());
 
-        // Execute query
         List<DeliveryAssignments> assignments = mongoTemplate.find(query, DeliveryAssignments.class);
-
         return new PageImpl<>(assignments, pageable, total);
     }
 
@@ -401,7 +467,6 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         User frontDesk = (User) auth.getPrincipal();
 
-        // Use reconciledAt from request if provided, otherwise use server time
         Long reconciledAtTimestamp = reconcilationRiderRequest.getReconciledAt() != null
             ? reconcilationRiderRequest.getReconciledAt()
             : System.currentTimeMillis();
@@ -419,21 +484,19 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             update
     );
 
-    // Find existing reconciliation by assignmentId or create new one
     Reconcilations reconcilation = reconcilationRepository.findByAssignmentId(id)
             .orElse(new Reconcilations());
 
-    // Get the assignment to populate reconciliation details
     DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(id).orElse(null);
 
     if (assignment != null) {
         reconcilation.setAssignmentId(id);
         reconcilation.setPayedTo(frontDesk.getUserId());
         reconcilation.setType(ReconcilationType.RIDER);
-        reconcilation.setParcelId(assignment.getOrderId() != null ? assignment.getOrderId().getParcelId() : null);
-        reconcilation.setRiderId(assignment.getRiderId() != null ? assignment.getRiderId().getUserId() : null);
-        reconcilation.setRiderName(assignment.getRiderId() != null ? assignment.getRiderId().getName() : null);
-        reconcilation.setRiderPhoneNumber(assignment.getRiderId() != null ? assignment.getRiderId().getPhoneNumber() : null);
+        reconcilation.setParcelId(assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : null);
+        reconcilation.setRiderId(assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderId() : null);
+        reconcilation.setRiderName(assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderName() : null);
+        reconcilation.setRiderPhoneNumber(assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderPhoneNumber() : null);
         reconcilation.setOfficeId(assignment.getOfficeId());
         reconcilation.setCompleted(true);
         reconcilation.setReconciledAt(reconciledAtTimestamp);
@@ -450,9 +513,16 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     public UserResponse resendConfirmationCodeToReceiver(String assignmentId) {
          DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(assignmentId)
             .orElseThrow(() -> new EntityNotFound("Assignment not found"));
-        String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(assignment.getRiderId().getPhoneNumber(), assignment.getRiderId().getName(), assignment.getConfirmationCode(),  assignment.getOrderId().getReceiverName(), assignment.getOrderId().getParcelId());
+
+        String riderPhone = assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderPhoneNumber() : "";
+        String riderName = assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderName() : "";
+        String receiverName = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getReceiverName() : "";
+        String parcelId = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : "";
+        String receiverPhone = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getReceiverPhoneNumber() : "";
+
+        String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(riderPhone, riderName, assignment.getConfirmationCode(), receiverName, parcelId);
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
-        .to(assignment.getOrderId().getRecieverPhoneNumber()).build();
+        .to(receiverPhone).build();
         notification.send(notify);
         return UserResponse.builder().message("Successful sent").build();
     }
@@ -617,6 +687,19 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             case "year" -> currentTime - (365 * millisecondsInDay);
             default -> currentTime - millisecondsInDay; // default to day
         };
+    }
+
+    @Override
+    @PreAuthorize("hasRole('RIDER')")
+    public List<Reconcilations> getRiderReconciliations() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(
+            org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+        return reconcilationRepository.findByRiderId(user.getUserId(), sort);
     }
 
 
