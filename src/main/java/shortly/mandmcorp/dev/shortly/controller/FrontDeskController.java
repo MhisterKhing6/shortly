@@ -27,6 +27,7 @@ import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.model.CancelationReason;
@@ -36,6 +37,8 @@ import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
+import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
+
 
 
 
@@ -89,15 +92,15 @@ public class FrontDeskController {
 
 
     @GetMapping("/parcel-assignment")
-    @Operation(summary = "return rider assignment", description = "Search parcels with various filters and pagination")
+    @Operation(summary = "return rider assignment", description = "Get delivery assignments by status with pagination")
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully")
+        @ApiResponse(responseCode = "200", description = "Assignments retrieved successfully")
     })
-    public List<DeliveryAssignmentResponse> orderAssignemnts(
-
-        @RequestParam(defaultValue = "DELIVERED") DeliveryStatus status) {
-        return riderService.getOrderAssignmentByStatus(status);
+    public Page<DeliveryAssignments> orderAssignemnts(
+        @RequestParam(defaultValue = "DELIVERED") DeliveryStatus status,
+        Pageable pageable) {
+        return riderService.getOrderAssignmentByStatus(status, pageable);
     }
 
     @GetMapping("/parcels/home-delivery")
@@ -203,5 +206,42 @@ public class FrontDeskController {
 
     public UserResponse addCancelationReason(@RequestBody @Valid CancelationReasonRequest cancelRequest) {
         return parcelService.addCancelationReason(cancelRequest);
+    }
+
+
+     @GetMapping("/riders/assignments")
+    @Operation(summary = "Get office rider assignments", description = "Get all delivery assignments in an office")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Assignments retrieved successfully"),
+    })
+    public Page<DeliveryAssignments> getAssignments(
+            @RequestParam(defaultValue = "false") boolean payed, Pageable pageable) {
+        return riderService.getAcitveAssignments(pageable, payed);
+    }
+
+    @GetMapping("/riders/assignments/cancelled")
+    @Operation(summary = "Get cancelled delivery assignments", description = "Get all cancelled delivery assignments in the user's office sorted by assignedAt descending")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Cancelled assignments retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated")
+    })
+    @TrackUserAction(action = "VIEW_CANCELLED_ASSIGNMENTS", description = "User viewed cancelled delivery assignments")
+    public Page<DeliveryAssignments> getCancelledAssignments(Pageable pageable) {
+        return riderService.getCancelledDeliveryAssignments(pageable);
+    }
+
+    @GetMapping("/reconciliation/stats")
+    @Operation(summary = "Get reconciliation statistics", description = "Get reconciliation statistics for the user's office by time period (day, week, month, year, all)")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated")
+    })
+    @TrackUserAction(action = "VIEW_RECONCILIATION_STATS", description = "User viewed reconciliation statistics")
+    public ReconciliationStatsResponse getReconciliationStats(
+            @RequestParam(defaultValue = "day") String period) {
+        return riderService.getReconciliationStats(period);
     }
 }

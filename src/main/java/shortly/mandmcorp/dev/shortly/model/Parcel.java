@@ -36,6 +36,7 @@ public class Parcel {
     private boolean inboudPayed;
     private String shelfId;
     private boolean homeDelivery;
+    private int cancelationCount = 0;
 
     @CreatedDate
     private Long createdAt;
