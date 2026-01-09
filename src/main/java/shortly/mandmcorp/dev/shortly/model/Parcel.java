@@ -3,12 +3,21 @@ package shortly.mandmcorp.dev.shortly.model;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
 
 @Data
 @Document(collection = "parcels")
+@CompoundIndexes({
+    @CompoundIndex(name = "office_delivered_idx", def = "{'officeId': 1, 'isDelivered': 1, 'createdAt': -1}"),
+    @CompoundIndex(name = "office_homedelivery_idx", def = "{'officeId': 1, 'homeDelivery': 1, 'isDelivered': 1}"),
+    @CompoundIndex(name = "office_called_idx", def = "{'officeId': 1, 'hasCalled': 1}"),
+    @CompoundIndex(name = "search_parcels_idx", def = "{'officeId': 1, 'isPOD': 1, 'isDelivered': 1, 'isParcelAssigned': 1, 'hasCalled': 1}")
+})
 public class Parcel {
     @Id
     private String parcelId;
@@ -22,7 +31,11 @@ public class Parcel {
     private double deliveryCost;
     private double storageCost;
     private boolean  hasCalled;
+
+    @Indexed
     private String driverId;
+
+    @Indexed
     private String officeId;
     private String driverName;
     private String driverPhoneNumber;

@@ -8,20 +8,25 @@ import org.springframework.stereotype.Repository;
 
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
-import shortly.mandmcorp.dev.shortly.model.User;
 
 @Repository
 public interface DeliveryAssignmentsRepository extends MongoRepository<DeliveryAssignments, String> {
-    List<DeliveryAssignments> findByRiderId(User rider);
-    List<DeliveryAssignments> findByRiderIdAndStatusNot(User rider, DeliveryStatus status);
-    
-    @Query("{'riderId': ?0, 'orderId.receiver.phoneNumber': ?1, 'status': {$ne: 'DELIVERED'}}")
-    List<DeliveryAssignments> findByRiderAndReceiverPhoneAndNotDelivered(User rider, String receiverPhone);
-    
-    List<DeliveryAssignments> findByRiderIdUserIdAndPayed(String riderId, boolean payed);
+    // Updated to use embedded riderInfo
+    @Query("{'riderInfo.riderId': ?0}")
+    List<DeliveryAssignments> findByRiderInfoRiderId(String riderId);
+
+    @Query("{'riderInfo.riderId': ?0, 'status': {$ne: ?1}}")
+    List<DeliveryAssignments> findByRiderInfoRiderIdAndStatusNot(String riderId, DeliveryStatus status);
+
+    @Query("{'riderInfo.riderId': ?0, 'parcelInfo.receiverPhoneNumber': ?1, 'status': {$ne: 'DELIVERED'}}")
+    List<DeliveryAssignments> findByRiderAndReceiverPhoneAndNotDelivered(String riderId, String receiverPhone);
+
+    @Query("{'riderInfo.riderId': ?0, 'payed': ?1}")
+    List<DeliveryAssignments> findByRiderIdAndPayed(String riderId, boolean payed);
+
     List<DeliveryAssignments> findByStatusAndOfficeId(DeliveryStatus status, String officeId);
     List<DeliveryAssignments> findByStatus(DeliveryStatus status);
-    
+
     List<DeliveryAssignments> findByPayedAndOfficeId(boolean payed, String officeId);
 
 }
