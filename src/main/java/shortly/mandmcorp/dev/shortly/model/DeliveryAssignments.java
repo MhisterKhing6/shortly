@@ -26,6 +26,7 @@ public class DeliveryAssignments {
     private long assignedAt;
     private long acceptedAt;
     private long completedAt;
+    private String payementMethod;
 
     private boolean payed;
 

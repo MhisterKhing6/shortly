@@ -10,4 +10,5 @@ public class DeliveryStatusUpdateRequest {
     private DeliveryStatus status;
     private String cancelationReason;
     private String confirmationCode;
+    private String payementMethod;
 }

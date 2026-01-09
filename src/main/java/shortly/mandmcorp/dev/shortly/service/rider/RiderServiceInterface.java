@@ -6,8 +6,12 @@ import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
+import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface RiderServiceInterface {
     /**
@@ -71,9 +75,12 @@ public interface RiderServiceInterface {
     UserResponse reconcilation(ReconcilationRiderRequest reconcilationRiderRequest);
 
     /**
-     * get all assignment
+     * get all assignment by status with pagination
+     * @param status delivery status to filter
+     * @param pageable pagination parameters
+     * @return Page of delivery assignments
      */
-    List<DeliveryAssignmentResponse> getOrderAssignmentByStatus(DeliveryStatus status) ;
+    Page<DeliveryAssignments> getOrderAssignmentByStatus(DeliveryStatus status, Pageable pageable);
 
     /**
      * resend confirmation code to receiver
@@ -81,5 +88,28 @@ public interface RiderServiceInterface {
      * @return User response
      */
     UserResponse resendConfirmationCodeToReceiver(String assignmentId);
+
+    /**
+     * get all active assignment in an office
+     * @param payed : a toggle for choosing weather we shold return all payed all not
+     * @return
+     */
+    Page<DeliveryAssignments> getAcitveAssignments(Pageable pageable, boolean payed);
+
+    /**
+     * Gets all cancelled delivery assignments in the user's office.
+     *
+     * @param pageable pagination parameters
+     * @return Page of cancelled delivery assignments sorted by assignedAt descending
+     */
+    Page<DeliveryAssignments> getCancelledDeliveryAssignments(Pageable pageable);
+
+    /**
+     * Gets reconciliation statistics for the user's office.
+     *
+     * @param period time period filter: "day", "week", "month", "year", or "all" (default: "day")
+     * @return ReconciliationStatsResponse with completed and not completed counts and amounts
+     */
+    ReconciliationStatsResponse getReconciliationStats(String period);
 
 }

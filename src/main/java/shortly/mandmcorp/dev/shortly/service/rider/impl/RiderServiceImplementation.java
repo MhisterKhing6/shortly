@@ -1,9 +1,11 @@
 package shortly.mandmcorp.dev.shortly.service.rider.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -39,7 +41,9 @@ import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.OtpUtil;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import shortly.mandmcorp.dev.shortly.repository.ReconcilationRepository;
 
 
 /**
@@ -61,9 +65,12 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     private final ParcelMapper parcelMapper;
     private MongoTemplate mongoTemplate;
     private final CancelationReasonRepository cancelationReasonRepo;
+    private final DeliveryAssignmentsRepository deliveryRepository;
+    private final ReconcilationRepository reconcilationRepository;
 
     public RiderServiceImplementation(DeliveryAssignmentsRepository deliveryAssignmentsRepository, UserRepository userRepository, ParcelRepository parcelRepository, 
-        @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate, CancelationReasonRepository cancelationReasonRepo) {
+        @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate, 
+        CancelationReasonRepository cancelationReasonRepo, DeliveryAssignmentsRepository deliveryRepo, ReconcilationRepository reconcilationRepository  ) {
         this.deliveryAssignmentsRepository = deliveryAssignmentsRepository;
         this.userRepository = userRepository;
         this.parcelRepository = parcelRepository;
@@ -71,6 +78,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         this.parcelMapper = parcelMapper;
         this.mongoTemplate = mongoTemplate;
         this.cancelationReasonRepo = cancelationReasonRepo;
+        this.deliveryRepository = deliveryRepo;
+        this.reconcilationRepository = reconcilationRepository;
     }
     
     /**
@@ -110,6 +119,19 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             parcel.setParcelAssigned(true);
             deliveryAssignmentsRepository.save(assignment);
             parcelRepository.save(parcel);
+
+            Reconcilations reconcilation = new Reconcilations();
+            reconcilation.setAssignmentId(assignment.getAssignmentId());
+            double amount = parcel.getDeliveryCost() + parcel.getInboundCost();
+            reconcilation.setAmount(amount);
+            reconcilation.setOfficeId(rider.getOfficeId());
+            reconcilation.setRiderName(rider.getName());
+            reconcilation.setRiderId(rider.getUserId());
+            reconcilation.setRiderPhoneNumber(rider.getPhoneNumber());
+            reconcilation.setParcelId(parcel.getParcelId());
+            reconcilation.setCreatedAt(System.currentTimeMillis());
+            reconcilationRepository.save(reconcilation);
+
         String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(rider.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
         .to(parcel.getRecieverPhoneNumber()).build();
@@ -180,6 +202,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             assignment.getOrderId().setDelivered(true);
             assignment.setStatus(DeliveryStatus.DELIVERED);
             assignment.setCompletedBy(rider);
+            assignment.setPayed(true);
+            assignment.setPayementMethod(statusRequest.getPayementMethod());
             parcelRepository.save(assignment.getOrderId());
             Parcel parcel = assignment.getOrderId();
             String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
@@ -189,11 +213,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             parcelRepository.save(parcel);
         }
         else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
-            
-            assignment.getOrderId().setDelivered(false);
+            Parcel parcel = assignment.getOrderId();
             assignment.setCancelationReason(statusRequest.getCancelationReason());
-            assignment.getOrderId().setParcelAssigned(false);
-            parcelRepository.save(assignment.getOrderId());
+            assignment.setStatus(DeliveryStatus.CANCELLED);
+            parcel.setCancelationCount(parcel.getCancelationCount() + 1);
+            parcel.setDelivered(false);
+            parcel.setParcelAssigned(false);
+            parcelRepository.save(parcel);
         }
         deliveryAssignmentsRepository.save(assignment);
         return new UserResponse("Delivery status updated successfully", rider.getPhoneNumber());
@@ -227,6 +253,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             assignment.setCompletedAt(System.currentTimeMillis());
             assignment.getOrderId().setDelivered(true);
             assignment.setStatus(DeliveryStatus.DELIVERED);
+            assignment.setPayed(true);
             assignment.setCompletedBy(manager);
             parcelRepository.save(assignment.getOrderId());
             Parcel parcel = assignment.getOrderId();
@@ -309,25 +336,50 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
 
     /**
-     * Gets all assignmet for delivered parcels issued by am office.
-     * 
-     * @param staus status of the order default completed
-     * @param officeId the id of the office
-     * @return List of delivery assignment
+     * Gets all assignments for parcels with specified status in an office with pagination.
+     *
+     * @param status status of the order to filter
+     * @param pageable pagination parameters
+     * @return Page of delivery assignments
      */
     @Override
-    //has role frontdesk or admin
     @PreAuthorize("hasRole('FRONTDESK') or hasRole('MANAGER') or hasRole('ADMIN')")
-
-    public List<DeliveryAssignmentResponse> getOrderAssignmentByStatus(DeliveryStatus status) {
+    public Page<DeliveryAssignments> getOrderAssignmentByStatus(DeliveryStatus status, Pageable pageable) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
             throw new WrongCredentialsException("User not authenticated");
         }
-        
+
         User frontDesk = (User) auth.getPrincipal();
-        List<DeliveryAssignments> assignments = deliveryAssignmentsRepository.findByStatusAndOfficeId(status, frontDesk.getOfficeId());
-        return assignments.stream().map(this::toDeliveryAssignmentResponse).collect(Collectors.toList());
+
+        Query query = new Query();
+        List<Criteria> criteria = new ArrayList<>();
+
+        criteria.add(Criteria.where("status").is(status));
+        criteria.add(Criteria.where("officeId").is(frontDesk.getOfficeId()));
+
+        query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+
+        org.springframework.data.domain.Sort sort;
+        if (pageable.getSort().isSorted()) {
+            sort = pageable.getSort();
+        } else {
+            sort = org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "assignedAt");
+        }
+        query.with(sort);
+
+        // Count total documents matching criteria
+        long total = mongoTemplate.count(query, DeliveryAssignments.class);
+
+        // Apply pagination
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        // Execute query
+        List<DeliveryAssignments> assignments = mongoTemplate.find(query, DeliveryAssignments.class);
+
+        return new PageImpl<>(assignments, pageable, total);
     }
 
     /**
@@ -341,18 +393,21 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     @Override
     public UserResponse reconcilation(ReconcilationRiderRequest reconcilationRiderRequest) {
         log.info("Starting reconciliation for rider");
-    
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
             throw new WrongCredentialsException("User not authenticated");
         }
-        
+
         User frontDesk = (User) auth.getPrincipal();
+
+        // Use reconciledAt from request if provided, otherwise use server time
+        Long reconciledAtTimestamp = reconcilationRiderRequest.getReconciledAt() != null
+            ? reconcilationRiderRequest.getReconciledAt()
+            : System.currentTimeMillis();
+
     BulkOperations bulk =
         mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, DeliveryAssignments.class);
-
-    BulkOperations reconcilationData =
-        mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, Reconcilations.class);
 
     for (String id : reconcilationRiderRequest.getAssignmentIds()) {
 
@@ -363,14 +418,30 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             Query.query(Criteria.where("assignmentId").is(id)),
             update
     );
-    Reconcilations reconcilation = new Reconcilations();
-    reconcilation.setAssignmentId(id);
-    reconcilation.setPayedTo(frontDesk.getUserId());
-    reconcilation.setType(ReconcilationType.RIDER);
-    reconcilationData.insert(reconcilation);
+
+    // Find existing reconciliation by assignmentId or create new one
+    Reconcilations reconcilation = reconcilationRepository.findByAssignmentId(id)
+            .orElse(new Reconcilations());
+
+    // Get the assignment to populate reconciliation details
+    DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(id).orElse(null);
+
+    if (assignment != null) {
+        reconcilation.setAssignmentId(id);
+        reconcilation.setPayedTo(frontDesk.getUserId());
+        reconcilation.setType(ReconcilationType.RIDER);
+        reconcilation.setParcelId(assignment.getOrderId() != null ? assignment.getOrderId().getParcelId() : null);
+        reconcilation.setRiderId(assignment.getRiderId() != null ? assignment.getRiderId().getUserId() : null);
+        reconcilation.setRiderName(assignment.getRiderId() != null ? assignment.getRiderId().getName() : null);
+        reconcilation.setRiderPhoneNumber(assignment.getRiderId() != null ? assignment.getRiderId().getPhoneNumber() : null);
+        reconcilation.setOfficeId(assignment.getOfficeId());
+        reconcilation.setCompleted(true);
+        reconcilation.setReconciledAt(reconciledAtTimestamp);
+
+        reconcilationRepository.save(reconcilation);
+    }
     }
     bulk.execute();
-    reconcilationData.execute();
     return new UserResponse("Reconciliation completed successfully", null);
     }
 
@@ -385,4 +456,169 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         notification.send(notify);
         return UserResponse.builder().message("Successful sent").build();
     }
+
+    @Override
+    public Page<DeliveryAssignments> getAcitveAssignments(Pageable pageable, boolean payed) {
+        /*Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        User frontDesk = (User) auth.getPrincipal();
+
+        return this.deliveryRepository.findByPayedAndOfficeId(payed, frontDesk.getOfficeId());
+        */
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        String officeId = user.getOfficeId();
+        if (officeId == null) {
+            throw new WrongCredentialsException("User has no office assigned");
+        }
+
+
+        Query query = new Query();
+        List<Criteria> criteria = new ArrayList<>();
+
+        criteria.add(Criteria.where("payed").is(payed));
+
+        criteria.add(Criteria.where("officeId").is(officeId));
+
+        query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+
+        org.springframework.data.domain.Sort sort;
+        if (pageable.getSort().isSorted()) {
+            sort = pageable.getSort();
+        } else {
+            sort = org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "assignedAt");
+        }
+        query.with(sort);
+
+        // Count total documents matching criteria
+        long total = mongoTemplate.count(query, DeliveryAssignments.class);
+
+        // Apply pagination
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        // Execute query
+        List<DeliveryAssignments> assignments = mongoTemplate.find(query, DeliveryAssignments.class);
+
+        return new PageImpl<>(assignments, pageable, total);
+    }
+
+    @Override
+    public Page<DeliveryAssignments> getCancelledDeliveryAssignments(Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        String officeId = user.getOfficeId();
+        if (officeId == null) {
+            throw new WrongCredentialsException("User has no office assigned");
+        }
+
+        Query query = new Query();
+        List<Criteria> criteria = new ArrayList<>();
+
+        criteria.add(Criteria.where("status").is(DeliveryStatus.CANCELLED));
+
+        criteria.add(Criteria.where("officeId").is(officeId));
+
+        query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+
+        org.springframework.data.domain.Sort sort;
+        if (pageable.getSort().isSorted()) {
+            sort = pageable.getSort();
+        } else {
+            sort = org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "assignedAt");
+        }
+        query.with(sort);
+
+        // Count total documents matching criteria
+        long total = mongoTemplate.count(query, DeliveryAssignments.class);
+
+        // Apply pagination
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        // Execute query
+        List<DeliveryAssignments> assignments = mongoTemplate.find(query, DeliveryAssignments.class);
+
+        return new PageImpl<>(assignments, pageable, total);
+    }
+
+    @Override
+    public shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse getReconciliationStats(String period) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        String officeId = user.getOfficeId();
+        if (officeId == null) {
+            throw new WrongCredentialsException("User has no office assigned");
+        }
+
+        // Calculate time range based on period
+        Long startTime = calculateStartTime(period);
+
+        Query query = new Query();
+        query.addCriteria(Criteria.where("officeId").is(officeId));
+
+        if (startTime != null) {
+            query.addCriteria(Criteria.where("createdAt").gte(startTime));
+        }
+
+        List<shortly.mandmcorp.dev.shortly.model.Reconcilations> reconciliations =
+            mongoTemplate.find(query, shortly.mandmcorp.dev.shortly.model.Reconcilations.class);
+
+        long completedCount = 0;
+        long notCompletedCount = 0;
+        double completedAmount = 0.0;
+        double notCompletedAmount = 0.0;
+
+        for (shortly.mandmcorp.dev.shortly.model.Reconcilations reconciliation : reconciliations) {
+            if (reconciliation.isCompleted()) {
+                completedCount++;
+                completedAmount += reconciliation.getAmount();
+            } else {
+                notCompletedCount++;
+                notCompletedAmount += reconciliation.getAmount();
+            }
+        }
+
+        return shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse.builder()
+            .completedCount(completedCount)
+            .notCompletedCount(notCompletedCount)
+            .completedAmount(completedAmount)
+            .notCompletedAmount(notCompletedAmount)
+            .totalAmount(completedAmount + notCompletedAmount)
+            .totalCount(completedCount + notCompletedCount)
+            .build();
+    }
+
+    private Long calculateStartTime(String period) {
+        if (period == null || period.equalsIgnoreCase("all")) {
+            return null;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        long millisecondsInDay = 24 * 60 * 60 * 1000L;
+
+        return switch (period.toLowerCase()) {
+            case "day" -> currentTime - millisecondsInDay;
+            case "week" -> currentTime - (7 * millisecondsInDay);
+            case "month" -> currentTime - (30 * millisecondsInDay);
+            case "year" -> currentTime - (365 * millisecondsInDay);
+            default -> currentTime - millisecondsInDay; // default to day
+        };
+    }
+
+
+
 }

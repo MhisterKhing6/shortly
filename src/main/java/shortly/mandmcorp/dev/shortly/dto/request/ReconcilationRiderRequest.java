@@ -6,5 +6,6 @@ import lombok.Data;
 
 @Data
 public class ReconcilationRiderRequest {
-    List<String> assignmentIds ;
+    List<String> assignmentIds;
+    Long reconciledAt;
 }

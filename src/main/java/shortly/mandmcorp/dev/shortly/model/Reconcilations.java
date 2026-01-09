@@ -18,7 +18,25 @@ public class Reconcilations {
 
     private String assignmentId;
 
+    private String parcelId;
+
+
     private ReconcilationType type;
 
-    
+    private boolean isCompleted = false;
+
+    private double amount;
+
+    private String riderName;
+    private String riderId;
+    private String officeId;
+    private String riderPhoneNumber;
+
+    private Long createdAt;
+    private Long reconciledAt;
+
+
+
+
 }
+
