@@ -1,10 +1,11 @@
 package shortly.mandmcorp.dev.shortly.dto.request;
 
+import java.util.List;
+
 import lombok.Data;
 
 @Data
 public class ReconcilationRiderRequest {
-    String assignmentId;
+    List<String> assignmentIds;
     Long reconciledAt;
-    Double payedAmount;
 }

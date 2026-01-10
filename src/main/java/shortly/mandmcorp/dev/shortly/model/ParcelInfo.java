@@ -17,7 +17,4 @@ public class ParcelInfo {
     private String receiverAddress;
     private String senderName;
     private String senderPhoneNumber;
-    private double parcelAmount;
-    private boolean payed;
-    private boolean cancelled;
 }

@@ -18,7 +18,7 @@ public interface DeliveryAssignmentsRepository extends MongoRepository<DeliveryA
     @Query("{'riderInfo.riderId': ?0, 'status': {$ne: ?1}}")
     List<DeliveryAssignments> findByRiderInfoRiderIdAndStatusNot(String riderId, DeliveryStatus status);
 
-    @Query("{'riderInfo.riderId': ?0, 'parcels.receiverPhoneNumber': ?1, 'status': {$ne: 'DELIVERED'}}")
+    @Query("{'riderInfo.riderId': ?0, 'parcelInfo.receiverPhoneNumber': ?1, 'status': {$ne: 'DELIVERED'}}")
     List<DeliveryAssignments> findByRiderAndReceiverPhoneAndNotDelivered(String riderId, String receiverPhone);
 
     @Query("{'riderInfo.riderId': ?0, 'payed': ?1}")
