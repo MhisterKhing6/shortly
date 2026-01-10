@@ -8,7 +8,6 @@ import org.springframework.data.domain.Pageable;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
-import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
@@ -30,7 +29,7 @@ public interface RiderServiceInterface {
      * @param onlyUndelivered if true, returns only non-delivered assignments
      * @return List of delivery assignments with full parcel details
      */
-    List<DeliveryAssignmentResponse> getRiderAssignments(boolean onlyUndelivered);
+    List<DeliveryAssignments> getRiderAssignments(boolean onlyUndelivered);
     
     /**
      * Updates delivery assignment status with automatic timestamp tracking.

@@ -56,7 +56,7 @@ public class RiderController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Assignments retrieved successfully")
     })
-    public List<DeliveryAssignmentResponse> getRiderAssignments(
+    public List<DeliveryAssignments> getRiderAssignments(
             @RequestParam(defaultValue = "false") boolean onlyUndelivered) {
         return riderService.getRiderAssignments(onlyUndelivered);
     }

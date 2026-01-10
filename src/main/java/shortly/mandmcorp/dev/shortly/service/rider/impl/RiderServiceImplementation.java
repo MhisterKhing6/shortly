@@ -172,7 +172,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
      * @throws WrongCredentialsException if user not authenticated
      */
     @Override
-    public List<DeliveryAssignmentResponse> getRiderAssignments(boolean onlyUndelivered) {
+    public List<DeliveryAssignments> getRiderAssignments(boolean onlyUndelivered) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
             throw new WrongCredentialsException("User not authenticated");
@@ -183,7 +183,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             ? deliveryAssignmentsRepository.findByRiderInfoRiderIdAndStatusNot(rider.getUserId(), DeliveryStatus.DELIVERED)
             : deliveryAssignmentsRepository.findByRiderInfoRiderId(rider.getUserId());
 
-        return assignments.stream().map(this::toDeliveryAssignmentResponse).collect(Collectors.toList());
+        return assignments;
     }
 
     /**
