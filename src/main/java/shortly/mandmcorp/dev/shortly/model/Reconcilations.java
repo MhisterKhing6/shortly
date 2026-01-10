@@ -27,14 +27,14 @@ public class Reconcilations {
     @Indexed(unique = true)
     private String assignmentId;
 
-    private String parcelId;
-
-
     private ReconcilationType type;
 
     private boolean isCompleted = false;
 
-    private double amount;
+    private double expectedAmount;
+
+    private double payedAmount;
+
 
     private String riderName;
     private String riderId;

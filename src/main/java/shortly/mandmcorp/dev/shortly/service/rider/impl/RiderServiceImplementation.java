@@ -8,11 +8,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -106,8 +104,21 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         } else {
             officeManager = rider;
         }
+         RiderInfo riderInfo = RiderInfo.builder()
+                .riderId(rider.getUserId())
+                .riderName(rider.getName())
+                .riderPhoneNumber(rider.getPhoneNumber())
+                .build();
         long assignedAt = System.currentTimeMillis();
         String confirmationCode = "";
+        DeliveryAssignments assignment = new DeliveryAssignments();
+        assignment.setRiderInfo(riderInfo);
+        assignment.setOfficeId(rider.getOfficeId());
+        assignment.setStatus(DeliveryStatus.ASSIGNED);
+        assignment.setConfirmationCode(confirmationCode);
+        assignment.setAssignedAt(assignedAt);
+
+        List<ParcelInfo> parcelInfos = new ArrayList<>();
         for(String parcelId : assignmentRequest.getParcelIds()) {
             Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found: " + parcelId));
@@ -118,12 +129,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             confirmationCode = OtpUtil.generateOtp();
 
             // Create embedded RiderInfo
-            RiderInfo riderInfo = RiderInfo.builder()
-                .riderId(rider.getUserId())
-                .riderName(rider.getName())
-                .riderPhoneNumber(rider.getPhoneNumber())
-                .build();
-
+           
+            double parcelAmount = parcel.getDeliveryCost() + parcel.getInboundCost();
             // Create embedded ParcelInfo
             ParcelInfo parcelInfo = ParcelInfo.builder()
                 .parcelId(parcel.getParcelId())
@@ -132,43 +139,28 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 .receiverPhoneNumber(parcel.getRecieverPhoneNumber())
                 .receiverAddress(parcel.getReceiverAddress())
                 .senderName(parcel.getSenderName())
+                .parcelAmount(parcelAmount)
                 .senderPhoneNumber(parcel.getSenderPhoneNumber())
                 .build();
-
-            DeliveryAssignments assignment = new DeliveryAssignments();
-            assignment.setRiderInfo(riderInfo);
-            assignment.setOfficeId(rider.getOfficeId());
-            assignment.setParcelInfo(parcelInfo);
-            assignment.setStatus(DeliveryStatus.ASSIGNED);
-            assignment.setConfirmationCode(confirmationCode);
-            assignment.setAssignedAt(assignedAt);
+            parcelInfos.add(parcelInfo);
+            assignment.setAmount(assignment.getAmount() + parcelAmount);
             parcel.setParcelAssigned(true);
             deliveryAssignmentsRepository.save(assignment);
             parcelRepository.save(parcel);
 
-            Reconcilations reconcilation = new Reconcilations();
-            reconcilation.setAssignmentId(assignment.getAssignmentId());
-            double amount = parcel.getDeliveryCost() + parcel.getInboundCost();
-            reconcilation.setAmount(amount);
-            reconcilation.setOfficeId(rider.getOfficeId());
-            reconcilation.setRiderName(rider.getName());
-            reconcilation.setRiderId(rider.getUserId());
-            reconcilation.setRiderPhoneNumber(rider.getPhoneNumber());
-            reconcilation.setParcelId(parcel.getParcelId());
-            reconcilation.setCreatedAt(System.currentTimeMillis());
-            reconcilationRepository.save(reconcilation);
-        
         String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(officeManager.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
         .to(parcel.getRecieverPhoneNumber()).build();
         notification.send(notify);
             
         }
-        
+        assignment.setParcels(parcelInfos);
+        deliveryAssignmentsRepository.save(assignment);
         log.info("Successfully assigned {} parcels to rider: {}", assignmentRequest.getParcelIds().size(), rider.getName());
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(NotificationUtil.genrateRiderAssMsg(rider.getName(), assignmentRequest.getParcelIds().size()))
         .to(rider.getPhoneNumber()).build();
         notification.send(notify);
+        
         return new UserResponse("Parcels assigned successfully", rider.getPhoneNumber());
     }
 
@@ -228,21 +220,25 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 throw new ActionNotAllowed("Invalid  confirmation code");
             } */
 
-            // Fetch and update the parcel using parcelId from embedded ParcelInfo
-            String parcelId = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : null;
-            if(parcelId != null) {
-                Parcel parcel = parcelRepository.findById(parcelId)
-                    .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+            // Fetch and update all parcels using parcelIds from embedded ParcelInfo list
+            if(assignment.getParcels() != null && !assignment.getParcels().isEmpty()) {
+                for(ParcelInfo parcelInfo : assignment.getParcels()) {
+                    String parcelId = parcelInfo.getParcelId();
+                    if(parcelId != null) {
+                        Parcel parcel = parcelRepository.findById(parcelId)
+                            .orElseThrow(() -> new EntityNotFound("Parcel not found"));
 
-                parcel.setDelivered(true);
-                parcelRepository.save(parcel);
+                        parcel.setDelivered(true);
+                        parcelRepository.save(parcel);
 
-                String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
-                NotificationRequestTemplate notify = NotificationRequestTemplate.builder()
-                    .body(message)
-                    .to(parcel.getDriverPhoneNumber())
-                    .build();
-                notification.send(notify);
+                        String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
+                        NotificationRequestTemplate notify = NotificationRequestTemplate.builder()
+                            .body(message)
+                            .to(parcel.getDriverPhoneNumber())
+                            .build();
+                        notification.send(notify);
+                    }
+                }
             }
 
             assignment.setStatus(DeliveryStatus.DELIVERED);
@@ -250,18 +246,44 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             assignment.setPayementMethod(statusRequest.getPayementMethod());
         }
         else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
-            // Fetch and update the parcel using parcelId from embedded ParcelInfo
-            String parcelId = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : null;
-            if(parcelId != null) {
-                Parcel parcel = parcelRepository.findById(parcelId)
-                    .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+            assignment.setCancelationReason(statusRequest.getCancelationReason());
 
-                assignment.setCancelationReason(statusRequest.getCancelationReason());
-                assignment.setStatus(DeliveryStatus.CANCELLED);
-                parcel.setCancelationCount(parcel.getCancelationCount() + 1);
-                parcel.setDelivered(false);
-                parcel.setParcelAssigned(false);
-                parcelRepository.save(parcel);
+            if(assignment.getParcels() != null && !assignment.getParcels().isEmpty() && statusRequest.getParcelId() != null) {
+                ParcelInfo parcelToCancel = null;
+
+                // Find the parcel to be cancelled
+                for(ParcelInfo parcelInfo : assignment.getParcels()) {
+                    if(parcelInfo.getParcelId().equals(statusRequest.getParcelId())) {
+                        parcelToCancel = parcelInfo;
+                        break;
+                    }
+                }
+
+                if(parcelToCancel != null && !parcelToCancel.isCancelled()) {
+                    // Update the parcel in the database
+                    Parcel parcel = parcelRepository.findById(parcelToCancel.getParcelId())
+                        .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+
+                    parcel.setCancelationCount(parcel.getCancelationCount() + 1);
+                    parcel.setDelivered(false);
+                    parcel.setParcelAssigned(false);
+                    parcelRepository.save(parcel);
+
+                    // Subtract the parcel amount from the assignment total
+                    double parcelAmount = parcelToCancel.getParcelAmount();
+                    assignment.setAmount(assignment.getAmount() - parcelAmount);
+
+                    // Mark the parcel as cancelled in the embedded list
+                    parcelToCancel.setCancelled(true);
+
+                    // Check if all parcels are cancelled, if so set assignment status to CANCELLED
+                    boolean allCancelled = assignment.getParcels().stream()
+                        .allMatch(ParcelInfo::isCancelled);
+
+                    if(allCancelled) {
+                        assignment.setStatus(DeliveryStatus.CANCELLED);
+                    }
+                }
             }
         }
         deliveryAssignmentsRepository.save(assignment);
@@ -295,37 +317,65 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         if(statusRequest.getStatus() == DeliveryStatus.DELIVERED) {
             assignment.setCompletedAt(System.currentTimeMillis());
 
-            // Fetch and update the parcel using parcelId from embedded ParcelInfo
-            String parcelId = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : null;
-            if(parcelId != null) {
-                Parcel parcel = parcelRepository.findById(parcelId)
-                    .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+            // Fetch and update all parcels using parcelIds from embedded ParcelInfo list
+            if(assignment.getParcels() != null && !assignment.getParcels().isEmpty()) {
+                for(ParcelInfo parcelInfo : assignment.getParcels()) {
+                    String parcelId = parcelInfo.getParcelId();
+                    if(parcelId != null) {
+                        Parcel parcel = parcelRepository.findById(parcelId)
+                            .orElseThrow(() -> new EntityNotFound("Parcel not found"));
 
-                parcel.setDelivered(true);
-                parcelRepository.save(parcel);
+                        parcel.setDelivered(true);
+                        parcelRepository.save(parcel);
 
-                String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
-                NotificationRequestTemplate notify = NotificationRequestTemplate.builder()
-                    .body(message)
-                    .to(parcel.getDriverPhoneNumber())
-                    .build();
-                notification.send(notify);
+                        String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
+                        NotificationRequestTemplate notify = NotificationRequestTemplate.builder()
+                            .body(message)
+                            .to(parcel.getDriverPhoneNumber())
+                            .build();
+                        notification.send(notify);
+                    }
+                }
             }
 
             assignment.setStatus(DeliveryStatus.DELIVERED);
             assignment.setPayed(true);
         }
         else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
-            // Fetch and update the parcel using parcelId from embedded ParcelInfo
-            String parcelId = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : null;
-            if(parcelId != null) {
-                Parcel parcel = parcelRepository.findById(parcelId)
-                    .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+            // Mark the specific parcel as cancelled and update parcel status
+            assignment.setCancelationReason(statusRequest.getCancelationReason());
 
-                assignment.setCancelationReason(statusRequest.getCancelationReason());
-                parcel.setDelivered(false);
-                parcel.setParcelAssigned(false);
-                parcelRepository.save(parcel);
+            if(assignment.getParcels() != null && !assignment.getParcels().isEmpty() && statusRequest.getParcelId() != null) {
+                ParcelInfo parcelToCancel = null;
+
+                for(ParcelInfo parcelInfo : assignment.getParcels()) {
+                    if(parcelInfo.getParcelId().equals(statusRequest.getParcelId())) {
+                        parcelToCancel = parcelInfo;
+                        break;
+                    }
+                }
+
+                if(parcelToCancel != null && !parcelToCancel.isCancelled()) {
+                    Parcel parcel = parcelRepository.findById(parcelToCancel.getParcelId())
+                        .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+
+                    parcel.setCancelationCount(parcel.getCancelationCount() + 1);
+                    parcel.setDelivered(false);
+                    parcel.setParcelAssigned(false);
+                    parcelRepository.save(parcel);
+
+                    double parcelAmount = parcelToCancel.getParcelAmount();
+                    assignment.setAmount(assignment.getAmount() - parcelAmount);
+
+                    parcelToCancel.setCancelled(true);
+
+                    boolean allCancelled = assignment.getParcels().stream()
+                        .allMatch(ParcelInfo::isCancelled);
+
+                    if(allCancelled) {
+                        assignment.setStatus(DeliveryStatus.CANCELLED);
+                    }
+                }
             }
         }
         deliveryAssignmentsRepository.save(assignment);
@@ -373,10 +423,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             response.setRiderId(assignment.getRiderInfo().getRiderId());
         }
 
-        // Fetch and set the full Parcel object if needed by the response
-        if (assignment.getParcelInfo() != null && assignment.getParcelInfo().getParcelId() != null) {
-            Parcel parcel = parcelRepository.findById(assignment.getParcelInfo().getParcelId()).orElse(null);
-            response.setParcel(parcel);
+        // Fetch and set the full Parcel object if needed by the response (using first parcel)
+        if (assignment.getParcels() != null && !assignment.getParcels().isEmpty()) {
+            ParcelInfo firstParcel = assignment.getParcels().get(0);
+            if (firstParcel.getParcelId() != null) {
+                Parcel parcel = parcelRepository.findById(firstParcel.getParcelId()).orElse(null);
+                response.setParcel(parcel);
+            }
         }
 
         response.setStatus(assignment.getStatus());
@@ -471,40 +524,43 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             ? reconcilationRiderRequest.getReconciledAt()
             : System.currentTimeMillis();
 
-    BulkOperations bulk =
-        mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, DeliveryAssignments.class);
+        DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(reconcilationRiderRequest.getAssignmentId()).
+        orElseThrow(() -> new EntityNotFound("Assignment not found" ));
 
-    for (String id : reconcilationRiderRequest.getAssignmentIds()) {
-
-    Update update = new Update()
-            .set("status", DeliveryStatus.COMPLETED.name())
-            .set("payed", true);
-    bulk.updateOne(
-            Query.query(Criteria.where("assignmentId").is(id)),
-            update
-    );
-
-    Reconcilations reconcilation = reconcilationRepository.findByAssignmentId(id)
+    Reconcilations reconcilation = reconcilationRepository.findByAssignmentId(reconcilationRiderRequest.getAssignmentId())
             .orElse(new Reconcilations());
 
-    DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(id).orElse(null);
-
     if (assignment != null) {
-        reconcilation.setAssignmentId(id);
+        if (assignment.getParcels() != null && !assignment.getParcels().isEmpty()) {
+            for (ParcelInfo parcelInfo : assignment.getParcels()) {
+                if (!parcelInfo.isCancelled() && parcelInfo.getParcelId() != null) {
+                    Parcel parcel = parcelRepository.findById(parcelInfo.getParcelId()).orElse(null);
+                    if (parcel != null) {
+                        parcel.setDelivered(true);
+                        parcelRepository.save(parcel);
+                    }
+                }
+            }
+        }
+
+        reconcilation.setAssignmentId(assignment.getAssignmentId());
         reconcilation.setPayedTo(frontDesk.getUserId());
         reconcilation.setType(ReconcilationType.RIDER);
-        reconcilation.setParcelId(assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : null);
+        reconcilation.setExpectedAmount(assignment.getAmount());
         reconcilation.setRiderId(assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderId() : null);
         reconcilation.setRiderName(assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderName() : null);
         reconcilation.setRiderPhoneNumber(assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderPhoneNumber() : null);
         reconcilation.setOfficeId(assignment.getOfficeId());
         reconcilation.setCompleted(true);
         reconcilation.setReconciledAt(reconciledAtTimestamp);
+        reconcilation.setPayedAmount(reconcilationRiderRequest.getPayedAmount());
 
         reconcilationRepository.save(reconcilation);
+        assignment.setPayed(true);
+        assignment.setStatus(DeliveryStatus.COMPLETED);
+        deliveryAssignmentsRepository.save(assignment);
     }
-    }
-    bulk.execute();
+
     return new UserResponse("Reconciliation completed successfully", null);
     }
 
@@ -516,9 +572,17 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         String riderPhone = assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderPhoneNumber() : "";
         String riderName = assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderName() : "";
-        String receiverName = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getReceiverName() : "";
-        String parcelId = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getParcelId() : "";
-        String receiverPhone = assignment.getParcelInfo() != null ? assignment.getParcelInfo().getReceiverPhoneNumber() : "";
+
+        // Get parcel info from first parcel in the list
+        String receiverName = "";
+        String parcelId = "";
+        String receiverPhone = "";
+        if (assignment.getParcels() != null && !assignment.getParcels().isEmpty()) {
+            ParcelInfo firstParcel = assignment.getParcels().get(0);
+            receiverName = firstParcel.getReceiverName() != null ? firstParcel.getReceiverName() : "";
+            parcelId = firstParcel.getParcelId() != null ? firstParcel.getParcelId() : "";
+            receiverPhone = firstParcel.getReceiverPhoneNumber() != null ? firstParcel.getReceiverPhoneNumber() : "";
+        }
 
         String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(riderPhone, riderName, assignment.getConfirmationCode(), receiverName, parcelId);
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
@@ -637,30 +701,58 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         // Calculate time range based on period
         Long startTime = calculateStartTime(period);
 
-        Query query = new Query();
-        query.addCriteria(Criteria.where("officeId").is(officeId));
+        // Query for delivery assignments
+        Query assignmentQuery = new Query();
+        assignmentQuery.addCriteria(Criteria.where("officeId").is(officeId));
+        assignmentQuery.addCriteria(Criteria.where("payed").is(true));
 
         if (startTime != null) {
-            query.addCriteria(Criteria.where("createdAt").gte(startTime));
+            assignmentQuery.addCriteria(Criteria.where("assignedAt").gte(startTime));
         }
 
-        List<shortly.mandmcorp.dev.shortly.model.Reconcilations> reconciliations =
-            mongoTemplate.find(query, shortly.mandmcorp.dev.shortly.model.Reconcilations.class);
+        List<DeliveryAssignments> completedAssignments =
+            mongoTemplate.find(assignmentQuery, DeliveryAssignments.class);
 
-        long completedCount = 0;
-        long notCompletedCount = 0;
-        double completedAmount = 0.0;
-        double notCompletedAmount = 0.0;
+        // Query for reconciliations
+        Query reconciliationQuery = new Query();
+        reconciliationQuery.addCriteria(Criteria.where("officeId").is(officeId));
+        reconciliationQuery.addCriteria(Criteria.where("isCompleted").is(true));
 
-        for (shortly.mandmcorp.dev.shortly.model.Reconcilations reconciliation : reconciliations) {
-            if (reconciliation.isCompleted()) {
-                completedCount++;
-                completedAmount += reconciliation.getAmount();
-            } else {
-                notCompletedCount++;
-                notCompletedAmount += reconciliation.getAmount();
-            }
+        if (startTime != null) {
+            reconciliationQuery.addCriteria(Criteria.where("reconciledAt").gte(startTime));
         }
+
+        List<Reconcilations> reconciliations =
+            mongoTemplate.find(reconciliationQuery, Reconcilations.class);
+
+        // Calculate completed stats from reconciliations
+        long completedCount = reconciliations.size();
+        double completedAmount = reconciliations.stream()
+            .mapToDouble(Reconcilations::getPayedAmount)
+            .sum();
+
+        // Query for not completed assignments (assigned but not yet reconciled/paid)
+        Query notCompletedQuery = new Query();
+        notCompletedQuery.addCriteria(Criteria.where("officeId").is(officeId));
+        notCompletedQuery.addCriteria(Criteria.where("payed").is(false));
+        notCompletedQuery.addCriteria(Criteria.where("status").in(
+            DeliveryStatus.ASSIGNED,
+            DeliveryStatus.ACCEPTED,
+            DeliveryStatus.PICKED_UP,
+            DeliveryStatus.DELIVERED
+        ));
+
+        if (startTime != null) {
+            notCompletedQuery.addCriteria(Criteria.where("assignedAt").gte(startTime));
+        }
+
+        List<DeliveryAssignments> notCompletedAssignments =
+            mongoTemplate.find(notCompletedQuery, DeliveryAssignments.class);
+
+        long notCompletedCount = notCompletedAssignments.size();
+        double notCompletedAmount = notCompletedAssignments.stream()
+            .mapToDouble(DeliveryAssignments::getAmount)
+            .sum();
 
         return shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse.builder()
             .completedCount(completedCount)
