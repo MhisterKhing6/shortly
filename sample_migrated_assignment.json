@@ -1,0 +1,118 @@
+{
+  "assignmentId": "695650be4355e010bc8a5b9c",
+  "riderInfo": {
+    "riderId": "6953c3d34355e010bc8a5b81",
+    "riderName": "John",
+    "riderPhoneNumber": "+233535190368"
+  },
+  "parcels": [
+    {
+      "parcelId": "6953ed1a4355e010bc8a5b89",
+      "parcelDescription": "Unknow",
+      "receiverName": "No name",
+      "receiverPhoneNumber": "+233243012516",
+      "receiverAddress": "Effiankwanta",
+      "senderName": null,
+      "senderPhoneNumber": "",
+      "parcelAmount": 10.0,
+      "payed": false,
+      "cancelled": false
+    },
+    {
+      "parcelId": "695649a24355e010bc8a5b90",
+      "parcelDescription": "Ash poly",
+      "receiverName": "Inspector Sandra Manford",
+      "receiverPhoneNumber": "+233248433071",
+      "receiverAddress": "Bethethal Police Station",
+      "senderName": null,
+      "senderPhoneNumber": "",
+      "parcelAmount": 15.0,
+      "payed": false,
+      "cancelled": false
+    },
+    {
+      "parcelId": "69564a104355e010bc8a5b91",
+      "parcelDescription": "Pink poly",
+      "receiverName": "Blessing",
+      "receiverPhoneNumber": "+233556947487",
+      "receiverAddress": "Lagos Town",
+      "senderName": null,
+      "senderPhoneNumber": "",
+      "parcelAmount": 20.0,
+      "payed": false,
+      "cancelled": false
+    },
+    {
+      "parcelId": "69564a874355e010bc8a5b92",
+      "parcelDescription": "Blue poly",
+      "receiverName": "Augustina Ogoe",
+      "receiverPhoneNumber": "+233244017142",
+      "receiverAddress": "Tadisco Town",
+      "senderName": null,
+      "senderPhoneNumber": "",
+      "parcelAmount": 20.0,
+      "payed": false,
+      "cancelled": false
+    },
+    {
+      "parcelId": "69564af64355e010bc8a5b93",
+      "parcelDescription": null,
+      "receiverName": "Lovia",
+      "receiverPhoneNumber": "+233203031363",
+      "receiverAddress": "Agona",
+      "senderName": null,
+      "senderPhoneNumber": "",
+      "parcelAmount": 15.0,
+      "payed": false,
+      "cancelled": false
+    },
+    {
+      "parcelId": "69564baf4355e010bc8a5b95",
+      "parcelDescription": null,
+      "receiverName": "Mimi",
+      "receiverPhoneNumber": "+233547268722",
+      "receiverAddress": "Roman Gate",
+      "senderName": null,
+      "senderPhoneNumber": "",
+      "parcelAmount": 15.0,
+      "payed": false,
+      "cancelled": false
+    },
+    {
+      "parcelId": "69564c9d4355e010bc8a5b96",
+      "parcelDescription": null,
+      "receiverName": "Evelyn",
+      "receiverPhoneNumber": "+233599201826",
+      "receiverAddress": "Fijai - Ntankoful",
+      "senderName": null,
+      "senderPhoneNumber": "",
+      "parcelAmount": 25.0,
+      "payed": false,
+      "cancelled": false
+    },
+    {
+      "parcelId": "69564d084355e010bc8a5b97",
+      "parcelDescription": null,
+      "receiverName": "Doris Andoh",
+      "receiverPhoneNumber": "+233242759318",
+      "receiverAddress": "Daboase",
+      "senderName": null,
+      "senderPhoneNumber": "",
+      "parcelAmount": 15.0,
+      "payed": false,
+      "cancelled": false
+    }
+  ],
+  "amount": 135.0,
+  "status": "DELIVERED",
+  "officeId": "69539c6e06625b09c8b49fd2",
+  "assignedAt": 1767264446364,
+  "acceptedAt": 0,
+  "completedAt": 1767772443619,
+  "confirmationCode": "004790",
+  "payed": false,
+  "payementMethod": null,
+  "cancelationReason": null,
+  "createdAt": 1767264446538,
+  "updatedAt": 1767772443973
+}

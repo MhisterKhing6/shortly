@@ -1,0 +1,3112 @@
+[
+  {
+    "assignmentId": "6942bfe44c6bc5b6ea7a9c60",
+    "riderInfo": {
+      "riderId": "694161d57d1a89ca911f2fa5",
+      "riderName": "Kingsley New Rider",
+      "riderPhoneNumber": "+233209220935"
+    },
+    "parcels": [
+      {
+        "parcelId": "6941ab474c6bc5b6ea7a9c5a",
+        "parcelDescription": "Orange Poly bag",
+        "receiverName": "John Agyin",
+        "receiverPhoneNumber": "+233531656697",
+        "receiverAddress": "Main office Junction",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 20.0,
+    "status": "COMPLETED",
+    "officeId": "6936fa7446509b2c174df77f",
+    "assignedAt": 1765982180382,
+    "acceptedAt": 0,
+    "completedAt": 1766095448221,
+    "confirmationCode": null,
+    "payed": true,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1765982180564,
+    "updatedAt": 1766095448570
+  },
+  {
+    "assignmentId": "6946b543491a73d61afcf04f",
+    "riderInfo": {
+      "riderId": "694161d57d1a89ca911f2fa5",
+      "riderName": "Kingsley New Rider",
+      "riderPhoneNumber": "+233209220935"
+    },
+    "parcels": [],
+    "amount": 0,
+    "status": "COMPLETED",
+    "officeId": null,
+    "assignedAt": 1766241603514,
+    "acceptedAt": 0,
+    "completedAt": 1766242262750,
+    "confirmationCode": null,
+    "payed": true,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1766241603683,
+    "updatedAt": 1766242263091
+  },
+  {
+    "assignmentId": "694a41574a96c6ea1c3f5f1d",
+    "riderInfo": {
+      "riderId": "694161d57d1a89ca911f2fa5",
+      "riderName": "Kingsley New Rider",
+      "riderPhoneNumber": "+233209220935"
+    },
+    "parcels": [],
+    "amount": 0,
+    "status": "DELIVERED",
+    "officeId": null,
+    "assignedAt": 1766474070918,
+    "acceptedAt": 0,
+    "completedAt": 1767700968958,
+    "confirmationCode": "686482",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1766474071096,
+    "updatedAt": 1767700969331
+  },
+  {
+    "assignmentId": "694aef05e03d95362e06516b",
+    "riderInfo": {
+      "riderId": "694161d57d1a89ca911f2fa5",
+      "riderName": "Kingsley New Rider",
+      "riderPhoneNumber": "+233209220935"
+    },
+    "parcels": [],
+    "amount": 0,
+    "status": "COMPLETED",
+    "officeId": null,
+    "assignedAt": 1766518532970,
+    "acceptedAt": 0,
+    "completedAt": 1766522169505,
+    "confirmationCode": "117444",
+    "payed": true,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1766518533147,
+    "updatedAt": 1766522169878
+  },
+  {
+    "assignmentId": "694b0223073ec5df455f561f",
+    "riderInfo": {
+      "riderId": "694161d57d1a89ca911f2fa5",
+      "riderName": "Kingsley New Rider",
+      "riderPhoneNumber": "+233209220935"
+    },
+    "parcels": [
+      {
+        "parcelId": "6946b2ea491a73d61afcf04d",
+        "parcelDescription": "When you get to Valco Hall, at the porter's lodge, talk to Kelvin. He will receive it and give you the money.",
+        "receiverName": "Yaa",
+        "receiverPhoneNumber": "+233541824496",
+        "receiverAddress": "Valco Hall",
+        "senderName": "Yaa",
+        "senderPhoneNumber": "+233541824496",
+        "parcelAmount": 10.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "694aed40e03d95362e065169",
+        "parcelDescription": "Iphone 17+",
+        "receiverName": "John Agyin",
+        "receiverPhoneNumber": "+233531656697",
+        "receiverAddress": "Tarkwa",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 100.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 110.0,
+    "status": "COMPLETED",
+    "officeId": "6936fa7446509b2c174df77f",
+    "assignedAt": 1766523426898,
+    "acceptedAt": 0,
+    "completedAt": 0,
+    "confirmationCode": "656743",
+    "payed": true,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1766523427076,
+    "updatedAt": 1766523427076
+  },
+  {
+    "assignmentId": "6953c4ec4355e010bc8a5b83",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6953c0b84355e010bc8a5b7c",
+        "parcelDescription": "Ash poly - slippers",
+        "receiverName": "Jyce Dansowaa",
+        "receiverPhoneNumber": "+233542199438",
+        "receiverAddress": "Racecourse",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 20.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767097580560,
+    "acceptedAt": 0,
+    "completedAt": 1767770461883,
+    "confirmationCode": "599639",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767097580738,
+    "updatedAt": 1767770462240
+  },
+  {
+    "assignmentId": "6953f02e4355e010bc8a5b8d",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [],
+    "amount": 0,
+    "status": "CANCELLED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767108653842,
+    "acceptedAt": 0,
+    "completedAt": 0,
+    "confirmationCode": "744229",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": "Recipient not available",
+    "createdAt": 1767108654025,
+    "updatedAt": 1767264396781
+  },
+  {
+    "assignmentId": "695650be4355e010bc8a5b9c",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6953ed1a4355e010bc8a5b89",
+        "parcelDescription": "Unknow",
+        "receiverName": "No name",
+        "receiverPhoneNumber": "+233243012516",
+        "receiverAddress": "Effiankwanta",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 10.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695649a24355e010bc8a5b90",
+        "parcelDescription": "Ash poly",
+        "receiverName": "Inspector Sandra Manford",
+        "receiverPhoneNumber": "+233248433071",
+        "receiverAddress": "Bethethal Police Station",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69564a104355e010bc8a5b91",
+        "parcelDescription": "Pink poly",
+        "receiverName": "Blessing",
+        "receiverPhoneNumber": "+233556947487",
+        "receiverAddress": "Lagos Town",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69564a874355e010bc8a5b92",
+        "parcelDescription": "Blue poly",
+        "receiverName": "Augustina Ogoe",
+        "receiverPhoneNumber": "+233244017142",
+        "receiverAddress": "Tadisco Town",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69564af64355e010bc8a5b93",
+        "parcelDescription": null,
+        "receiverName": "Lovia",
+        "receiverPhoneNumber": "+233203031363",
+        "receiverAddress": "Agona",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69564baf4355e010bc8a5b95",
+        "parcelDescription": null,
+        "receiverName": "Mimi",
+        "receiverPhoneNumber": "+233547268722",
+        "receiverAddress": "Roman Gate",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69564c9d4355e010bc8a5b96",
+        "parcelDescription": null,
+        "receiverName": "Evelyn",
+        "receiverPhoneNumber": "+233599201826",
+        "receiverAddress": "Fijai - Ntankoful",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69564d084355e010bc8a5b97",
+        "parcelDescription": null,
+        "receiverName": "Doris Andoh",
+        "receiverPhoneNumber": "+233242759318",
+        "receiverAddress": "Daboase",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 135.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767264446364,
+    "acceptedAt": 0,
+    "completedAt": 1767772443619,
+    "confirmationCode": "004790",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767264446538,
+    "updatedAt": 1767772443973
+  },
+  {
+    "assignmentId": "695650dd4355e010bc8a5ba4",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "69564d6b4355e010bc8a5b98",
+        "parcelDescription": null,
+        "receiverName": "Jennifer",
+        "receiverPhoneNumber": "+233550861014",
+        "receiverAddress": "Morning Glory",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69564dd54355e010bc8a5b99",
+        "parcelDescription": null,
+        "receiverName": "Princilla",
+        "receiverPhoneNumber": "+233555872220",
+        "receiverAddress": "Tanokrom",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69564ea54355e010bc8a5b9a",
+        "parcelDescription": null,
+        "receiverName": "Rhoda",
+        "receiverPhoneNumber": "+233249129050",
+        "receiverAddress": "Fijai",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 60.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767264477605,
+    "acceptedAt": 0,
+    "completedAt": 1767772823910,
+    "confirmationCode": "779801",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767264477779,
+    "updatedAt": 1767772824264
+  },
+  {
+    "assignmentId": "695692364355e010bc8a5bb2",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "69564ef94355e010bc8a5b9b",
+        "parcelDescription": null,
+        "receiverName": "Jennifer",
+        "receiverPhoneNumber": "+233248894891",
+        "receiverAddress": "Apowa",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695688954355e010bc8a5ba7",
+        "parcelDescription": "Pink poly",
+        "receiverName": "Justina Kate Acquah",
+        "receiverPhoneNumber": "+233208176183",
+        "receiverAddress": "Anaji",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695688f54355e010bc8a5ba8",
+        "parcelDescription": null,
+        "receiverName": "Unknown",
+        "receiverPhoneNumber": "+233242969694",
+        "receiverAddress": "Mpintin",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695689764355e010bc8a5ba9",
+        "parcelDescription": null,
+        "receiverName": "Lisa",
+        "receiverPhoneNumber": "+233257563100",
+        "receiverAddress": "TanoKrom Ahantama",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695689e64355e010bc8a5baa",
+        "parcelDescription": null,
+        "receiverName": "Unknown",
+        "receiverPhoneNumber": "+233507309172",
+        "receiverAddress": "Anaji Hill",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69568a794355e010bc8a5bab",
+        "parcelDescription": null,
+        "receiverName": "Evelyn",
+        "receiverPhoneNumber": "+233246660351",
+        "receiverAddress": "Gyimimah Hospital",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69568b1e4355e010bc8a5bac",
+        "parcelDescription": null,
+        "receiverName": "Mary Quaye",
+        "receiverPhoneNumber": "+233593754791",
+        "receiverAddress": "Kwekuma",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69568cbe4355e010bc8a5bad",
+        "parcelDescription": null,
+        "receiverName": "Perpetual Quaicoe",
+        "receiverPhoneNumber": "+233552123525",
+        "receiverAddress": "Airport Ridge",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69568d904355e010bc8a5bae",
+        "parcelDescription": null,
+        "receiverName": "Prince Adjei",
+        "receiverPhoneNumber": "+233241205549",
+        "receiverAddress": "Anaji Ck Man",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69568dea4355e010bc8a5baf",
+        "parcelDescription": null,
+        "receiverName": "Unknown",
+        "receiverPhoneNumber": "+233546897118",
+        "receiverAddress": "BU",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 250.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767281206688,
+    "acceptedAt": 0,
+    "completedAt": 1767772951761,
+    "confirmationCode": "494164",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767281206856,
+    "updatedAt": 1767772952132
+  },
+  {
+    "assignmentId": "695692534355e010bc8a5bbc",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "69568ed54355e010bc8a5bb0",
+        "parcelDescription": null,
+        "receiverName": "Stephanie Abena",
+        "receiverPhoneNumber": "+233540523512",
+        "receiverAddress": "NewSite",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 20.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767281235666,
+    "acceptedAt": 0,
+    "completedAt": 1767771537676,
+    "confirmationCode": "392334",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767281235834,
+    "updatedAt": 1767771538030
+  },
+  {
+    "assignmentId": "695cd19f4355e010bc8a5be5",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695691d74355e010bc8a5bb1",
+        "parcelDescription": null,
+        "receiverName": "Alexander Botchway",
+        "receiverPhoneNumber": "+233243311272",
+        "receiverAddress": "Beaho",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cb6004355e010bc8a5bc0",
+        "parcelDescription": "Yellow rubber",
+        "receiverName": "Emmanuel",
+        "receiverPhoneNumber": "+233242407255",
+        "receiverAddress": "KojoKrom",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cbd914355e010bc8a5bc9",
+        "parcelDescription": "Blue rubber",
+        "receiverName": "Pearl Donkubar",
+        "receiverPhoneNumber": "+233501105798",
+        "receiverAddress": "Apremdo",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 95.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767690655587,
+    "acceptedAt": 0,
+    "completedAt": 1767771048517,
+    "confirmationCode": "629739",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767690655763,
+    "updatedAt": 1767771048872
+  },
+  {
+    "assignmentId": "695cd3884355e010bc8a5be9",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695cc23b4355e010bc8a5bcf",
+        "parcelDescription": "A box with blue rubber on it",
+        "receiverName": "Anaji pharmacy",
+        "receiverPhoneNumber": "+233274579517",
+        "receiverAddress": "Anaji Pharmacy",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 25.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767691144200,
+    "acceptedAt": 0,
+    "completedAt": 1767770925684,
+    "confirmationCode": "377890",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767691144374,
+    "updatedAt": 1767770926039
+  },
+  {
+    "assignmentId": "695ce16b4355e010bc8a5beb",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695cc82f4355e010bc8a5bd8",
+        "parcelDescription": "White poly",
+        "receiverName": "Unknown",
+        "receiverPhoneNumber": "+233541392575",
+        "receiverAddress": "Assakea",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cc8aa4355e010bc8a5bd9",
+        "parcelDescription": "Racecourse",
+        "receiverName": "Irene Ahadzie",
+        "receiverPhoneNumber": "+233547418768",
+        "receiverAddress": null,
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cc92e4355e010bc8a5bda",
+        "parcelDescription": "Yellow poly",
+        "receiverName": "Comfort Arthur",
+        "receiverPhoneNumber": "+233535170837",
+        "receiverAddress": "Ponty Adientem",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cc9d14355e010bc8a5bdb",
+        "parcelDescription": "White poly with sea blue",
+        "receiverName": "Blessing",
+        "receiverPhoneNumber": "+233555297838",
+        "receiverAddress": "Effiakuma",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cca864355e010bc8a5bdc",
+        "parcelDescription": "White poly",
+        "receiverName": "Ma. Christiana Duncan",
+        "receiverPhoneNumber": "+233244729590",
+        "receiverAddress": "Kwesimintim",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695ccb7a4355e010bc8a5bde",
+        "parcelDescription": "Blue poly",
+        "receiverName": "Happy",
+        "receiverPhoneNumber": "+233204202223",
+        "receiverAddress": "Adientem",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695ccbdf4355e010bc8a5bdf",
+        "parcelDescription": "White poly with flowers in",
+        "receiverName": "Fatiah",
+        "receiverPhoneNumber": "+233595933011",
+        "receiverAddress": "NHIS",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cccc54355e010bc8a5be0",
+        "parcelDescription": "Ash poly",
+        "receiverName": "Nancy Oforiwaa",
+        "receiverPhoneNumber": "+233249324966",
+        "receiverAddress": "Esipong",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 185.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767694699705,
+    "acceptedAt": 0,
+    "completedAt": 1767771501518,
+    "confirmationCode": "514794",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767694699874,
+    "updatedAt": 1767771501876
+  },
+  {
+    "assignmentId": "695ce1814355e010bc8a5bf3",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695cce594355e010bc8a5be1",
+        "parcelDescription": "Pink poly",
+        "receiverName": "Aunti Getti",
+        "receiverPhoneNumber": "+233240593476",
+        "receiverAddress": "U84",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 15.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767694721362,
+    "acceptedAt": 0,
+    "completedAt": 1767770412714,
+    "confirmationCode": "260457",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767694721530,
+    "updatedAt": 1767770413078
+  },
+  {
+    "assignmentId": "695ce2e14355e010bc8a5bf5",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695cced34355e010bc8a5be2",
+        "parcelDescription": "Pink like poly",
+        "receiverName": "Unknown",
+        "receiverPhoneNumber": "+233541392575",
+        "receiverAddress": "Assakea",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 20.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767695073035,
+    "acceptedAt": 0,
+    "completedAt": 1767770499383,
+    "confirmationCode": "074318",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767695073203,
+    "updatedAt": 1767770499739
+  },
+  {
+    "assignmentId": "695ce3f24355e010bc8a5bf7",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695cd2e24355e010bc8a5be8",
+        "parcelDescription": "Blue poly",
+        "receiverName": "Fati- ketan junction",
+        "receiverPhoneNumber": "+233557222592",
+        "receiverAddress": "BU",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 25.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767695346778,
+    "acceptedAt": 0,
+    "completedAt": 1767770539060,
+    "confirmationCode": "175927",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767695346950,
+    "updatedAt": 1767770539416
+  },
+  {
+    "assignmentId": "695d091adc1461333f46472a",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695ce2cb4355e010bc8a5bf4",
+        "parcelDescription": null,
+        "receiverName": "Barbara",
+        "receiverPhoneNumber": "+233267345197",
+        "receiverAddress": "Com. Bank",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 9.96,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695ce3cf4355e010bc8a5bf6",
+        "parcelDescription": null,
+        "receiverName": "Rhoda",
+        "receiverPhoneNumber": "+233558814225",
+        "receiverAddress": "SIC",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cf9cf4355e010bc8a5bf8",
+        "parcelDescription": "Purple poly with box inside",
+        "receiverName": "Rossy",
+        "receiverPhoneNumber": "+233593372324",
+        "receiverAddress": "Effiankwanta",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cfa934355e010bc8a5bf9",
+        "parcelDescription": "Wine poly",
+        "receiverName": "Agordorku",
+        "receiverPhoneNumber": "+233542544035",
+        "receiverAddress": "Agona",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cfb544355e010bc8a5bfa",
+        "parcelDescription": "blue black ploy",
+        "receiverName": "Nana Conduna",
+        "receiverPhoneNumber": "+233554762070",
+        "receiverAddress": "Fijai",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cfc264355e010bc8a5bfb",
+        "parcelDescription": "Purple poly",
+        "receiverName": "Janet Efua Boham",
+        "receiverPhoneNumber": "+233244445255",
+        "receiverAddress": "Effiankwanta",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cfcb04355e010bc8a5bfc",
+        "parcelDescription": "green poly",
+        "receiverName": "Ms Broom",
+        "receiverPhoneNumber": "+233206386976",
+        "receiverAddress": "Anaji SNIT",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cfd754355e010bc8a5bfd",
+        "parcelDescription": "Wine poly small",
+        "receiverName": "Abena",
+        "receiverPhoneNumber": "+233556916189",
+        "receiverAddress": "Excellence Botiq",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 10.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cff6a4355e010bc8a5bfe",
+        "parcelDescription": "white poly box",
+        "receiverName": "Sarah Abrakwa",
+        "receiverPhoneNumber": "+233541170184",
+        "receiverAddress": "Pipe Ano",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695cfff44355e010bc8a5bff",
+        "parcelDescription": "white poly cover",
+        "receiverName": "Elizabeth",
+        "receiverPhoneNumber": "+233555070376",
+        "receiverAddress": "Pipano",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 164.96,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767704858734,
+    "acceptedAt": 0,
+    "completedAt": 1767770571963,
+    "confirmationCode": "671632",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767704858917,
+    "updatedAt": 1767770572318
+  },
+  {
+    "assignmentId": "695d093cdc1461333f464734",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695d00894355e010bc8a5c00",
+        "parcelDescription": "Orange poly",
+        "receiverName": "Gifty",
+        "receiverPhoneNumber": "+233508920244",
+        "receiverAddress": "Kwekuma Bus Stop",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695d015b4355e010bc8a5c02",
+        "parcelDescription": "Pink poly",
+        "receiverName": "Rema",
+        "receiverPhoneNumber": "+233553830872",
+        "receiverAddress": "Airport Ridge",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695d0697dc1461333f464724",
+        "parcelDescription": null,
+        "receiverName": "Gifty",
+        "receiverPhoneNumber": "+233552987144",
+        "receiverAddress": "Old Accra Station",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 10.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695d077fdc1461333f464726",
+        "parcelDescription": null,
+        "receiverName": "Abena Abigail",
+        "receiverPhoneNumber": "+233548465466",
+        "receiverAddress": "Lagos town",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 70.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767704892040,
+    "acceptedAt": 0,
+    "completedAt": 1767772198321,
+    "confirmationCode": "685181",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767704892221,
+    "updatedAt": 1767772198677
+  },
+  {
+    "assignmentId": "695d241fdc1461333f464742",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695d0823dc1461333f464728",
+        "parcelDescription": null,
+        "receiverName": "Bright",
+        "receiverPhoneNumber": "+233240525475",
+        "receiverAddress": "Agona",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 15.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767711774886,
+    "acceptedAt": 0,
+    "completedAt": 1767770875167,
+    "confirmationCode": "759842",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767711775056,
+    "updatedAt": 1767770875525
+  },
+  {
+    "assignmentId": "695e175fdc1461333f464754",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695d0e16dc1461333f46473a",
+        "parcelDescription": "White poly with black inscription",
+        "receiverName": "Millicent",
+        "receiverPhoneNumber": "+233547592383",
+        "receiverAddress": "Beposo",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695e1500dc1461333f46474e",
+        "parcelDescription": "Green poly with bottle",
+        "receiverName": "Dorcas kwofie",
+        "receiverPhoneNumber": "+233595977044",
+        "receiverAddress": "Habour",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695e155bdc1461333f464750",
+        "parcelDescription": "Pink poly",
+        "receiverName": "Priscilla",
+        "receiverPhoneNumber": "+233547922746",
+        "receiverAddress": "Habour",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695e168ddc1461333f464752",
+        "parcelDescription": "Greenish designed poly",
+        "receiverName": "Nana Adwoa",
+        "receiverPhoneNumber": "+233545832526",
+        "receiverAddress": "Goodnews",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 60.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767774047180,
+    "acceptedAt": 0,
+    "completedAt": 1767782546066,
+    "confirmationCode": "601427",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767774047357,
+    "updatedAt": 1767782546416
+  },
+  {
+    "assignmentId": "695e2dd13bd42154c5f6511a",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695e1d48dc1461333f464763",
+        "parcelDescription": "White poly small",
+        "receiverName": "Esther",
+        "receiverPhoneNumber": "+233246814065",
+        "receiverAddress": "Alkalema",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695e1febdc1461333f46476b",
+        "parcelDescription": "Brown Poly",
+        "receiverName": "Wilhemina",
+        "receiverPhoneNumber": "+233537849797",
+        "receiverAddress": "Aboadzie",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 50.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 70.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767779793347,
+    "acceptedAt": 0,
+    "completedAt": 1767791693351,
+    "confirmationCode": "337373",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767779793525,
+    "updatedAt": 1767791693707
+  },
+  {
+    "assignmentId": "695e4acd9e0973938b3c9a79",
+    "riderInfo": {
+      "riderId": "694161d57d1a89ca911f2fa5",
+      "riderName": "Kingsley New Rider",
+      "riderPhoneNumber": "+233209220935"
+    },
+    "parcels": [
+      {
+        "parcelId": "69402cc4e01f6857155dd85c",
+        "parcelDescription": "Very fragile parcel",
+        "receiverName": "string",
+        "receiverPhoneNumber": "835505255597031",
+        "receiverAddress": "Timber Market 5",
+        "senderName": "string",
+        "senderPhoneNumber": "+63724968567975",
+        "parcelAmount": 10.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6946b2ea491a73d61afcf04e",
+        "parcelDescription": "Black poly",
+        "receiverName": "Kingsley",
+        "receiverPhoneNumber": "+233550566516",
+        "receiverAddress": "Konongo",
+        "senderName": "Ama",
+        "senderPhoneNumber": "+233505875139",
+        "parcelAmount": 50.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 60.0,
+    "status": "ASSIGNED",
+    "officeId": "6936fa7446509b2c174df77f",
+    "assignedAt": 1767787213613,
+    "acceptedAt": 0,
+    "completedAt": 0,
+    "confirmationCode": "693127",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767787213795,
+    "updatedAt": 1767787213795
+  },
+  {
+    "assignmentId": "695f4e679d385eb32a99889d",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "694aeea9e03d95362e06516a",
+        "parcelDescription": null,
+        "receiverName": "Kwabena",
+        "receiverPhoneNumber": "+233507524065",
+        "receiverAddress": "Takwaa - tttt",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 10.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 10.0,
+    "status": "DELIVERED",
+    "officeId": "6936fa7446509b2c174df77f",
+    "assignedAt": 1767853671437,
+    "acceptedAt": 0,
+    "completedAt": 1767853695361,
+    "confirmationCode": "098378",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767853671608,
+    "updatedAt": 1767853695724
+  },
+  {
+    "assignmentId": "695f6fa99d385eb32a9988b4",
+    "riderInfo": {
+      "riderId": "694161d57d1a89ca911f2fa5",
+      "riderName": "Kingsley New Rider",
+      "riderPhoneNumber": "+233209220935"
+    },
+    "parcels": [
+      {
+        "parcelId": "695e8a7ba3c15ae6d3da37da",
+        "parcelDescription": "Testing for the pickup cost ",
+        "receiverName": "Kingsley Botchway",
+        "receiverPhoneNumber": "835505255597031",
+        "receiverAddress": "RH018, Breman Ochisoa, Breman Asikuma",
+        "senderName": "Testing Parcel New 333",
+        "senderPhoneNumber": "+63724968567975",
+        "parcelAmount": 0.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f60099d385eb32a99889e",
+        "parcelDescription": "white poly big",
+        "receiverName": "veronica smith",
+        "receiverPhoneNumber": "+233242981008",
+        "receiverAddress": "windy reid",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f617c9d385eb32a99889f",
+        "parcelDescription": "pink four bottles",
+        "receiverName": "Victoria nimoh",
+        "receiverPhoneNumber": "+233553056258",
+        "receiverAddress": "effiekuma",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f62349d385eb32a9988a0",
+        "parcelDescription": "black  poly with two bottels",
+        "receiverName": "Josephine Agyemang",
+        "receiverPhoneNumber": "+233555512342",
+        "receiverAddress": "Sekondi",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f62e19d385eb32a9988a1",
+        "parcelDescription": "Pink poly",
+        "receiverName": "unknown",
+        "receiverPhoneNumber": "+233244906636",
+        "receiverAddress": "TTU",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f65179d385eb32a9988a2",
+        "parcelDescription": "white poly",
+        "receiverName": "Jos fashion",
+        "receiverPhoneNumber": "+233242108704",
+        "receiverAddress": "fijai",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f66269d385eb32a9988a3",
+        "parcelDescription": "blue poly",
+        "receiverName": "Nana esi",
+        "receiverPhoneNumber": "+233209007433",
+        "receiverAddress": "fijai",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f66e69d385eb32a9988a4",
+        "parcelDescription": "Green, red wine designed poly",
+        "receiverName": "Cyntha",
+        "receiverPhoneNumber": "+233242019005",
+        "receiverAddress": "fijai",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f67549d385eb32a9988a5",
+        "parcelDescription": "Violet poly",
+        "receiverName": "Belinda Addo",
+        "receiverPhoneNumber": "+233545418626",
+        "receiverAddress": "Chapel Hill",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 165.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767862185154,
+    "acceptedAt": 0,
+    "completedAt": 1767868177734,
+    "confirmationCode": "726279",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767862185325,
+    "updatedAt": 1767868178083
+  },
+  {
+    "assignmentId": "695f6fe89d385eb32a9988bd",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695f67f19d385eb32a9988a6",
+        "parcelDescription": "Black poly",
+        "receiverName": "Christiana",
+        "receiverPhoneNumber": "+233542151136",
+        "receiverAddress": "Chapel Hill",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f686a9d385eb32a9988a7",
+        "parcelDescription": "Black poly",
+        "receiverName": "Faucia",
+        "receiverPhoneNumber": "+233243051338",
+        "receiverAddress": "Kwesimintim",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f69699d385eb32a9988a9",
+        "parcelDescription": "Pink poly",
+        "receiverName": "Fred",
+        "receiverPhoneNumber": "+233549942809",
+        "receiverAddress": "Anaji",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 60.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767862248748,
+    "acceptedAt": 0,
+    "completedAt": 1767872868278,
+    "confirmationCode": "195560",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767862248924,
+    "updatedAt": 1767872868626
+  },
+  {
+    "assignmentId": "695f70b29d385eb32a9988c0",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695f6b939d385eb32a9988aa",
+        "parcelDescription": "White poly",
+        "receiverName": "Raina Zoklo-ere",
+        "receiverPhoneNumber": "+233544839962",
+        "receiverAddress": "Secondi Taxi Station",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f6beb9d385eb32a9988ab",
+        "parcelDescription": "Pink and whit poly",
+        "receiverName": "ABIHAB",
+        "receiverPhoneNumber": "+233595811907",
+        "receiverAddress": "Kwesimintim",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f6c3d9d385eb32a9988ac",
+        "parcelDescription": "Pink poly",
+        "receiverName": "Nana Ama",
+        "receiverPhoneNumber": "+233243270390",
+        "receiverAddress": "Ketan Ahantaman Hostel",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f6c9f9d385eb32a9988ad",
+        "parcelDescription": "White poly",
+        "receiverName": "Miss Syluia",
+        "receiverPhoneNumber": "+233509386687",
+        "receiverAddress": "Windy Ridge",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f6ce79d385eb32a9988ae",
+        "parcelDescription": "White poly",
+        "receiverName": "Lordina",
+        "receiverPhoneNumber": "+233551251085",
+        "receiverAddress": "Assakea",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f6d539d385eb32a9988af",
+        "parcelDescription": null,
+        "receiverName": "Samuel",
+        "receiverPhoneNumber": "+233243367513",
+        "receiverAddress": "Jemina Hospital",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f6ddf9d385eb32a9988b0",
+        "parcelDescription": "White",
+        "receiverName": "Govinda",
+        "receiverPhoneNumber": "+233552682615",
+        "receiverAddress": "Essaman",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f6e289d385eb32a9988b1",
+        "parcelDescription": "Black poly",
+        "receiverName": "Sis Rose",
+        "receiverPhoneNumber": "+233543828927",
+        "receiverAddress": "Effiekuma",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f6e889d385eb32a9988b2",
+        "parcelDescription": "Black poly",
+        "receiverName": "Sis B",
+        "receiverPhoneNumber": "+233242756323",
+        "receiverAddress": "Habour",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 190.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767862450811,
+    "acceptedAt": 0,
+    "completedAt": 1767865217565,
+    "confirmationCode": "465329",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767862450987,
+    "updatedAt": 1767865217921
+  },
+  {
+    "assignmentId": "695f71af9d385eb32a9988ca",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [],
+    "amount": 0,
+    "status": "CANCELLED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767862703140,
+    "acceptedAt": 0,
+    "completedAt": 0,
+    "confirmationCode": "924215",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": "Recipient not available",
+    "createdAt": 1767862703316,
+    "updatedAt": 1767875665693
+  },
+  {
+    "assignmentId": "695f75399d385eb32a9988cc",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695f6ef69d385eb32a9988b3",
+        "parcelDescription": "White poly",
+        "receiverName": "Philomina Asmah",
+        "receiverPhoneNumber": "+233202145953",
+        "receiverAddress": "New Site",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 20.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767863609422,
+    "acceptedAt": 0,
+    "completedAt": 1767871254050,
+    "confirmationCode": "984186",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767863609591,
+    "updatedAt": 1767871254406
+  },
+  {
+    "assignmentId": "695f8b929d385eb32a9988d7",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695f75129d385eb32a9988cb",
+        "parcelDescription": "Black and white small poly",
+        "receiverName": "Evelyn Mensah",
+        "receiverPhoneNumber": "+233246660351",
+        "receiverAddress": "Jemina Hospital",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f809e9d385eb32a9988cd",
+        "parcelDescription": "yellow poly",
+        "receiverName": "Doreena",
+        "receiverPhoneNumber": "+233599626835",
+        "receiverAddress": "Anaji",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f81d89d385eb32a9988ce",
+        "parcelDescription": "copper box",
+        "receiverName": "Anifer",
+        "receiverPhoneNumber": "+233550252081",
+        "receiverAddress": "Assakea",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f82979d385eb32a9988cf",
+        "parcelDescription": "copper",
+        "receiverName": "Nana akua agyemang",
+        "receiverPhoneNumber": "+233243633044",
+        "receiverAddress": "ladu",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f83219d385eb32a9988d0",
+        "parcelDescription": "copper",
+        "receiverName": "Diana",
+        "receiverPhoneNumber": "+233542082919",
+        "receiverAddress": "Fijan",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f87669d385eb32a9988d1",
+        "parcelDescription": "Blue poly",
+        "receiverName": "Larbi Contance",
+        "receiverPhoneNumber": "+233544700481",
+        "receiverAddress": "Apremdo Barracks",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f87b09d385eb32a9988d2",
+        "parcelDescription": "Violet Poly",
+        "receiverName": "Millicent",
+        "receiverPhoneNumber": "+233548412399",
+        "receiverAddress": "Apremdo Barracks",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695f880d9d385eb32a9988d3",
+        "parcelDescription": "White Poly",
+        "receiverName": "Selina",
+        "receiverPhoneNumber": "+233256217042",
+        "receiverAddress": "Apremdo Barracks",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 190.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767869330577,
+    "acceptedAt": 0,
+    "completedAt": 1767878154341,
+    "confirmationCode": "836909",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767869330752,
+    "updatedAt": 1767878154714
+  },
+  {
+    "assignmentId": "695f8d2f9d385eb32a9988e0",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695f88639d385eb32a9988d4",
+        "parcelDescription": "Yellow poly",
+        "receiverName": "Maame Joy",
+        "receiverPhoneNumber": "+233553005812",
+        "receiverAddress": "Anaji Ahantaman",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 20.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767869743416,
+    "acceptedAt": 0,
+    "completedAt": 1767878227161,
+    "confirmationCode": "362237",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767869743586,
+    "updatedAt": 1767878227513
+  },
+  {
+    "assignmentId": "695fc1a09d385eb32a9988f2",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695f8cdb9d385eb32a9988df",
+        "parcelDescription": null,
+        "receiverName": "Kofi Egyir",
+        "receiverPhoneNumber": "+233242317144",
+        "receiverAddress": "BU",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695fb1bd9d385eb32a9988e4",
+        "parcelDescription": "Peach poly",
+        "receiverName": "Bernice Ackah",
+        "receiverPhoneNumber": "+233241109778",
+        "receiverAddress": "Secondi Palmland",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695fb2dd9d385eb32a9988e5",
+        "parcelDescription": "Black poly medium",
+        "receiverName": "Portia Ama",
+        "receiverPhoneNumber": "+233243629758",
+        "receiverAddress": "TTU",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695fb4929d385eb32a9988e7",
+        "parcelDescription": "Yellow poly medium",
+        "receiverName": "Aaron",
+        "receiverPhoneNumber": "+233550937561",
+        "receiverAddress": "KojoKrom",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695fb5a89d385eb32a9988e8",
+        "parcelDescription": "black poly",
+        "receiverName": "Madam Gloria",
+        "receiverPhoneNumber": "+233550384191",
+        "receiverAddress": "kojokrom",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695fbb4e9d385eb32a9988ea",
+        "parcelDescription": null,
+        "receiverName": "Faustina",
+        "receiverPhoneNumber": "+233241055260",
+        "receiverAddress": "Pipano",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 150.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767883167986,
+    "acceptedAt": 0,
+    "completedAt": 1767886371261,
+    "confirmationCode": "669511",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767883168160,
+    "updatedAt": 1767886371610
+  },
+  {
+    "assignmentId": "695fc37a9d385eb32a9988fb",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "695fbc009d385eb32a9988eb",
+        "parcelDescription": "white",
+        "receiverName": "Eric Jackson",
+        "receiverPhoneNumber": "+233246270588",
+        "receiverAddress": "habour",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695fbc999d385eb32a9988ec",
+        "parcelDescription": "blue",
+        "receiverName": "Maame Efua",
+        "receiverPhoneNumber": "+233545526631",
+        "receiverAddress": "ttu",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695fbd5a9d385eb32a9988ed",
+        "parcelDescription": "yellow poly",
+        "receiverName": "Alberta",
+        "receiverPhoneNumber": "+233551510747",
+        "receiverAddress": "adlum banso",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695fc12d9d385eb32a9988f1",
+        "parcelDescription": "Yellow poly",
+        "receiverName": "Efe Pallas",
+        "receiverPhoneNumber": "+233542423923",
+        "receiverAddress": "Fijai",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695fc21e9d385eb32a9988f8",
+        "parcelDescription": "White box",
+        "receiverName": "Christabel",
+        "receiverPhoneNumber": "+233249273314",
+        "receiverAddress": "Timber Bar",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695fc25b9d385eb32a9988f9",
+        "parcelDescription": "white poly",
+        "receiverName": "Nna Yaw",
+        "receiverPhoneNumber": "+233267250315",
+        "receiverAddress": "Sego",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "695fc2b09d385eb32a9988fa",
+        "parcelDescription": "Red",
+        "receiverName": "Anita",
+        "receiverPhoneNumber": "+233548778234",
+        "receiverAddress": "Kwesimintim",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960a9a69d385eb32a998908",
+        "parcelDescription": "white with blue poly",
+        "receiverName": "Etruba Jackson",
+        "receiverPhoneNumber": "+233544169803",
+        "receiverAddress": "effiakuma",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 140.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767883642806,
+    "acceptedAt": 0,
+    "completedAt": 1767884555182,
+    "confirmationCode": "467210",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767883642981,
+    "updatedAt": 1767884555534
+  },
+  {
+    "assignmentId": "695fc4389d385eb32a998903",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6960af719d385eb32a998909",
+        "parcelDescription": "white with blue poly",
+        "receiverName": "Mrs Amoah",
+        "receiverPhoneNumber": "+233244824966",
+        "receiverAddress": "Fijai",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960b8f29d385eb32a99890d",
+        "parcelDescription": "white  poly",
+        "receiverName": "Doris",
+        "receiverPhoneNumber": "+233240543999",
+        "receiverAddress": "Port",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 35.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767883832739,
+    "acceptedAt": 0,
+    "completedAt": 1767890025431,
+    "confirmationCode": "966642",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767883832913,
+    "updatedAt": 1767890025773
+  },
+  {
+    "assignmentId": "6960c42a9d385eb32a998925",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6960bbbf9d385eb32a99890f",
+        "parcelDescription": "red",
+        "receiverName": "Naa Dodua Shooter",
+        "receiverPhoneNumber": "+233248844612",
+        "receiverAddress": "beach road",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960bc389d385eb32a998911",
+        "parcelDescription": "blue poly",
+        "receiverName": "Lexis Brew",
+        "receiverPhoneNumber": "+233241539876",
+        "receiverAddress": "Alkalima",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960bd759d385eb32a998914",
+        "parcelDescription": "PINK POLY",
+        "receiverName": "Alberta Nynkson",
+        "receiverPhoneNumber": "+233551510747",
+        "receiverAddress": "Adum Banso",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960be6e9d385eb32a998918",
+        "parcelDescription": "red with yellow",
+        "receiverName": "Madam Rhoda",
+        "receiverPhoneNumber": "+233249129050",
+        "receiverAddress": "fijai mall",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960bfef9d385eb32a99891b",
+        "parcelDescription": "white poly",
+        "receiverName": "Nana Condua",
+        "receiverPhoneNumber": "+233554762070",
+        "receiverAddress": "fijai",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 90.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767949354476,
+    "acceptedAt": 0,
+    "completedAt": 1767971970893,
+    "confirmationCode": "002373",
+    "payed": true,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767949354653,
+    "updatedAt": 1767971971245
+  },
+  {
+    "assignmentId": "6960c5909d385eb32a99892b",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6960c0709d385eb32a99891c",
+        "parcelDescription": "white poly",
+        "receiverName": "unknown",
+        "receiverPhoneNumber": "+233246208951",
+        "receiverAddress": "Davi Ama",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 10.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960c1199d385eb32a99891e",
+        "parcelDescription": "Tadisco",
+        "receiverName": "unknown",
+        "receiverPhoneNumber": "+233244849072",
+        "receiverAddress": null,
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960c1a69d385eb32a99891f",
+        "parcelDescription": "yellow with white",
+        "receiverName": "Sam",
+        "receiverPhoneNumber": "+233244360025",
+        "receiverAddress": "sawmill",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960c2039d385eb32a998920",
+        "parcelDescription": "green",
+        "receiverName": "Adel",
+        "receiverPhoneNumber": "+233538903665",
+        "receiverAddress": "Appolo",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960c26e9d385eb32a998921",
+        "parcelDescription": "pink",
+        "receiverName": "Adwoa",
+        "receiverPhoneNumber": "+233532105158",
+        "receiverAddress": "Toyota",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 90.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767949712731,
+    "acceptedAt": 0,
+    "completedAt": 1767955676779,
+    "confirmationCode": "764827",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767949712909,
+    "updatedAt": 1767955677135
+  },
+  {
+    "assignmentId": "6960ca249d385eb32a998931",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6960c2e39d385eb32a998922",
+        "parcelDescription": "red poly",
+        "receiverName": "Mary",
+        "receiverPhoneNumber": "+233541474537",
+        "receiverAddress": "Whindo",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960c3789d385eb32a998923",
+        "parcelDescription": "blue poly",
+        "receiverName": "Joyce Dansowa",
+        "receiverPhoneNumber": "+233542199438",
+        "receiverAddress": "Racecouse",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960c4079d385eb32a998924",
+        "parcelDescription": "blue with green poly",
+        "receiverName": "Winifred",
+        "receiverPhoneNumber": "+233547329949",
+        "receiverAddress": "air port",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960c50d9d385eb32a99892a",
+        "parcelDescription": "red with white",
+        "receiverName": "unknown",
+        "receiverPhoneNumber": "+233240212353",
+        "receiverAddress": "ladu",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960c9449d385eb32a998930",
+        "parcelDescription": "red with white big size",
+        "receiverName": "Gloria Amoh",
+        "receiverPhoneNumber": "+233599058841",
+        "receiverAddress": "Assakac",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960e2999d385eb32a998945",
+        "parcelDescription": "green poly",
+        "receiverName": "Bridget",
+        "receiverPhoneNumber": "+233558823471",
+        "receiverAddress": "effiekuma",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960e6fd9d385eb32a998947",
+        "parcelDescription": "Blue poly",
+        "receiverName": "Christiana Azalimah",
+        "receiverPhoneNumber": "+233246865440",
+        "receiverAddress": "Takoradi Nkroful Park",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960e8779d385eb32a99894c",
+        "parcelDescription": "Orange Bag",
+        "receiverName": "Precious",
+        "receiverPhoneNumber": "+233245221472",
+        "receiverAddress": "PalmLand",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960e8db9d385eb32a99894f",
+        "parcelDescription": "White poly",
+        "receiverName": "Rachel Otabil",
+        "receiverPhoneNumber": "+233256267178",
+        "receiverAddress": "Adienbra",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960e9449d385eb32a998950",
+        "parcelDescription": "Pink poly with black inscriptions",
+        "receiverName": "Nma",
+        "receiverPhoneNumber": "+233531347334",
+        "receiverAddress": "African Beach",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 15.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 235.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767950884538,
+    "acceptedAt": 0,
+    "completedAt": 1767966766499,
+    "confirmationCode": "063287",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767950884706,
+    "updatedAt": 1767966766854
+  },
+  {
+    "assignmentId": "6960cad29d385eb32a99893b",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6960a8389d385eb32a998907",
+        "parcelDescription": "pink poly",
+        "receiverName": "Rhoda",
+        "receiverPhoneNumber": "+233242108190",
+        "receiverAddress": "Beahu",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 50.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960b3599d385eb32a99890a",
+        "parcelDescription": "blue poly",
+        "receiverName": "Felicia",
+        "receiverPhoneNumber": "+233531829394",
+        "receiverAddress": "Anaji",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960b41a9d385eb32a99890b",
+        "parcelDescription": "blue poly",
+        "receiverName": "Lina",
+        "receiverPhoneNumber": "+233551312639",
+        "receiverAddress": "ladu",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 95.0,
+    "status": "ASSIGNED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767951058305,
+    "acceptedAt": 0,
+    "completedAt": 0,
+    "confirmationCode": "718529",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767951058473,
+    "updatedAt": 1767951058473
+  },
+  {
+    "assignmentId": "6960cbc89d385eb32a99893e",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6960b8719d385eb32a99890c",
+        "parcelDescription": "white poly",
+        "receiverName": "Jennifer Eshun",
+        "receiverPhoneNumber": "+233552534113",
+        "receiverAddress": "mount zion",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960bded9d385eb32a998916",
+        "parcelDescription": "blue poly",
+        "receiverName": "Francisca Ofori",
+        "receiverPhoneNumber": "+233242974532",
+        "receiverAddress": "Kwesimintim",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 50.0,
+    "status": "ASSIGNED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767951304294,
+    "acceptedAt": 0,
+    "completedAt": 0,
+    "confirmationCode": "805945",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767951304462,
+    "updatedAt": 1767951304462
+  },
+  {
+    "assignmentId": "6960d1e09d385eb32a998940",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6960e98e9d385eb32a998951",
+        "parcelDescription": "white poly",
+        "receiverName": "Unknown",
+        "receiverPhoneNumber": "+233544245538",
+        "receiverAddress": "TTU",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 20.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767952864297,
+    "acceptedAt": 0,
+    "completedAt": 1767972146923,
+    "confirmationCode": "782958",
+    "payed": true,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767952864471,
+    "updatedAt": 1767972147291
+  },
+  {
+    "assignmentId": "6960ed169d385eb32a99895a",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6960e9e89d385eb32a998952",
+        "parcelDescription": "White poly",
+        "receiverName": "Ewurama",
+        "receiverPhoneNumber": "+233593016934",
+        "receiverAddress": "Ahinkofi",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960ea2e9d385eb32a998953",
+        "parcelDescription": "Pink poly",
+        "receiverName": "Oyemame",
+        "receiverPhoneNumber": "+233552232781",
+        "receiverAddress": "Benso",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960eaad9d385eb32a998954",
+        "parcelDescription": "Red poly medium",
+        "receiverName": "Grace Abanga",
+        "receiverPhoneNumber": "+233243261438",
+        "receiverAddress": "Anaji Letter Rain",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960eaf79d385eb32a998955",
+        "parcelDescription": "Green Poly",
+        "receiverName": "Afia Cutie",
+        "receiverPhoneNumber": "+233536558301",
+        "receiverAddress": "Kwesimintim",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960eb549d385eb32a998956",
+        "parcelDescription": "Orange Poly",
+        "receiverName": "Cynthia",
+        "receiverPhoneNumber": "+233597224222",
+        "receiverAddress": "Bankyease",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960ebbd9d385eb32a998957",
+        "parcelDescription": "Red white poly",
+        "receiverName": "Nana Adjoa",
+        "receiverPhoneNumber": "+233541281872",
+        "receiverAddress": "Anaji",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960ec059d385eb32a998958",
+        "parcelDescription": "Red",
+        "receiverName": "Rosina",
+        "receiverPhoneNumber": "+233547588986",
+        "receiverAddress": "Fijai",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960ec529d385eb32a998959",
+        "parcelDescription": "Blue",
+        "receiverName": "Sarah Panford",
+        "receiverPhoneNumber": "+233591044763",
+        "receiverAddress": "Porters",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960fb549d385eb32a99896e",
+        "parcelDescription": "whtie and blue",
+        "receiverName": "Calimus",
+        "receiverPhoneNumber": "+233599362018",
+        "receiverAddress": null,
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6960fd089d385eb32a998970",
+        "parcelDescription": "white and blue",
+        "receiverName": "Jennife Mensah",
+        "receiverPhoneNumber": "+233248894891",
+        "receiverAddress": "Apowa",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 255.0,
+    "status": "CANCELLED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767959830288,
+    "acceptedAt": 0,
+    "completedAt": 0,
+    "confirmationCode": "775442",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": "Return parcel, the person came for it at the office",
+    "createdAt": 1767959830461,
+    "updatedAt": 1767960902935
+  },
+  {
+    "assignmentId": "6960f0369d385eb32a998965",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6961340e92a23163365ad279",
+        "parcelDescription": "Testing for the pickup cost ",
+        "receiverName": "Kingsley Botchway",
+        "receiverPhoneNumber": "835505255597031",
+        "receiverAddress": "RH018, Breman Ochisoa, Breman Asikuma",
+        "senderName": "Testing Parcel New 444",
+        "senderPhoneNumber": "+63724968567975",
+        "parcelAmount": 0.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69620614bfe799a665747e7a",
+        "parcelDescription": "white poly",
+        "receiverName": "Christian Litte Tetteh",
+        "receiverPhoneNumber": "+233249607210",
+        "receiverAddress": "cindy cotage",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "696213e9bfe799a665747e8c",
+        "parcelDescription": "white poly",
+        "receiverName": "Pr. Sampson",
+        "receiverPhoneNumber": "+233245439566",
+        "receiverAddress": "Fijai",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 40.0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767960630164,
+    "acceptedAt": 0,
+    "completedAt": 1767971203771,
+    "confirmationCode": "030292",
+    "payed": true,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767960630339,
+    "updatedAt": 1767971204137
+  },
+  {
+    "assignmentId": "6960fb749d385eb32a99896f",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [],
+    "amount": 0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767963508377,
+    "acceptedAt": 0,
+    "completedAt": 1767971256637,
+    "confirmationCode": "734762",
+    "payed": true,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767963508555,
+    "updatedAt": 1767971257003
+  },
+  {
+    "assignmentId": "6960fd189d385eb32a998971",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [],
+    "amount": 0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767963928331,
+    "acceptedAt": 0,
+    "completedAt": 1767969423020,
+    "confirmationCode": "814375",
+    "payed": true,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767963928503,
+    "updatedAt": 1767969423389
+  },
+  {
+    "assignmentId": "696100439d385eb32a998972",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [],
+    "amount": 0,
+    "status": "DELIVERED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1767964739805,
+    "acceptedAt": 0,
+    "completedAt": 1767974403390,
+    "confirmationCode": "064804",
+    "payed": true,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767964739984,
+    "updatedAt": 1767974403757
+  },
+  {
+    "assignmentId": "6961286b378cb853eaaf4f59",
+    "riderInfo": {
+      "riderId": "69611172378cb853eaaf4f35",
+      "riderName": "Godfred",
+      "riderPhoneNumber": "+233257019015"
+    },
+    "parcels": [
+      {
+        "parcelId": "696119d1378cb853eaaf4f46",
+        "parcelDescription": "BLACK POLY",
+        "receiverName": "NO NAME",
+        "receiverPhoneNumber": "+233244272968",
+        "receiverAddress": "CHINA MALL",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69611b16378cb853eaaf4f47",
+        "parcelDescription": "POLY BAG",
+        "receiverName": "ABDUL HAMID",
+        "receiverPhoneNumber": "+233243230895",
+        "receiverAddress": "GULF CITY",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69611c6a378cb853eaaf4f48",
+        "parcelDescription": "BAG",
+        "receiverName": "FAIZA",
+        "receiverPhoneNumber": "+233504211261",
+        "receiverAddress": "CÖMM22",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69611d3a378cb853eaaf4f49",
+        "parcelDescription": "BAG",
+        "receiverName": "ABIGIAL",
+        "receiverPhoneNumber": "+233240736742",
+        "receiverAddress": "KLAGON",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69611de9378cb853eaaf4f4a",
+        "parcelDescription": "BAG",
+        "receiverName": "NO NAME",
+        "receiverPhoneNumber": "+233242133998",
+        "receiverAddress": "CÖMM.5",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69611e97378cb853eaaf4f4b",
+        "parcelDescription": "POLY BAG",
+        "receiverName": "DR.ALFRED",
+        "receiverPhoneNumber": "+233243223366",
+        "receiverAddress": "CÖMM.25",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 210.0,
+    "status": "ASSIGNED",
+    "officeId": "6960bbdd9d385eb32a998910",
+    "assignedAt": 1767975018999,
+    "acceptedAt": 0,
+    "completedAt": 0,
+    "confirmationCode": "840100",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767975019174,
+    "updatedAt": 1767975019174
+  },
+  {
+    "assignmentId": "696128a6378cb853eaaf4f65",
+    "riderInfo": {
+      "riderId": "69611172378cb853eaaf4f35",
+      "riderName": "Godfred",
+      "riderPhoneNumber": "+233257019015"
+    },
+    "parcels": [
+      {
+        "parcelId": "69611f1e378cb853eaaf4f4c",
+        "parcelDescription": "BLACK BAG",
+        "receiverName": "GLADYS",
+        "receiverPhoneNumber": "+233535475435",
+        "receiverAddress": "LASHIBI",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69611fd4378cb853eaaf4f4d",
+        "parcelDescription": "POLY BAG",
+        "receiverName": "LORDINA",
+        "receiverPhoneNumber": "+233546576243",
+        "receiverAddress": "ASHIAMAN",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6961216a378cb853eaaf4f4f",
+        "parcelDescription": "BAG",
+        "receiverName": "SHINE DOMINOS",
+        "receiverPhoneNumber": "+233244840432",
+        "receiverAddress": "CÖMM.2",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 90.0,
+    "status": "ASSIGNED",
+    "officeId": "6960bbdd9d385eb32a998910",
+    "assignedAt": 1767975078290,
+    "acceptedAt": 0,
+    "completedAt": 0,
+    "confirmationCode": "323326",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767975078464,
+    "updatedAt": 1767975078464
+  },
+  {
+    "assignmentId": "696129a2378cb853eaaf4f6b",
+    "riderInfo": {
+      "riderId": "69611172378cb853eaaf4f35",
+      "riderName": "Godfred",
+      "riderPhoneNumber": "+233257019015"
+    },
+    "parcels": [
+      {
+        "parcelId": "69612209378cb853eaaf4f50",
+        "parcelDescription": "BLACK POLY",
+        "receiverName": "SAMMY",
+        "receiverPhoneNumber": "+233536108092",
+        "receiverAddress": "COMM.8",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69612348378cb853eaaf4f51",
+        "parcelDescription": "GREEN BAG",
+        "receiverName": "GOLDA",
+        "receiverPhoneNumber": "+233243963504",
+        "receiverAddress": "CÖMM.2 PLANE B",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69612453378cb853eaaf4f52",
+        "parcelDescription": "PINK BAG",
+        "receiverName": "JESSE SELORM KOFI",
+        "receiverPhoneNumber": "+233541821568",
+        "receiverAddress": "COMM.9",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "696124e8378cb853eaaf4f53",
+        "parcelDescription": "BLACK BAG",
+        "receiverName": "SISTER AFIA",
+        "receiverPhoneNumber": "+233243977245",
+        "receiverAddress": "CÖMM.12",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6961256a378cb853eaaf4f54",
+        "parcelDescription": "BAG",
+        "receiverName": "DORCAS",
+        "receiverPhoneNumber": "+233246062961",
+        "receiverAddress": "CÖMM.11",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69612601378cb853eaaf4f55",
+        "parcelDescription": "BAG",
+        "receiverName": "PRECIOUS",
+        "receiverPhoneNumber": "+233249954446",
+        "receiverAddress": "COMM.9",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "6961269f378cb853eaaf4f56",
+        "parcelDescription": "BLUE POLY",
+        "receiverName": "LIZZY",
+        "receiverPhoneNumber": "+233556305589",
+        "receiverAddress": "MICHEL CAMP",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 30.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "69612719378cb853eaaf4f57",
+        "parcelDescription": "BAG",
+        "receiverName": "KUKS",
+        "receiverPhoneNumber": "+233248067796",
+        "receiverAddress": "CÖMM.22",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 40.0,
+        "payed": false,
+        "cancelled": false
+      },
+      {
+        "parcelId": "696127a4378cb853eaaf4f58",
+        "parcelDescription": "POLY BAG",
+        "receiverName": "PHILOMINA",
+        "receiverPhoneNumber": "+233203665723",
+        "receiverAddress": "CÖMM.9",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 20.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 210.0,
+    "status": "ASSIGNED",
+    "officeId": "6960bbdd9d385eb32a998910",
+    "assignedAt": 1767975330362,
+    "acceptedAt": 0,
+    "completedAt": 0,
+    "confirmationCode": "098202",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1767975330536,
+    "updatedAt": 1767975330536
+  },
+  {
+    "assignmentId": "696241259a75fadc37d4f5fb",
+    "riderInfo": {
+      "riderId": "6953c3d34355e010bc8a5b81",
+      "riderName": "John",
+      "riderPhoneNumber": "+233535190368"
+    },
+    "parcels": [
+      {
+        "parcelId": "6960beef9d385eb32a998919",
+        "parcelDescription": "white with yeloow",
+        "receiverName": "Raymond Andoh",
+        "receiverPhoneNumber": "+233243864388",
+        "receiverAddress": "Racecourse",
+        "senderName": null,
+        "senderPhoneNumber": "",
+        "parcelAmount": 25.0,
+        "payed": false,
+        "cancelled": false
+      }
+    ],
+    "amount": 25.0,
+    "status": "ASSIGNED",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "assignedAt": 1768046885130,
+    "acceptedAt": 0,
+    "completedAt": 0,
+    "confirmationCode": "727227",
+    "payed": false,
+    "payementMethod": null,
+    "cancelationReason": null,
+    "createdAt": 1768046885308,
+    "updatedAt": 1768046885308
+  }
+]

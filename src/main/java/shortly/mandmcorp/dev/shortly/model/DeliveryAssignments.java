@@ -14,7 +14,7 @@ import lombok.Data;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 
 @Data
-@Document(collection = "delivery_assignmentss")
+@Document(collection = "delivery_assignmentsss")
 @CompoundIndexes({
     @CompoundIndex(name = "rider_status_idx", def = "{'riderInfo.riderId': 1, 'status': 1}"),
     @CompoundIndex(name = "office_status_idx", def = "{'officeId': 1, 'status': 1}"),

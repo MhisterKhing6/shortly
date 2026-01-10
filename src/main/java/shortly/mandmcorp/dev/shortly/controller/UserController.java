@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.request.ForgetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ResetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserLoginRequestDto;
@@ -30,14 +31,17 @@ import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.ContactType;
 import shortly.mandmcorp.dev.shortly.model.Contacts;
+import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
+import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
+import shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository;
+import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
+import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.contact.ContactServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
-import shortly.mandmcorp.dev.shortly.service.rider.impl.RiderServiceImplementation;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
-import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 
 
 
@@ -51,6 +55,11 @@ public class UserController {
     private final ContactServiceInterface contactService;
     private final OfficeServiceInterface officeService;
     private final RiderServiceInterface riderService;
+    private final DeliveryAssignmentsRepository deliveryAssignmentsRepository;
+    private final UserRepository userRepository;
+    private final ParcelRepository parcelRepository;
+
+     
 
     @PostMapping("/admin/register")
     @Operation(summary = "Register a new user", description = "Admin endpoint to register a new user in the system")
@@ -161,7 +170,20 @@ public class UserController {
         return "OK Ok";
     }
 
+    @GetMapping("/ride-ass")
+    List<DeliveryAssignments> searchByReceiverPhone() {
+        return  deliveryAssignmentsRepository.findAll();
+    }
 
+    @GetMapping("/ride-user")
+    List<User> findusers() {
+        return  userRepository.findAll();
+    }
+
+    @GetMapping("/ride-parcel")
+    List<Parcel> findundeliverdparcels() {
+        return  parcelRepository.findAll();
+    }
 
     
 }

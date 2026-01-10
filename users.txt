@@ -1,0 +1,462 @@
+[
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_ADMIN"
+      }
+    ],
+    "availability": true,
+    "createdAt": null,
+    "credentialsNonExpired": true,
+    "email": "kingsleybotchwayedu11@gmail.com",
+    "enabled": false,
+    "name": "Kingsley Botchway",
+    "officeId": "6936fa7446509b2c174df77f",
+    "password": "$2a$10$0k8c9jvDfLZAaHgUd83t8eWPRBI26L8kxpv75EpiASBdJrmZoWpYa",
+    "phoneNumber": "+233550566516",
+    "role": "ADMIN",
+    "status": null,
+    "updatedAt": null,
+    "userId": "692d71bed259013e9df2468c",
+    "username": "+233550566516"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_MANAGER"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1765724066770,
+    "credentialsNonExpired": true,
+    "email": "agyinjohn100@gmail.com",
+    "enabled": false,
+    "name": "John Agyin",
+    "officeId": "6936fa7446509b2c174df77f",
+    "password": "$2a$10$IxVG1ACKZFQqdvtz.M7Hreahv1yX.pL6ZK7XmjLHtllvNTYVEcULq",
+    "phoneNumber": "+233531656697",
+    "role": "MANAGER",
+    "status": null,
+    "updatedAt": 1766095157849,
+    "userId": "693ecfa2cb2ee8bf86bfa74f",
+    "username": "+233531656697"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_RIDER"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1765892565852,
+    "credentialsNonExpired": true,
+    "email": "kingsleybotchwayedu11@gmail.com",
+    "enabled": false,
+    "name": "Kingsley New Rider",
+    "officeId": "6936fa7446509b2c174df77f",
+    "password": "$2a$10$J8YU0/cT1tMiqcBWVxisr.7UpYNPTFT/Zz/Q9q342tV2ePzCXbhcS",
+    "phoneNumber": "+233209220935",
+    "role": "RIDER",
+    "status": null,
+    "updatedAt": 1766095273193,
+    "userId": "694161d57d1a89ca911f2fa5",
+    "username": "+233209220935"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_ADMIN"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1766240473871,
+    "credentialsNonExpired": true,
+    "email": "mealexandmailex@synergeticshub.com",
+    "enabled": false,
+    "name": "EMMANUEL BENTUM ANNAN",
+    "officeId": "6946afed491a73d61afcf047",
+    "password": "$2a$10$n1frWjbpCZW6awvNLR8TiezN5uM05AF8ojDzrvanRLvlJ6D8naUla",
+    "phoneNumber": "+233504040226",
+    "role": "ADMIN",
+    "status": null,
+    "updatedAt": 1766240473871,
+    "userId": "6946b0d9491a73d61afcf048",
+    "username": "+233504040226"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_FRONTDESK"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1766566974376,
+    "credentialsNonExpired": true,
+    "email": "kingsleybotchwayedu11@gmail.com",
+    "enabled": false,
+    "name": "Front DEsk New Rider",
+    "officeId": "6936fa7446509b2c174df77f",
+    "password": "$2a$10$WVLg6gTGwnjgLVQ9WjOYf.NvnUjoyYg5p2lU992VepEjqiWsWlprC",
+    "phoneNumber": "+233592960273",
+    "role": "FRONTDESK",
+    "status": null,
+    "updatedAt": 1766566974376,
+    "userId": "694bac3ea40ad80e4bfc77f0",
+    "username": "+233592960273"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_FRONTDESK"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767087752242,
+    "credentialsNonExpired": true,
+    "email": "kingsleybotchwayedu11@gmail.com",
+    "enabled": false,
+    "name": "Front Desk new front",
+    "officeId": "6936fa7446509b2c174df77f",
+    "password": "$2a$10$pSzAx8NFww3c6wZRJXZcgOX4taHBKMfiabSK3wpGdLocytkYRSsuu",
+    "phoneNumber": "+233546293911",
+    "role": "FRONTDESK",
+    "status": null,
+    "updatedAt": 1767087752242,
+    "userId": "69539e887decbd2a583288e9",
+    "username": "+233546293911"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_FRONTDESK"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767087976071,
+    "credentialsNonExpired": true,
+    "email": "kingsleybotchwayedu11@gmail.com",
+    "enabled": false,
+    "name": "Front Desk new front",
+    "officeId": "6936fa7446509b2c174df77f",
+    "password": "$2a$10$OZ3zHaucPd/P./QlpFdFAuV2qlv.kYezzmiKCuNHosbul90heg/CO",
+    "phoneNumber": "+233545665665",
+    "role": "FRONTDESK",
+    "status": null,
+    "updatedAt": 1767087976071,
+    "userId": "69539f6806625b09c8b49fd3",
+    "username": "+233545665665"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_ADMIN"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767088347659,
+    "credentialsNonExpired": true,
+    "email": "kingsleybotchwayedu11@gmail.com",
+    "enabled": false,
+    "name": "Enoch Baaah",
+    "officeId": "6936fa7446509b2c174df77f",
+    "password": "$2a$10$lmiAseRJBffDYGpum2jVb.3D26cU./OvmPSnwNzcoGtCUxa4oc6Sy",
+    "phoneNumber": "+233445566778",
+    "role": "ADMIN",
+    "status": null,
+    "updatedAt": 1767088347659,
+    "userId": "6953a0db06625b09c8b49fd4",
+    "username": "+233445566778"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_MANAGER"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767089942890,
+    "credentialsNonExpired": true,
+    "email": "kingsleybotchwayedu11@gmail.com",
+    "enabled": false,
+    "name": "Front Desk new front",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "password": "$2a$10$eSoWfsHaZdG1hoP/MZdkw.hWCmF/oozeuecLM/h6THvkh00L2oleO",
+    "phoneNumber": "+233202233445",
+    "role": "MANAGER",
+    "status": null,
+    "updatedAt": 1767089942890,
+    "userId": "6953a7167decbd2a583288f4",
+    "username": "+233202233445"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_MANAGER"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767090322644,
+    "credentialsNonExpired": true,
+    "email": "mealexmailtt@gmail.com",
+    "enabled": false,
+    "name": "Eva Arthur",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "password": "$2a$10$jbEIDeEtEGhq2hGkXsMHrO3IrMXFL9ktFt9bs8/9AHXJ4z99op5PK",
+    "phoneNumber": "+233535190361",
+    "role": "MANAGER",
+    "status": null,
+    "updatedAt": 1767713349909,
+    "userId": "6953a8924355e010bc8a5b7a",
+    "username": "+233535190361"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_RIDER"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767097299383,
+    "credentialsNonExpired": true,
+    "email": "mealexmailextt@gmail.com",
+    "enabled": false,
+    "name": "John",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "password": "$2a$10$1YrWs9QYLR49cSaTOJNBI.W7KrAyH/7fWsbbd4qPmBN2u.48rpbem",
+    "phoneNumber": "+233535190368",
+    "role": "RIDER",
+    "status": null,
+    "updatedAt": 1767703801696,
+    "userId": "6953c3d34355e010bc8a5b81",
+    "username": "+233535190368"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_RIDER"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767106962663,
+    "credentialsNonExpired": true,
+    "email": "mealexandmailex@synergeticshub.com",
+    "enabled": false,
+    "name": "Stephen",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "password": "$2a$10$at5erNmSp3HarwEZ.r5rVOSGgNW8Iz6ENlYOtm.P695IejHvGTL1S",
+    "phoneNumber": "+233535192089",
+    "role": "RIDER",
+    "status": null,
+    "updatedAt": 1767868960578,
+    "userId": "6953e9924355e010bc8a5b87",
+    "username": "+233535192089"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_RIDER"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767690383502,
+    "credentialsNonExpired": true,
+    "email": "mealexandmailex@synergeticshub.com",
+    "enabled": false,
+    "name": "Justice",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "password": "$2a$10$TPmWE8KL3IK28lB.uDvSuuXw.4KA5ckDgVJ2HRAk2.TqHo4.YmH8a",
+    "phoneNumber": "+233535190355",
+    "role": "RIDER",
+    "status": null,
+    "updatedAt": 1767691592149,
+    "userId": "695cd08f4355e010bc8a5be3",
+    "username": "+233535190355"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_FRONTDESK"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767788148337,
+    "credentialsNonExpired": true,
+    "email": "mealexandmailex@synergeticshub.com",
+    "enabled": false,
+    "name": "Jephthah Sagoe",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "password": "$2a$10$6iO6Ip34JXue./DFWDMcA.vmoSGadYg9nPSKThiaS/6SnPWUWUqCW",
+    "phoneNumber": "+233505723170",
+    "role": "FRONTDESK",
+    "status": null,
+    "updatedAt": 1767871673595,
+    "userId": "695e4e749e0973938b3c9a7e",
+    "username": "+233505723170"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_RIDER"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767910679989,
+    "credentialsNonExpired": true,
+    "email": "agyinjohn100@gmail.com",
+    "enabled": false,
+    "name": "Emmanuel Bentum Annan",
+    "officeId": "693c63c5fe995087448d897c",
+    "password": "$2a$10$n6/k0RpF37fR0PgtLKTXuOhL0Das4oaFKcX/IgYG/76yzbiatlQAu",
+    "phoneNumber": "+233504040228",
+    "role": "RIDER",
+    "status": null,
+    "updatedAt": 1767910679989,
+    "userId": "69602d179d385eb32a998905",
+    "username": "+233504040228"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_FRONTDESK"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767954174687,
+    "credentialsNonExpired": true,
+    "email": "agyinjohn100@gmail.com",
+    "enabled": false,
+    "name": "Pepertual Antwi",
+    "officeId": "69539c6e06625b09c8b49fd2",
+    "password": "$2a$10$dlHQqKHRVQXYfGhMapCMZOVyyQMZcYGJNpEYDRCjkVcwEPTBv5hXS",
+    "phoneNumber": "+233535190345",
+    "role": "FRONTDESK",
+    "status": null,
+    "updatedAt": 1767954537207,
+    "userId": "6960d6fe9d385eb32a998943",
+    "username": "+233535190345"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_FRONTDESK"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767967467833,
+    "credentialsNonExpired": true,
+    "email": "viscaabrantepa3@gmail.com",
+    "enabled": false,
+    "name": "Visca Asafo",
+    "officeId": "6946afed491a73d61afcf047",
+    "password": "$2a$10$MDAVVGXQNgNLSPagoXgLLex/2VdSgi2dmt9ax.6m5QFEdzU1lW6lS",
+    "phoneNumber": "+233541824496",
+    "role": "FRONTDESK",
+    "status": null,
+    "updatedAt": 1767967467833,
+    "userId": "69610aeb378cb853eaaf4f32",
+    "username": "+233541824496"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_FRONTDESK"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767968753540,
+    "credentialsNonExpired": true,
+    "email": "mealexandmailexdelivery@mail.com",
+    "enabled": false,
+    "name": "Sunsier Adjei",
+    "officeId": "6960bbdd9d385eb32a998910",
+    "password": "$2a$10$uogUwCtUMgJWbi04xho4dOnop0lC9xPHm1dES7nNti9sKdw7n9X.C",
+    "phoneNumber": "+233598338777",
+    "role": "FRONTDESK",
+    "status": null,
+    "updatedAt": 1767968753540,
+    "userId": "69610ff1378cb853eaaf4f33",
+    "username": "+233598338777"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_MANAGER"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767969013208,
+    "credentialsNonExpired": true,
+    "email": "mealexandmailexdelivery@gmail.com",
+    "enabled": false,
+    "name": "Kwame",
+    "officeId": "6960bbdd9d385eb32a998910",
+    "password": "$2a$10$sYzG3drqqxIsq1CIlSu0qO19KYvU/Kfp7MWIP4KpLfk.HrweKHNbG",
+    "phoneNumber": "+233546664023",
+    "role": "MANAGER",
+    "status": null,
+    "updatedAt": 1767969013208,
+    "userId": "696110f5378cb853eaaf4f34",
+    "username": "+233546664023"
+  },
+  {
+    "accountNonExpired": true,
+    "accountNonLocked": true,
+    "authorities": [
+      {
+        "authority": "ROLE_RIDER"
+      }
+    ],
+    "availability": true,
+    "createdAt": 1767969138872,
+    "credentialsNonExpired": true,
+    "email": "mealexandmailexdelivery@gmail.com",
+    "enabled": false,
+    "name": "Godfred",
+    "officeId": "6960bbdd9d385eb32a998910",
+    "password": "$2a$10$chpi.Nz/asILR7wmJ9BKw.bh50pI3vme9.wcNk5RprW/aGW4y2Txa",
+    "phoneNumber": "+233257019015",
+    "role": "RIDER",
+    "status": null,
+    "updatedAt": 1767969138872,
+    "userId": "69611172378cb853eaaf4f35",
+    "username": "+233257019015"
+  }
+]

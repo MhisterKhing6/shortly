@@ -11,7 +11,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.Data;
 
 @Data
-@Document(collection = "parcels")
+@Document(collection = "parcelss")
 @CompoundIndexes({
     @CompoundIndex(name = "office_delivered_idx", def = "{'officeId': 1, 'isDelivered': 1, 'createdAt': -1}"),
     @CompoundIndex(name = "office_homedelivery_idx", def = "{'officeId': 1, 'homeDelivery': 1, 'isDelivered': 1}"),
