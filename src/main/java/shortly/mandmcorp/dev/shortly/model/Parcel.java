@@ -37,7 +37,7 @@ public class Parcel {
 
     @Indexed
     private String officeId;
-    private String payementMethod;
+    private String paymentMethod;
     private String driverName;
     private String driverPhoneNumber;
     private String vehicleNumber;
