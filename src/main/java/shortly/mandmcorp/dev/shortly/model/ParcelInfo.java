@@ -20,4 +20,6 @@ public class ParcelInfo {
     private double parcelAmount;
     private boolean payed;
     private boolean cancelled;
+    private boolean delivered;
+    private String paymentMethod;
 }

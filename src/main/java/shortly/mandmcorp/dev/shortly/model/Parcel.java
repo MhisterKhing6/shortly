@@ -37,6 +37,7 @@ public class Parcel {
 
     @Indexed
     private String officeId;
+    private String payementMethod;
     private String driverName;
     private String driverPhoneNumber;
     private String vehicleNumber;
@@ -50,11 +51,13 @@ public class Parcel {
     private String shelfId;
     private boolean homeDelivery;
     private int cancelationCount = 0;
-
+   
     @CreatedDate
     private Long createdAt;
 
     @LastModifiedDate
     private Long updatedAt;
+
+
 
 }

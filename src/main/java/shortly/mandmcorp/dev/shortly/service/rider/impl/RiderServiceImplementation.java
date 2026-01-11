@@ -2,7 +2,6 @@ package shortly.mandmcorp.dev.shortly.service.rider.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -222,13 +221,23 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
             // Fetch and update all parcels using parcelIds from embedded ParcelInfo list
             if(assignment.getParcels() != null && !assignment.getParcels().isEmpty()) {
+                ParcelInfo selectedParcel = null;
+
                 for(ParcelInfo parcelInfo : assignment.getParcels()) {
-                    String parcelId = parcelInfo.getParcelId();
-                    if(parcelId != null) {
-                        Parcel parcel = parcelRepository.findById(parcelId)
+                    if(parcelInfo.getParcelId().equals(statusRequest.getParcelId())) {
+                        selectedParcel = parcelInfo;
+                        break;
+                    }
+                }
+                    if(selectedParcel   !=  null) {
+                        Parcel parcel = parcelRepository.findById(selectedParcel.getParcelId())
                             .orElseThrow(() -> new EntityNotFound("Parcel not found"));
 
                         parcel.setDelivered(true);
+                        parcel.setPaymentMethod(statusRequest.getPayementMethod());
+                        selectedParcel.setDelivered(true);
+                        selectedParcel.setPaymentMethod(statusRequest.getPayementMethod());
+                        
                         parcelRepository.save(parcel);
 
                         String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
@@ -237,13 +246,23 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                             .to(parcel.getDriverPhoneNumber())
                             .build();
                         notification.send(notify);
+                    } else {
+                        throw new EntityNotFound("Parcel not found in assignment");
                     }
-                }
+            } 
+            boolean allDelivered = true;
+            for(ParcelInfo parcelInfo : assignment.getParcels()) {
+                if(!(parcelInfo.isDelivered() || parcelInfo.isCancelled())) {
+                    allDelivered = false;
+                    break;
+                } 
             }
 
-            assignment.setStatus(DeliveryStatus.DELIVERED);
-            assignment.setPayed(true);
-            assignment.setPayementMethod(statusRequest.getPayementMethod());
+            if(allDelivered) {
+                assignment.setStatus(DeliveryStatus.DELIVERED);
+                assignment.setPayed(true);
+            }
+            
         }
         else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
             assignment.setCancelationReason(statusRequest.getCancelationReason());
