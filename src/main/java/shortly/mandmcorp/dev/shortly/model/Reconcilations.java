@@ -37,7 +37,9 @@ public class Reconcilations {
 
 
     private String riderName;
+    @Indexed
     private String riderId;
+    private RiderInfo rider;
 
     @Indexed
     private String officeId;

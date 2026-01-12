@@ -22,4 +22,6 @@ public class ParcelInfo {
     private boolean cancelled;
     private boolean delivered;
     private String paymentMethod;
+    private double inboundCost;
+    private double deliveryCost;
 }

@@ -22,12 +22,10 @@ import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
-import shortly.mandmcorp.dev.shortly.model.CancelationReason;
 import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
-import shortly.mandmcorp.dev.shortly.repository.CancelationReasonRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.ShelfRepository;
@@ -46,7 +44,6 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final UserRepository userRepository;
     private final ShelfRepository shelfRepository;
     private final MongoTemplate mongoTemplate;
-    private final CancelationReasonRepository cancelationsReasonRepository;
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
@@ -171,18 +168,6 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     return parcelRepository.save(parcel);
 }
-
-    @Override
-    public List<CancelationReason> cancleationReasons() {
-        return cancelationsReasonRepository.findAll();
-    }
-
-    public UserResponse addCancelationReason(CancelationReasonRequest cancelationReasonRequest) {
-        CancelationReason cancelationReason = new CancelationReason();
-        cancelationReason.setReason(cancelationReasonRequest.getReason());
-        
-        return UserResponse.builder().message("Cancelation Reason Added").build();
-    }
 
 
     @Override

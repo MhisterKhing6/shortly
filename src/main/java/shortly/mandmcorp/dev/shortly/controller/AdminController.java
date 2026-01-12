@@ -30,9 +30,11 @@ import shortly.mandmcorp.dev.shortly.dto.response.OfficeResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
+import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
+import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.impl.UserService;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 
@@ -44,6 +46,7 @@ public class AdminController {
     private final UserService userService;
     private final OfficeServiceInterface officeService;
     private final ParcelServiceInterface parcelService;
+    private final RiderServiceInterface riderService;
 
     @PostMapping("/register")
     @Operation(summary = "Register a new user", description = "Admin endpoint to register a new user")
@@ -165,5 +168,18 @@ public class AdminController {
             @RequestParam(required = false) Boolean hasCalled,
             Pageable pageable) {
         return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, officeId, driverId, hasCalled, pageable, false);
+    }
+
+    @GetMapping("/reconciliations")
+    @Operation(summary = "Get office reconciliations", description = "Get paginated reconciliations for all riders in the authenticated manager's office")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reconciliations retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "User is not a manager or admin")
+    })
+    @TrackUserAction(action = "VIEW_OFFICE_RECONCILIATIONS", description = "Manager/Admin viewed office reconciliations")
+    public Page<Reconcilations> getOfficeReconciliations(Pageable pageable) {
+        return riderService.getOfficeReconciliations(pageable);
     }
 }

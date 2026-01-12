@@ -114,10 +114,30 @@ public interface RiderServiceInterface {
     ReconciliationStatsResponse getReconciliationStats(String period);
 
     /**
-     * Gets all reconciliations for the authenticated rider.
+     * Gets paginated reconciliations for the authenticated rider.
      *
-     * @return List of reconciliations sorted by createdAt descending
+     * @param pageable pagination information
+     * @return Page of reconciliations sorted by createdAt descending
      */
-    List<Reconcilations> getRiderReconciliations();
+    Page<Reconcilations> getRiderReconciliations(Pageable pageable);
+
+    /**
+     * Gets paginated reconciliations for all riders in the authenticated manager's office.
+     *
+     * @param pageable pagination information
+     * @return Page of reconciliations sorted by createdAt descending
+     */
+    Page<Reconcilations> getOfficeReconciliations(Pageable pageable);
+
+    /**
+     * Gets paginated reconciliations for a specific date.
+     * Filters by either createdAt or reconciledAt timestamp.
+     *
+     * @param date the date in milliseconds (epoch timestamp)
+     * @param useReconciledAt if true, filters by reconciledAt; otherwise uses createdAt
+     * @param pageable pagination information
+     * @return Page of reconciliations for the specified date
+     */
+    Page<Reconcilations> getReconciliationsByDate(Long date, boolean useReconciledAt, Pageable pageable);
 
 }

@@ -35,7 +35,6 @@ import shortly.mandmcorp.dev.shortly.model.ParcelInfo;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.model.RiderInfo;
 import shortly.mandmcorp.dev.shortly.model.User;
-import shortly.mandmcorp.dev.shortly.repository.CancelationReasonRepository;
 import shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.ReconcilationRepository;
@@ -66,20 +65,18 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     private final NotificationInterface notification;
     private final ParcelMapper parcelMapper;
     private MongoTemplate mongoTemplate;
-    private final CancelationReasonRepository cancelationReasonRepo;
     private final DeliveryAssignmentsRepository deliveryRepository;
     private final ReconcilationRepository reconcilationRepository;
 
     public RiderServiceImplementation(DeliveryAssignmentsRepository deliveryAssignmentsRepository, UserRepository userRepository, ParcelRepository parcelRepository, 
         @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate, 
-        CancelationReasonRepository cancelationReasonRepo, DeliveryAssignmentsRepository deliveryRepo, ReconcilationRepository reconcilationRepository  ) {
+        DeliveryAssignmentsRepository deliveryRepo, ReconcilationRepository reconcilationRepository  ) {
         this.deliveryAssignmentsRepository = deliveryAssignmentsRepository;
         this.userRepository = userRepository;
         this.parcelRepository = parcelRepository;
         this.notification = notification;
         this.parcelMapper = parcelMapper;
         this.mongoTemplate = mongoTemplate;
-        this.cancelationReasonRepo = cancelationReasonRepo;
         this.deliveryRepository = deliveryRepo;
         this.reconcilationRepository = reconcilationRepository;
     }
@@ -149,7 +146,6 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         // Generate daily assignment ID: {riderId}_{YYYYMMDD}
         String dailyAssignmentId = generateDailyAssignmentId(rider.getUserId(), assignedAt);
 
-        // Check if assignment for this rider+date already exists
         DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(dailyAssignmentId)
                 .orElse(null);
 
@@ -181,13 +177,27 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found: " + parcelId));
             if(!parcel.isHasCalled() ||!parcel.isHomeDelivery()) {
+                if(assignmentRequest.getParcelIds().size() == 1) {
+                    throw new EntityNotFound("Parcel has not been called or is not for home delivery: " + parcelId);
+                }
                 log.warn("Parcel {} has not been called. Skipping assignment.", parcelId);
                 continue;
             }
-            confirmationCode = OtpUtil.generateOtp();
 
+            if(parcel.isParcelAssigned() || parcel.isDelivered()) {
+                log.warn("Parcel {} is already assigned. Skipping assignment.", parcelId);
+                if(parcel.getRiderId() != null && parcel.getRiderId().equals(rider.getUserId())) {
+                    log.info("Parcel {} is already assigned to the same rider {}. Skipping exception.", parcelId, rider.getUserId());
+                    if(assignmentRequest.getParcelIds().size() == 1) {
+                        throw new EntityNotFound("Parcel is already assigned to the same rider: " + parcelId);
+                    }
+                    continue;
+                }
+                
+            }
+
+            confirmationCode = OtpUtil.generateOtp();
             double parcelAmount = parcel.getDeliveryCost() + parcel.getInboundCost();
-            // Create embedded ParcelInfo
             ParcelInfo parcelInfo = ParcelInfo.builder()
                 .parcelId(parcel.getParcelId())
                 .parcelDescription(parcel.getParcelDescription())
@@ -196,10 +206,14 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 .receiverAddress(parcel.getReceiverAddress())
                 .senderName(parcel.getSenderName())
                 .parcelAmount(parcelAmount)
+                .inboundCost(parcel.getInboundCost())
+                .deliveryCost(parcel.getDeliveryCost())
                 .senderPhoneNumber(parcel.getSenderPhoneNumber())
                 .build();
             newParcels.add(parcelInfo);
             assignment.setAmount(assignment.getAmount() + parcelAmount);
+            assignment.setInboundCost(assignment.getInboundCost() + parcel.getInboundCost());
+            assignment.setDeliveryCost(assignment.getDeliveryCost() + parcel.getDeliveryCost());
             parcel.setParcelAssigned(true);
             parcelRepository.save(parcel);
 
@@ -415,7 +429,6 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             
         }
         else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
-            // Mark the specific parcel as cancelled and update parcel status
             assignment.setCancelationReason(statusRequest.getCancelationReason());
 
             if(assignment.getParcels() != null && !assignment.getParcels().isEmpty() && statusRequest.getParcelId() != null) {
@@ -628,9 +641,15 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         reconcilation.setPayedTo(frontDesk.getUserId());
         reconcilation.setType(ReconcilationType.RIDER);
         reconcilation.setExpectedAmount(assignment.getAmount());
-        reconcilation.setRiderId(assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderId() : null);
-        reconcilation.setRiderName(assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderName() : null);
-        reconcilation.setRiderPhoneNumber(assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderPhoneNumber() : null);
+
+        // Set rider information (both structured and individual fields for backward compatibility)
+        if (assignment.getRiderInfo() != null) {
+            reconcilation.setRider(assignment.getRiderInfo());
+            reconcilation.setRiderId(assignment.getRiderInfo().getRiderId());
+            reconcilation.setRiderName(assignment.getRiderInfo().getRiderName());
+            reconcilation.setRiderPhoneNumber(assignment.getRiderInfo().getRiderPhoneNumber());
+        }
+
         reconcilation.setOfficeId(assignment.getOfficeId());
         reconcilation.setCompleted(true);
         reconcilation.setReconciledAt(reconciledAtTimestamp);
@@ -869,15 +888,124 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
     @Override
     @PreAuthorize("hasRole('RIDER')")
-    public List<Reconcilations> getRiderReconciliations() {
+    public Page<Reconcilations> getRiderReconciliations(Pageable pageable) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
             throw new WrongCredentialsException("User not authenticated");
         }
 
-        org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(
-            org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
-        return reconcilationRepository.findByRiderId(user.getUserId(), sort);
+        // Build query for rider's reconciliations
+        Query query = new Query();
+        query.addCriteria(Criteria.where("riderId").is(user.getUserId()));
+
+        // Apply sorting from pageable, default to createdAt descending
+        if (pageable.getSort().isSorted()) {
+            query.with(pageable.getSort());
+        } else {
+            query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        }
+
+        // Get total count
+        long total = mongoTemplate.count(query, Reconcilations.class);
+
+        // Apply pagination
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        // Execute query
+        List<Reconcilations> reconciliations = mongoTemplate.find(query, Reconcilations.class);
+        return new PageImpl<>(reconciliations, pageable, total);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public Page<Reconcilations> getOfficeReconciliations(Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        // Build query for office reconciliations
+        Query query = new Query();
+        query.addCriteria(Criteria.where("officeId").is(user.getOfficeId()));
+
+        // Apply sorting from pageable, default to createdAt descending
+        if (pageable.getSort().isSorted()) {
+            query.with(pageable.getSort());
+        } else {
+            query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        }
+
+        // Get total count
+        long total = mongoTemplate.count(query, Reconcilations.class);
+
+        // Apply pagination
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        // Execute query
+        List<Reconcilations> reconciliations = mongoTemplate.find(query, Reconcilations.class);
+        return new PageImpl<>(reconciliations, pageable, total);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public Page<Reconcilations> getReconciliationsByDate(Long date, boolean useReconciledAt, Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        // Calculate start and end of the day for the given date
+        long startOfDay = getStartOfDay(date);
+        long endOfDay = getEndOfDay(date);
+
+        // Build query for reconciliations by date
+        Query query = new Query();
+        query.addCriteria(Criteria.where("officeId").is(user.getOfficeId()));
+
+        // Filter by either reconciledAt or createdAt
+        if (useReconciledAt) {
+            query.addCriteria(Criteria.where("reconciledAt").gte(startOfDay).lt(endOfDay));
+        } else {
+            query.addCriteria(Criteria.where("createdAt").gte(startOfDay).lt(endOfDay));
+        }
+
+        // Apply sorting from pageable, default to createdAt descending
+        if (pageable.getSort().isSorted()) {
+            query.with(pageable.getSort());
+        } else {
+            query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        }
+
+        // Get total count
+        long total = mongoTemplate.count(query, Reconcilations.class);
+
+        // Apply pagination
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        // Execute query
+        List<Reconcilations> reconciliations = mongoTemplate.find(query, Reconcilations.class);
+        return new PageImpl<>(reconciliations, pageable, total);
+    }
+
+    /**
+     * Gets the start of day (00:00:00.000) for a given timestamp
+     */
+    private long getStartOfDay(long timestamp) {
+        long millisecondsInDay = 24 * 60 * 60 * 1000L;
+        return (timestamp / millisecondsInDay) * millisecondsInDay;
+    }
+
+    /**
+     * Gets the end of day (23:59:59.999) for a given timestamp
+     */
+    private long getEndOfDay(long timestamp) {
+        return getStartOfDay(timestamp) + (24 * 60 * 60 * 1000L);
     }
 
 

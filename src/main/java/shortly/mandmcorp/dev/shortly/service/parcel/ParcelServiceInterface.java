@@ -1,15 +1,10 @@
 package shortly.mandmcorp.dev.shortly.service.parcel;
 
-import java.util.List;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import shortly.mandmcorp.dev.shortly.dto.request.CancelationReasonRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
-import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
-import shortly.mandmcorp.dev.shortly.model.CancelationReason;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 
 public interface ParcelServiceInterface {
@@ -28,9 +23,7 @@ public interface ParcelServiceInterface {
      */
     java.util.List<Parcel> getParcelsByDriverId(String driverId, boolean isPOD, String inboundPayed);
 
-    List<CancelationReason> cancleationReasons();
 
-    UserResponse addCancelationReason(CancelationReasonRequest cancelationReasonRequest);
 
     /**
      * Gets parcels available for office pickup (not home delivery, not delivered, in user's office).

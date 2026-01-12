@@ -21,7 +21,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
-import shortly.mandmcorp.dev.shortly.dto.request.CancelationReasonRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
@@ -29,9 +28,9 @@ import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
-import shortly.mandmcorp.dev.shortly.model.CancelationReason;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
+import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
@@ -185,29 +184,9 @@ public class FrontDeskController {
     }
 
 
-    @GetMapping("/cancellation-reasons")
-    @Operation(summary = "get a list of cancelation reason ", description = "An endpoint to get cancelation reasons")
-    @SecurityRequirement(name = "Bearer Authentication")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "cancelation reason returns successfully"),
-    })
-    public List<CancelationReason> getCancelationReason() {
-        return parcelService.cancleationReasons();
-    }
+  
 
-    @PostMapping("/cancellation-reasons")
-    @Operation(summary = "add cancelation reason ", description = "An endpoint to add cancelation reason")
-    @SecurityRequirement(name = "Bearer Authentication")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "cancelation reason wass added successfule"),
-    })
-
-    public UserResponse addCancelationReason(@RequestBody @Valid CancelationReasonRequest cancelRequest) {
-        return parcelService.addCancelationReason(cancelRequest);
-    }
-
-
-     @GetMapping("/riders/assignments")
+    @GetMapping("/riders/assignments")
     @Operation(summary = "Get office rider assignments", description = "Get all delivery assignments in an office")
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
@@ -241,5 +220,21 @@ public class FrontDeskController {
     public ReconciliationStatsResponse getReconciliationStats(
             @RequestParam(defaultValue = "day") String period) {
         return riderService.getReconciliationStats(period);
+    }
+
+    @GetMapping("/reconciliations/by-date")
+    @Operation(summary = "Get reconciliations by date", description = "Get paginated reconciliations for a specific date filtered by createdAt or reconciledAt. Requires MANAGER or ADMIN role.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reconciliations retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "User is not a manager or admin")
+    })
+    @TrackUserAction(action = "VIEW_RECONCILIATIONS_BY_DATE", description = "Manager/Admin viewed reconciliations by date")
+    public Page<Reconcilations> getReconciliationsByDate(
+            @RequestParam Long date,
+            @RequestParam(defaultValue = "false") boolean useReconciledAt,
+            Pageable pageable) {
+        return riderService.getReconciliationsByDate(date, useReconciledAt, pageable);
     }
 }

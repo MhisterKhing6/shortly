@@ -49,6 +49,10 @@ public class DeliveryAssignments {
 
     private double amount;
 
+    private double inboundCost;
+
+    private double deliveryCost;
+    
     private String cancelationReason;
 
     @CreatedDate

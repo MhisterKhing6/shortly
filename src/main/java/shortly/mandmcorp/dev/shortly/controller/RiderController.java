@@ -2,6 +2,9 @@ package shortly.mandmcorp.dev.shortly.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -19,9 +22,7 @@ import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
-import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
-import shortly.mandmcorp.dev.shortly.model.CancelationReason;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
@@ -97,25 +98,15 @@ public class RiderController {
         return riderService.searchByReceiverPhone(receiverPhone);
     }
 
-    @GetMapping("/cancellation-reasons")
-    @Operation(summary = "get a list of cancelation reason ", description = "An endpoint to get cancelation reasons")
-    @SecurityRequirement(name = "Bearer Authentication")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "cancelation reason returns successfully"),
-    })
-    public List<CancelationReason> getCancelationReason() {
-        return parcelService.cancleationReasons();
-    }
-
     @GetMapping("/reconciliations")
-    @Operation(summary = "Get rider reconciliations", description = "Get all reconciliations for authenticated rider sorted by creation date")
+    @Operation(summary = "Get rider reconciliations", description = "Get paginated reconciliations for authenticated rider sorted by creation date")
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Reconciliations retrieved successfully"),
         @ApiResponse(responseCode = "401", description = "User not authenticated")
     })
     @TrackUserAction(action = "VIEW_RIDER_RECONCILIATIONS", description = "Rider viewed their reconciliations")
-    public List<Reconcilations> getRiderReconciliations() {
-        return riderService.getRiderReconciliations();
+    public Page<Reconcilations> getRiderReconciliations(@PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+        return riderService.getRiderReconciliations(pageable);
     }
 }
