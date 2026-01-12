@@ -1,7 +1,10 @@
 package shortly.mandmcorp.dev.shortly.service.rider.impl;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -80,11 +83,43 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         this.deliveryRepository = deliveryRepo;
         this.reconcilationRepository = reconcilationRepository;
     }
-    
+
+    /**
+     * Generates a daily assignment ID in the format: {riderId}_{YYYYMMDD}
+     * All assignments for the same rider on the same day will share this ID.
+     *
+     * @param riderId the rider's user ID
+     * @param timestamp the assignment timestamp in milliseconds
+     * @return formatted assignment ID
+     */
+    private String generateDailyAssignmentId(String riderId, long timestamp) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        String dateStr = dateFormat.format(new Date(timestamp));
+        return riderId + "_" + dateStr;
+    }
+
+    /**
+     * Generates a daily reconciliation ID in the format: {riderId}_{YYYYMMDD}
+     * All reconciliations for the same rider on the same day will share this ID.
+     *
+     * @param riderId the rider's user ID
+     * @param timestamp the reconciliation timestamp in milliseconds
+     * @return formatted reconciliation ID
+     */
+    private String generateDailyReconciliationId(String riderId, long timestamp) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        String dateStr = dateFormat.format(new Date(timestamp));
+        return riderId + "_" + dateStr;
+    }
+
     /**
      * Assigns multiple parcels to a rider.
      * Creates delivery assignments and sends SMS notification to rider.
-     * 
+     * Uses daily grouping - all parcels assigned to the same rider on the same day
+     * are added to a single assignment with ID format: {riderId}_{YYYYMMDD}
+     *
      * @param assignmentRequest contains rider ID and list of parcel IDs
      * @return UserResponse with success message
      * @throws EntityNotFound if rider or parcel not found
@@ -93,7 +128,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     @PreAuthorize("hasRole('FRONTDESK') or hasRole('ADMIN') or hasRole('MANAGER')")
     public UserResponse assignParcelsToRider(DeliveryAssignmentRequest assignmentRequest) {
         log.info("Assigning {} parcels to rider: {}", assignmentRequest.getParcelIds().size(), assignmentRequest.getRiderId());
-        
+
         User rider = userRepository.findById(assignmentRequest.getRiderId())
             .orElseThrow(() -> new EntityNotFound("Rider not found"));
         User officeManager = null;
@@ -110,14 +145,38 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 .build();
         long assignedAt = System.currentTimeMillis();
         String confirmationCode = "";
-        DeliveryAssignments assignment = new DeliveryAssignments();
-        assignment.setRiderInfo(riderInfo);
-        assignment.setOfficeId(rider.getOfficeId());
-        assignment.setStatus(DeliveryStatus.ASSIGNED);
-        assignment.setConfirmationCode(confirmationCode);
-        assignment.setAssignedAt(assignedAt);
 
-        List<ParcelInfo> parcelInfos = new ArrayList<>();
+        // Generate daily assignment ID: {riderId}_{YYYYMMDD}
+        String dailyAssignmentId = generateDailyAssignmentId(rider.getUserId(), assignedAt);
+
+        // Check if assignment for this rider+date already exists
+        DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(dailyAssignmentId)
+                .orElse(null);
+
+        boolean isNewAssignment = (assignment == null);
+
+        if (isNewAssignment) {
+            assignment = new DeliveryAssignments();
+            assignment.setAssignmentId(dailyAssignmentId);
+            assignment.setRiderInfo(riderInfo);
+            assignment.setOfficeId(rider.getOfficeId());
+            assignment.setStatus(DeliveryStatus.ASSIGNED);
+            assignment.setConfirmationCode(confirmationCode);
+            assignment.setAssignedAt(assignedAt);
+            assignment.setCreatedAt(assignedAt);
+            assignment.setParcels(new ArrayList<>());
+            assignment.setAmount(0.0);
+        } else {
+            log.info("Found existing assignment for rider {} on date {}. Adding parcels to it.", rider.getUserId(), dailyAssignmentId);
+        }
+
+        // Get existing parcels list or create new one
+        List<ParcelInfo> existingParcels = assignment.getParcels();
+        if (existingParcels == null) {
+            existingParcels = new ArrayList<>();
+        }
+
+        List<ParcelInfo> newParcels = new ArrayList<>();
         for(String parcelId : assignmentRequest.getParcelIds()) {
             Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found: " + parcelId));
@@ -127,8 +186,6 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             }
             confirmationCode = OtpUtil.generateOtp();
 
-            // Create embedded RiderInfo
-           
             double parcelAmount = parcel.getDeliveryCost() + parcel.getInboundCost();
             // Create embedded ParcelInfo
             ParcelInfo parcelInfo = ParcelInfo.builder()
@@ -141,19 +198,20 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 .parcelAmount(parcelAmount)
                 .senderPhoneNumber(parcel.getSenderPhoneNumber())
                 .build();
-            parcelInfos.add(parcelInfo);
+            newParcels.add(parcelInfo);
             assignment.setAmount(assignment.getAmount() + parcelAmount);
             parcel.setParcelAssigned(true);
-            deliveryAssignmentsRepository.save(assignment);
             parcelRepository.save(parcel);
 
-        String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(officeManager.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
-        NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
-        .to(parcel.getRecieverPhoneNumber()).build();
-        notification.send(notify);
-            
+            String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(officeManager.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
+            NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
+                .to(parcel.getRecieverPhoneNumber()).build();
+            notification.send(notify);
         }
-        assignment.setParcels(parcelInfos);
+
+        existingParcels.addAll(newParcels);
+        assignment.setParcels(existingParcels);
+        assignment.setUpdatedAt(System.currentTimeMillis());
         deliveryAssignmentsRepository.save(assignment);
         log.info("Successfully assigned {} parcels to rider: {}", assignmentRequest.getParcelIds().size(), rider.getName());
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(NotificationUtil.genrateRiderAssMsg(rider.getName(), assignmentRequest.getParcelIds().size()))
@@ -270,7 +328,6 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             if(assignment.getParcels() != null && !assignment.getParcels().isEmpty() && statusRequest.getParcelId() != null) {
                 ParcelInfo parcelToCancel = null;
 
-                // Find the parcel to be cancelled
                 for(ParcelInfo parcelInfo : assignment.getParcels()) {
                     if(parcelInfo.getParcelId().equals(statusRequest.getParcelId())) {
                         parcelToCancel = parcelInfo;
@@ -279,7 +336,6 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 }
 
                 if(parcelToCancel != null && !parcelToCancel.isCancelled()) {
-                    // Update the parcel in the database
                     Parcel parcel = parcelRepository.findById(parcelToCancel.getParcelId())
                         .orElseThrow(() -> new EntityNotFound("Parcel not found"));
 
@@ -288,14 +344,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     parcel.setParcelAssigned(false);
                     parcelRepository.save(parcel);
 
-                    // Subtract the parcel amount from the assignment total
                     double parcelAmount = parcelToCancel.getParcelAmount();
                     assignment.setAmount(assignment.getAmount() - parcelAmount);
 
-                    // Mark the parcel as cancelled in the embedded list
                     parcelToCancel.setCancelled(true);
 
-                    // Check if all parcels are cancelled, if so set assignment status to CANCELLED
                     boolean allCancelled = assignment.getParcels().stream()
                         .allMatch(ParcelInfo::isCancelled);
 
@@ -341,7 +394,6 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 throw new ActionNotAllowed("Invalid  confirmation code");
             } */
 
-            // Fetch and update all parcels using parcelIds from embedded ParcelInfo list
             if(assignment.getParcels() != null && !assignment.getParcels().isEmpty()) {
                 ParcelInfo selectedParcel = null;
 
@@ -546,16 +598,16 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     }
 
     /**
-     * Marks multiple delivery assignments as paid for reconciliation.
-     * Uses MongoDB bulk operations for efficient batch updates.
-     * Non-existent assignment IDs are silently skipped without errors.
-     * 
-     * @param reconcilationRiderRequest contains rider ID and list of assignment IDs
+     * Marks delivery assignment as paid for reconciliation.
+     * Uses daily grouping - reconciliation ID format: {riderId}_{YYYYMMDD}
+     * All reconciliations for the same rider on the same day are grouped together.
+     *
+     * @param reconcilationRiderRequest contains assignment ID and payment details
      * @return UserResponse with success message
      */
     @Override
     public UserResponse reconcilation(ReconcilationRiderRequest reconcilationRiderRequest) {
-        log.info("Starting reconciliation for rider");
+        log.info("Starting reconciliation for assignment: {}", reconcilationRiderRequest.getAssignmentId());
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
@@ -568,25 +620,33 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             ? reconcilationRiderRequest.getReconciledAt()
             : System.currentTimeMillis();
 
-        DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(reconcilationRiderRequest.getAssignmentId()).
-        orElseThrow(() -> new EntityNotFound("Assignment not found" ));
+        DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(reconcilationRiderRequest.getAssignmentId())
+            .orElseThrow(() -> new EntityNotFound("Assignment not found"));
 
-    Reconcilations reconcilation = reconcilationRepository.findByAssignmentId(reconcilationRiderRequest.getAssignmentId())
-            .orElse(new Reconcilations());
-
-    if (assignment != null) {
-        if (assignment.getParcels() != null && !assignment.getParcels().isEmpty()) {
-            for (ParcelInfo parcelInfo : assignment.getParcels()) {
-                if (!parcelInfo.isCancelled() && parcelInfo.getParcelId() != null) {
-                    Parcel parcel = parcelRepository.findById(parcelInfo.getParcelId()).orElse(null);
-                    if (parcel != null) {
-                        parcel.setDelivered(true);
-                        parcelRepository.save(parcel);
-                    }
-                }
-            }
+        // Generate daily reconciliation ID based on rider and date
+        String riderId = assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderId() : null;
+        if (riderId == null) {
+            throw new WrongCredentialsException("Assignment has no rider information");
         }
 
+        String dailyReconciliationId = generateDailyReconciliationId(riderId, reconciledAtTimestamp);
+
+        // Check if reconciliation for this rider+date already exists
+        Reconcilations reconcilation = reconcilationRepository.findById(dailyReconciliationId)
+            .orElse(null);
+
+        boolean isNewReconciliation = (reconcilation == null);
+
+        if (isNewReconciliation) {
+            reconcilation = new Reconcilations();
+            reconcilation.setId(dailyReconciliationId);
+            reconcilation.setCreatedAt(reconciledAtTimestamp);
+        } else {
+            log.info("Found existing reconciliation for rider {} on date {}. Updating it.", riderId, dailyReconciliationId);
+        }
+
+    if (assignment != null) {
+       
         reconcilation.setAssignmentId(assignment.getAssignmentId());
         reconcilation.setPayedTo(frontDesk.getUserId());
         reconcilation.setType(ReconcilationType.RIDER);
@@ -597,8 +657,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         reconcilation.setOfficeId(assignment.getOfficeId());
         reconcilation.setCompleted(true);
         reconcilation.setReconciledAt(reconciledAtTimestamp);
-        reconcilation.setPayedAmount(reconcilationRiderRequest.getPayedAmount());
 
+        if (isNewReconciliation) {
+            reconcilation.setPayedAmount(reconcilationRiderRequest.getPayedAmount());
+        } else {
+            double currentPayedAmount = reconcilation.getPayedAmount();
+            reconcilation.setPayedAmount(currentPayedAmount + reconcilationRiderRequest.getPayedAmount());
+        }
         reconcilationRepository.save(reconcilation);
         assignment.setPayed(true);
         assignment.setStatus(DeliveryStatus.COMPLETED);

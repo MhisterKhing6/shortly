@@ -3,8 +3,6 @@ package shortly.mandmcorp.dev.shortly.service.parcel.impl;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bson.Document;
-import org.bson.types.ObjectId;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -15,8 +13,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
-import com.mongodb.DBRef;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -263,36 +259,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     return new PageImpl<>(parcels, pageable, total);
 }
 
-    /**
-     * Extracts the ObjectId (as hex string) from a DBRef or a nested Document representation.
-     */
-    private String extractRefId(Object ref) {
-        if (ref == null) {
-            return null;
-        }
-
-        // Case 1: Legacy DBRef object
-        if (ref instanceof DBRef dbRef) {
-            Object id = dbRef.getId();
-            if (id instanceof ObjectId objectId) {
-                return objectId.toHexString();
-            }
-            return id.toString();
-        }
-
-        // Case 2: Nested Document { "$ref": "contacts", "$id": ObjectId(...) }
-        if (ref instanceof Document document) {
-            Object idObj = document.get("$id");
-            if (idObj instanceof ObjectId objectId) {
-                return objectId.toHexString();
-            }
-            if (idObj != null) {
-                return idObj.toString();
-            }
-        }
-
-        return null;
-    }
+    
 
     public UserResponse changeOffice(String officeId) {
         Office office = officeRepository.findById(officeId)
