@@ -308,18 +308,6 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                         throw new EntityNotFound("Parcel not found in assignment");
                     }
             } 
-            boolean allDelivered = true;
-            for(ParcelInfo parcelInfo : assignment.getParcels()) {
-                if(!(parcelInfo.isDelivered() || parcelInfo.isCancelled())) {
-                    allDelivered = false;
-                    break;
-                } 
-            }
-
-            if(allDelivered) {
-                assignment.setStatus(DeliveryStatus.DELIVERED);
-                assignment.setPayed(true);
-            }
             
         }
         else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
@@ -424,18 +412,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                         throw new EntityNotFound("Parcel not found in assignment");
                     }
             } 
-            boolean allDelivered = true;
-            for(ParcelInfo parcelInfo : assignment.getParcels()) {
-                if(!(parcelInfo.isDelivered() || parcelInfo.isCancelled())) {
-                    allDelivered = false;
-                    break;
-                } 
-            }
-
-            if(allDelivered) {
-                assignment.setStatus(DeliveryStatus.DELIVERED);
-                assignment.setPayed(true);
-            }
+            
         }
         else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
             // Mark the specific parcel as cancelled and update parcel status
