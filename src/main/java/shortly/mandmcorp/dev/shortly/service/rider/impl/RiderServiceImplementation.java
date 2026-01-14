@@ -693,7 +693,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             }
         }
 
-        // Only mark assignment as COMPLETED if all parcels are delivered
+        // Only mark assignment as COMPLETED if all parcels   are delivered
         boolean allDelivered = assignment.getParcels() != null && !assignment.getParcels().isEmpty() &&
             assignment.getParcels().stream().allMatch(ParcelInfo::isDelivered);
 
