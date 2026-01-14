@@ -50,7 +50,7 @@ public class Parcel {
     private boolean inboudPayed;
     private String shelfId;
     private boolean homeDelivery;
-    private int cancelationCount = 0;
+    private int returnCount = 0;
     private String riderId;
     @CreatedDate
     private Long createdAt;

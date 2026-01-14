@@ -197,16 +197,16 @@ public class FrontDeskController {
         return riderService.getAcitveAssignments(pageable, payed);
     }
 
-    @GetMapping("/riders/assignments/cancelled")
-    @Operation(summary = "Get cancelled delivery assignments", description = "Get all cancelled delivery assignments in the user's office sorted by assignedAt descending")
+    @GetMapping("/riders/assignments/returned")
+    @Operation(summary = "Get returned delivery assignments", description = "Get all returned delivery assignments in the user's office sorted by assignedAt descending")
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Cancelled assignments retrieved successfully"),
+        @ApiResponse(responseCode = "200", description = "Returned assignments retrieved successfully"),
         @ApiResponse(responseCode = "401", description = "User not authenticated")
     })
-    @TrackUserAction(action = "VIEW_CANCELLED_ASSIGNMENTS", description = "User viewed cancelled delivery assignments")
-    public Page<DeliveryAssignments> getCancelledAssignments(Pageable pageable) {
-        return riderService.getCancelledDeliveryAssignments(pageable);
+    @TrackUserAction(action = "VIEW_RETURNED_ASSIGNMENTS", description = "User viewed returned delivery assignments")
+    public Page<DeliveryAssignments> getReturnedAssignments(Pageable pageable) {
+        return riderService.getReturnedDeliveryAssignments(pageable);
     }
 
     @GetMapping("/reconciliation/stats")

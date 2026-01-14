@@ -52,8 +52,8 @@ public class DeliveryAssignments {
     private double inboundCost;
 
     private double deliveryCost;
-    
-    private String cancelationReason;
+
+    private String returnReason;
 
     @CreatedDate
     private Long createdAt;

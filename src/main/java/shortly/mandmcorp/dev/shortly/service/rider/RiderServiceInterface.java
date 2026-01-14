@@ -98,12 +98,12 @@ public interface RiderServiceInterface {
     Page<DeliveryAssignments> getAcitveAssignments(Pageable pageable, boolean payed);
 
     /**
-     * Gets all cancelled delivery assignments in the user's office.
+     * Gets all returned delivery assignments in the user's office.
      *
      * @param pageable pagination parameters
-     * @return Page of cancelled delivery assignments sorted by assignedAt descending
+     * @return Page of returned delivery assignments sorted by assignedAt descending
      */
-    Page<DeliveryAssignments> getCancelledDeliveryAssignments(Pageable pageable);
+    Page<DeliveryAssignments> getReturnedDeliveryAssignments(Pageable pageable);
 
     /**
      * Gets reconciliation statistics for the user's office.

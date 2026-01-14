@@ -19,7 +19,7 @@ public class ParcelInfo {
     private String senderPhoneNumber;
     private double parcelAmount;
     private boolean payed;
-    private boolean cancelled;
+    private boolean returned;
     private boolean delivered;
     private String paymentMethod;
     private double inboundCost;

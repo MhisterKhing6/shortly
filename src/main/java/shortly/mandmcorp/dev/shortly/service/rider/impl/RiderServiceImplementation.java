@@ -284,9 +284,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             throw new WrongCredentialsException("Not authorized to update this assignment");
         }
 
-        assignment.setStatus(statusRequest.getStatus());
         if(statusRequest.getStatus() == DeliveryStatus.DELIVERED) {
-            assignment.setCompletedAt(System.currentTimeMillis());
            /* if( !statusRequest.getConfirmationCode().equals(assignment.getConfirmationCode())) {
                 throw new ActionNotAllowed("Invalid  confirmation code");
             } */
@@ -309,8 +307,17 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                         parcel.setPaymentMethod(statusRequest.getPayementMethod());
                         selectedParcel.setDelivered(true);
                         selectedParcel.setPaymentMethod(statusRequest.getPayementMethod());
-                        
+
                         parcelRepository.save(parcel);
+
+                        // Check if all parcels are delivered before marking assignment as DELIVERED
+                        boolean allDelivered = assignment.getParcels().stream()
+                            .allMatch(ParcelInfo::isDelivered);
+
+                        if(allDelivered) {
+                            assignment.setStatus(DeliveryStatus.DELIVERED);
+                            assignment.setCompletedAt(System.currentTimeMillis());
+                        }
 
                         String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
                         NotificationRequestTemplate notify = NotificationRequestTemplate.builder()
@@ -321,11 +328,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     } else {
                         throw new EntityNotFound("Parcel not found in assignment");
                     }
-            } 
-            
+            }
+
         }
-        else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
-            assignment.setCancelationReason(statusRequest.getCancelationReason());
+        else if(statusRequest.getStatus() == DeliveryStatus.RETURNED) {
+            assignment.setReturnReason(statusRequest.getReturnReason());
 
             if(assignment.getParcels() != null && !assignment.getParcels().isEmpty() && statusRequest.getParcelId() != null) {
                 ParcelInfo parcelToCancel = null;
@@ -337,11 +344,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     }
                 }
 
-                if(parcelToCancel != null && !parcelToCancel.isCancelled()) {
+                if(parcelToCancel != null && !parcelToCancel.isReturned()) {
                     Parcel parcel = parcelRepository.findById(parcelToCancel.getParcelId())
                         .orElseThrow(() -> new EntityNotFound("Parcel not found"));
 
-                    parcel.setCancelationCount(parcel.getCancelationCount() + 1);
+                    parcel.setReturnCount(parcel.getReturnCount() + 1);
                     parcel.setDelivered(false);
                     parcel.setParcelAssigned(false);
                     parcelRepository.save(parcel);
@@ -349,13 +356,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     double parcelAmount = parcelToCancel.getParcelAmount();
                     assignment.setAmount(assignment.getAmount() - parcelAmount);
 
-                    parcelToCancel.setCancelled(true);
+                    parcelToCancel.setReturned(true);
 
-                    boolean allCancelled = assignment.getParcels().stream()
-                        .allMatch(ParcelInfo::isCancelled);
+                    boolean allReturned = assignment.getParcels().stream()
+                        .allMatch(ParcelInfo::isReturned);
 
-                    if(allCancelled) {
-                        assignment.setStatus(DeliveryStatus.CANCELLED);
+                    if(allReturned) {
+                        assignment.setStatus(DeliveryStatus.RETURNED);
                     }
                 }
             }
@@ -428,8 +435,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             } 
             
         }
-        else if(statusRequest.getStatus() == DeliveryStatus.CANCELLED) {
-            assignment.setCancelationReason(statusRequest.getCancelationReason());
+        else if(statusRequest.getStatus() == DeliveryStatus.RETURNED) {
+            assignment.setReturnReason(statusRequest.getReturnReason());
 
             if(assignment.getParcels() != null && !assignment.getParcels().isEmpty() && statusRequest.getParcelId() != null) {
                 ParcelInfo parcelToCancel = null;
@@ -441,11 +448,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     }
                 }
 
-                if(parcelToCancel != null && !parcelToCancel.isCancelled()) {
+                if(parcelToCancel != null && !parcelToCancel.isReturned()) {
                     Parcel parcel = parcelRepository.findById(parcelToCancel.getParcelId())
                         .orElseThrow(() -> new EntityNotFound("Parcel not found"));
 
-                    parcel.setCancelationCount(parcel.getCancelationCount() + 1);
+                    parcel.setReturnCount(parcel.getReturnCount() + 1);
                     parcel.setDelivered(false);
                     parcel.setParcelAssigned(false);
                     parcelRepository.save(parcel);
@@ -453,13 +460,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     double parcelAmount = parcelToCancel.getParcelAmount();
                     assignment.setAmount(assignment.getAmount() - parcelAmount);
 
-                    parcelToCancel.setCancelled(true);
+                    parcelToCancel.setReturned(true);
 
-                    boolean allCancelled = assignment.getParcels().stream()
-                        .allMatch(ParcelInfo::isCancelled);
+                    boolean allReturned = assignment.getParcels().stream()
+                        .allMatch(ParcelInfo::isReturned);
 
-                    if(allCancelled) {
-                        assignment.setStatus(DeliveryStatus.CANCELLED);
+                    if(allReturned) {
+                        assignment.setStatus(DeliveryStatus.RETURNED);
                     }
                 }
             }
@@ -662,7 +669,46 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         }
         reconcilationRepository.save(reconcilation);
         assignment.setPayed(true);
-        assignment.setStatus(DeliveryStatus.COMPLETED);
+
+        // Mark all undelivered and non-returned parcels as returned
+        if (assignment.getParcels() != null && !assignment.getParcels().isEmpty()) {
+            for (int i = 0; i < assignment.getParcels().size(); i++) {
+                ParcelInfo parcelInfo = assignment.getParcels().get(i);
+
+                // If parcel is not delivered and not already marked as returned
+                if (!parcelInfo.isDelivered() && !parcelInfo.isReturned()) {
+                    // Update the main Parcel table
+                    Parcel parcel = parcelRepository.findById(parcelInfo.getParcelId())
+                        .orElse(null);
+
+                    if (parcel != null) {
+                        parcel.setReturnCount(parcel.getReturnCount() + 1);
+                        parcel.setDelivered(false);
+                        parcel.setParcelAssigned(false);
+                        parcelRepository.save(parcel);
+                    }
+
+                    parcelInfo.setReturned(true);
+                }
+            }
+        }
+
+        // Only mark assignment as COMPLETED if all parcels are delivered
+        boolean allDelivered = assignment.getParcels() != null && !assignment.getParcels().isEmpty() &&
+            assignment.getParcels().stream().allMatch(ParcelInfo::isDelivered);
+
+        if (allDelivered) {
+            assignment.setStatus(DeliveryStatus.COMPLETED);
+        } else {
+            // If not all delivered, check if all are either delivered or returned
+            boolean allProcessed = assignment.getParcels().stream()
+                .allMatch(p -> p.isDelivered() || p.isReturned());
+
+            if (allProcessed) {
+                assignment.setStatus(DeliveryStatus.COMPLETED);
+            }
+        }
+
         deliveryAssignmentsRepository.save(assignment);
     }
 
@@ -749,7 +795,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     }
 
     @Override
-    public Page<DeliveryAssignments> getCancelledDeliveryAssignments(Pageable pageable) {
+    public Page<DeliveryAssignments> getReturnedDeliveryAssignments(Pageable pageable) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
             throw new WrongCredentialsException("User not authenticated");
@@ -763,7 +809,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         Query query = new Query();
         List<Criteria> criteria = new ArrayList<>();
 
-        criteria.add(Criteria.where("status").is(DeliveryStatus.CANCELLED));
+        criteria.add(Criteria.where("status").is(DeliveryStatus.RETURNED));
 
         criteria.add(Criteria.where("officeId").is(officeId));
 

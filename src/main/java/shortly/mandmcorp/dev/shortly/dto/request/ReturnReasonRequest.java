@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class CancelationReasonRequest {
+public class ReturnReasonRequest {
     @NotBlank(message="Reason is required")
     private  String reason;
 }

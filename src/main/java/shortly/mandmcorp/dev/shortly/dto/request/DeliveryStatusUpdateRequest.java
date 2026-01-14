@@ -8,7 +8,7 @@ import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 public class DeliveryStatusUpdateRequest {
     @NotNull(message = "Delivery status is required")
     private DeliveryStatus status;
-    private String cancelationReason;
+    private String returnReason;
     private String confirmationCode;
     private String payementMethod;
     private String parcelId;
