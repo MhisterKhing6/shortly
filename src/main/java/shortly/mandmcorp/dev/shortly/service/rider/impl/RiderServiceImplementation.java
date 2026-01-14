@@ -268,7 +268,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
      * @throws WrongCredentialsException if not authorized
      */
     @Override
-    public UserResponse updateDeliveryStatus(String assignmentId, DeliveryStatusUpdateRequest statusRequest) {
+    public DeliveryAssignments updateDeliveryStatus(String assignmentId, DeliveryStatusUpdateRequest statusRequest) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
             throw new WrongCredentialsException("User not authenticated");
@@ -368,7 +368,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             }
         }
         deliveryAssignmentsRepository.save(assignment);
-        return new UserResponse("Delivery status updated successfully", rider.getPhoneNumber());
+        return assignment;
     }
 
     /**
@@ -384,7 +384,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     @Override
     //manager or admin
     @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
-    public UserResponse managerUpdateDeliveryStatus (String assignmentId, DeliveryStatusUpdateRequest statusRequest) {
+    public DeliveryAssignments managerUpdateDeliveryStatus (String assignmentId, DeliveryStatusUpdateRequest statusRequest) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
             throw new WrongCredentialsException("User not authenticated");
@@ -472,10 +472,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             }
         }
         deliveryAssignmentsRepository.save(assignment);
-
-        // Get rider phone from embedded RiderInfo
-        String riderPhone = assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderPhoneNumber() : "";
-        return new UserResponse("Delivery status updated successfully", riderPhone);
+        return assignment;
     }
 
 

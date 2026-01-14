@@ -70,7 +70,7 @@ public class RiderController {
         @ApiResponse(responseCode = "404", description = "Assignment not found")
     })
     @TrackUserAction(action = "UPDATE_DELIVERY_STATUS", description = "Rider updated delivery assignment status")
-    public UserResponse updateDeliveryStatus(@PathVariable String assignmentId,
+    public DeliveryAssignments updateDeliveryStatus(@PathVariable String assignmentId,
                                            @RequestBody @Valid DeliveryStatusUpdateRequest statusRequest) {
         return riderService.updateDeliveryStatus(assignmentId, statusRequest);
     }
@@ -82,7 +82,7 @@ public class RiderController {
         @ApiResponse(responseCode = "200", description = "Status updated successfully"),
         @ApiResponse(responseCode = "404", description = "Assignment not found")
     })
-    public UserResponse adminUpdateAssignment(@PathVariable String assignmentId, 
+    public DeliveryAssignments adminUpdateAssignment(@PathVariable String assignmentId, 
                                            @RequestBody @Valid DeliveryStatusUpdateRequest statusRequest) {
         return riderService.managerUpdateDeliveryStatus(assignmentId, statusRequest);
     }
