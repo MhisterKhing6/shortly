@@ -28,4 +28,5 @@ public class ParcelUpdateRequest {
     private String shelfNumber;
     private Boolean homeDelivery;
     private Boolean hasCalled;
+    private Boolean pickedUp;
 }

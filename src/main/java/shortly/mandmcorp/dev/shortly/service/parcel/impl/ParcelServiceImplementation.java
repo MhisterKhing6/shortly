@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import shortly.mandmcorp.dev.shortly.dto.request.ReturnReasonRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
@@ -87,6 +86,9 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         parcel.setDriverPhoneNumber(updateRequest.getDriverPhoneNumber());
     }
 
+    if (updateRequest.getPickedUp()!= null) {
+        parcel.setPickedUp(updateRequest.getPickedUp());
+    }
     if (updateRequest.getDriverName() != null) {
         parcel.setDriverName(updateRequest.getDriverName());
     }

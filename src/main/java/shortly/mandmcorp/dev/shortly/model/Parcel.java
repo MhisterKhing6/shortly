@@ -31,6 +31,7 @@ public class Parcel {
     private double deliveryCost;
     private double storageCost;
     private boolean  hasCalled;
+    private boolean pickedUp;
 
     @Indexed
     private String driverId;
