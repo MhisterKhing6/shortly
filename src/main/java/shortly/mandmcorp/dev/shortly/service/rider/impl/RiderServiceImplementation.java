@@ -211,7 +211,6 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 .senderPhoneNumber(parcel.getSenderPhoneNumber())
                 .build();
             newParcels.add(parcelInfo);
-            assignment.setAmount(assignment.getAmount() + parcelAmount);
             assignment.setInboundCost(assignment.getInboundCost() + parcel.getInboundCost());
             assignment.setDeliveryCost(assignment.getDeliveryCost() + parcel.getDeliveryCost());
             parcel.setParcelAssigned(true);
@@ -226,6 +225,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         existingParcels.addAll(newParcels);
         assignment.setParcels(existingParcels);
         assignment.setUpdatedAt(System.currentTimeMillis());
+        assignment.setAmount(assignment.getDeliveryCost() + assignment.getInboundCost());
         deliveryAssignmentsRepository.save(assignment);
         log.info("Successfully assigned {} parcels to rider: {}", assignmentRequest.getParcelIds().size(), rider.getName());
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(NotificationUtil.genrateRiderAssMsg(rider.getName(), assignmentRequest.getParcelIds().size()))
