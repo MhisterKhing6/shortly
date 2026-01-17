@@ -568,7 +568,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         Query query = new Query();
         List<Criteria> criteria = new ArrayList<>();
 
-        criteria.add(Criteria.where("status").is(status));
+        criteria.add(Criteria.where("payed").is(false));
         criteria.add(Criteria.where("officeId").is(frontDesk.getOfficeId()));
 
         query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
