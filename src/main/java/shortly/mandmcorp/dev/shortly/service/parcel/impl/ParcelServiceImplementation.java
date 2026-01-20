@@ -58,7 +58,13 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         } else {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.getPrincipal() instanceof User user) {
-                parcel.setOfficeId(user.getOfficeId());
+                // Use the first office ID from user's office list
+                String userOfficeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                    ? user.getOfficeIds().get(0)
+                    : null;
+                if (userOfficeId != null) {
+                    parcel.setOfficeId(userOfficeId);
+                }
             }
         }
         if(parcelRequest.isHasCalled()) {
@@ -186,8 +192,9 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     if (isFrontDesk) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof User user) {
-            if (user.getOfficeId() != null) {
-                officeId = user.getOfficeId();
+            // Get the first office ID from user's office list
+            if (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()) {
+                officeId = user.getOfficeIds().get(0);
             }
         }
     }
@@ -257,7 +264,13 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
             throw new WrongCredentialsException("User not authenticated");
         }
 
-        user.setOfficeId(office.getId());
+        // Add the new office to the user's office list if not already present
+        if (user.getOfficeIds() == null) {
+            user.setOfficeIds(new java.util.ArrayList<>());
+        }
+        if (!user.getOfficeIds().contains(office.getId())) {
+            user.getOfficeIds().add(office.getId());
+        }
         userRepository.save(user);
 
         return new UserResponse("Office changed successfully", user.getPhoneNumber());
@@ -278,7 +291,11 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
             throw new WrongCredentialsException("User not authenticated");
         }
 
-        String officeId = user.getOfficeId();
+        // Get the first office ID from user's office list
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+            ? user.getOfficeIds().get(0)
+            : null;
+
         if (officeId == null) {
             throw new WrongCredentialsException("User has no office assigned");
         }
@@ -325,7 +342,11 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
             throw new WrongCredentialsException("User not authenticated");
         }
 
-        String officeId = user.getOfficeId();
+        // Get the first office ID from user's office list
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+            ? user.getOfficeIds().get(0)
+            : null;
+
         if (officeId == null) {
             throw new WrongCredentialsException("User has no office assigned");
         }

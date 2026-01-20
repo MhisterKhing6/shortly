@@ -7,8 +7,8 @@ import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
-import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.model.Office;
+import shortly.mandmcorp.dev.shortly.model.User;
 
 @Component
 @AllArgsConstructor

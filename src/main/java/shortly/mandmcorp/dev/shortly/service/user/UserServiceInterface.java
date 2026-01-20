@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import shortly.mandmcorp.dev.shortly.dto.request.AddOfficeToUserRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ForgetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ResetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
@@ -87,4 +88,5 @@ public interface UserServiceInterface {
 
     List<User> getRidersByOfficeId(boolean availability);
 
+    UserResponse addOfficeToUser(AddOfficeToUserRequest request);
 }

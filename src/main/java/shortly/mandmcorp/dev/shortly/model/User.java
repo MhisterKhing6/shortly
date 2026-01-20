@@ -1,7 +1,9 @@
 package shortly.mandmcorp.dev.shortly.model;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -30,6 +32,8 @@ public class User implements UserDetails {
     @NotBlank
     private String name;
 
+    private String officeId;
+
     @NotBlank
     private String phoneNumber;
 
@@ -45,8 +49,8 @@ public class User implements UserDetails {
     @NotNull
     private UserStatusEnum status;
 
-    
-    private String officeId;
+    @Builder.Default
+    private List<String> officeIds = new ArrayList<>();
 
     @NotNull
     private UserRole role;

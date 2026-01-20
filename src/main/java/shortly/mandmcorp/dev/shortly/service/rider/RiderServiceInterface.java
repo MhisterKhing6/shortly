@@ -140,4 +140,12 @@ public interface RiderServiceInterface {
      */
     Page<Reconcilations> getReconciliationsByDate(Long date, boolean useReconciledAt, Pageable pageable);
 
+    /**
+     * Updates a delivery assignment and syncs changes to Parcel database and ParcelInfo.
+     *
+     * @param updateRequest the update request containing assignment data
+     * @return UserResponse with success message
+     */
+    UserResponse updateDeliveryAssignment(shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentUpdateRequest updateRequest);
+
 }

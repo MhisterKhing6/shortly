@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
+import shortly.mandmcorp.dev.shortly.dto.request.AddOfficeToUserRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ForgetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ResetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserLoginRequestDto;
@@ -169,21 +170,11 @@ public class UserController {
     public String health() {
         return "OK Ok";
     }
-
-    @GetMapping("/ride-ass")
-    List<DeliveryAssignments> searchByReceiverPhone() {
-        return  deliveryAssignmentsRepository.findAll();
+ 
+    @PostMapping("/add-user-office")
+    public UserResponse postMethodName(@RequestBody @Valid AddOfficeToUserRequest entity) {
+        return userService.addOfficeToUser(entity);
     }
-
-    @GetMapping("/ride-user")
-    List<User> findusers() {
-        return  userRepository.findAll();
-    }
-
-    @GetMapping("/ride-parcel")
-    List<Parcel> findundeliverdparcels() {
-        return  parcelRepository.findAll();
-    }
-
+    
     
 }

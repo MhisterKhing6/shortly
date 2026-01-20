@@ -109,4 +109,18 @@ public class RiderController {
     public Page<Reconcilations> getRiderReconciliations(@PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return riderService.getRiderReconciliations(pageable);
     }
+
+    @PutMapping("/assignments/update")
+    @Operation(summary = "Update delivery assignment", description = "Update delivery assignment and sync changes to Parcel database. Available for RIDER, MANAGER, and ADMIN roles.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Assignment updated successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "Not authorized to update this assignment"),
+        @ApiResponse(responseCode = "404", description = "Assignment not found")
+    })
+    @TrackUserAction(action = "UPDATE_DELIVERY_ASSIGNMENT", description = "User updated delivery assignment")
+    public UserResponse updateDeliveryAssignment(@RequestBody @Valid shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentUpdateRequest updateRequest) {
+        return riderService.updateDeliveryAssignment(updateRequest);
+    }
 }

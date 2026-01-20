@@ -128,8 +128,18 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         User rider = userRepository.findById(assignmentRequest.getRiderId())
             .orElseThrow(() -> new EntityNotFound("Rider not found"));
+
+        // Get the first office ID from rider's office list
+        String riderOfficeId = (rider.getOfficeIds() != null && !rider.getOfficeIds().isEmpty())
+            ? rider.getOfficeIds().get(0)
+            : null;
+
+        if(riderOfficeId == null) {
+            throw new EntityNotFound("Rider has no assigned office");
+        }
+
         User officeManager = null;
-        List<User>  managers = userRepository.findByRoleAndOfficeId(UserRole.MANAGER, rider.getOfficeId());
+        List<User> managers = userRepository.findByRoleAndOfficeIdsContaining(UserRole.MANAGER, riderOfficeId);
         if(!managers.isEmpty()) {
             officeManager = managers.get(0);
         } else {
@@ -155,7 +165,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             assignment = new DeliveryAssignments();
             assignment.setAssignmentId(dailyAssignmentId);
             assignment.setRiderInfo(riderInfo);
-            assignment.setOfficeId(rider.getOfficeId());
+            assignment.setOfficeId(riderOfficeId);
             assignment.setStatus(DeliveryStatus.ASSIGNED);
             assignment.setConfirmationCode(confirmationCode);
             assignment.setAssignedAt(assignedAt);
@@ -565,11 +575,20 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         User frontDesk = (User) auth.getPrincipal();
 
+        // Get the first office ID from user's office list
+        String officeId = (frontDesk.getOfficeIds() != null && !frontDesk.getOfficeIds().isEmpty())
+            ? frontDesk.getOfficeIds().get(0)
+            : null;
+
+        if(officeId == null) {
+            throw new WrongCredentialsException("User has no assigned office");
+        }
+
         Query query = new Query();
         List<Criteria> criteria = new ArrayList<>();
 
         criteria.add(Criteria.where("payed").is(false));
-        criteria.add(Criteria.where("officeId").is(frontDesk.getOfficeId()));
+        criteria.add(Criteria.where("officeId").is(officeId));
 
         query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
 
@@ -754,7 +773,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             throw new WrongCredentialsException("User not authenticated");
         }
 
-        String officeId = user.getOfficeId();
+        // Get the first office ID from user's office list
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+            ? user.getOfficeIds().get(0)
+            : null;
+
         if (officeId == null) {
             throw new WrongCredentialsException("User has no office assigned");
         }
@@ -798,7 +821,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             throw new WrongCredentialsException("User not authenticated");
         }
 
-        String officeId = user.getOfficeId();
+        // Get the first office ID from user's office list
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+            ? user.getOfficeIds().get(0)
+            : null;
+
         if (officeId == null) {
             throw new WrongCredentialsException("User has no office assigned");
         }
@@ -841,7 +868,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             throw new WrongCredentialsException("User not authenticated");
         }
 
-        String officeId = user.getOfficeId();
+        // Get the first office ID from user's office list
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+            ? user.getOfficeIds().get(0)
+            : null;
+
         if (officeId == null) {
             throw new WrongCredentialsException("User has no office assigned");
         }
@@ -969,9 +1000,18 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             throw new WrongCredentialsException("User not authenticated");
         }
 
+        // Get the first office ID from user's office list
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+            ? user.getOfficeIds().get(0)
+            : null;
+
+        if (officeId == null) {
+            throw new WrongCredentialsException("User has no office assigned");
+        }
+
         // Build query for office reconciliations
         Query query = new Query();
-        query.addCriteria(Criteria.where("officeId").is(user.getOfficeId()));
+        query.addCriteria(Criteria.where("officeId").is(officeId));
 
         // Apply sorting from pageable, default to createdAt descending
         if (pageable.getSort().isSorted()) {
@@ -1001,13 +1041,22 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             throw new WrongCredentialsException("User not authenticated");
         }
 
+        // Get the first office ID from user's office list
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+            ? user.getOfficeIds().get(0)
+            : null;
+
+        if (officeId == null) {
+            throw new WrongCredentialsException("User has no office assigned");
+        }
+
         // Calculate start and end of the day for the given date
         long startOfDay = getStartOfDay(date);
         long endOfDay = getEndOfDay(date);
 
         // Build query for reconciliations by date
         Query query = new Query();
-        query.addCriteria(Criteria.where("officeId").is(user.getOfficeId()));
+        query.addCriteria(Criteria.where("officeId").is(officeId));
 
         // Filter by either reconciledAt or createdAt
         if (useReconciledAt) {
@@ -1051,6 +1100,115 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         return getStartOfDay(timestamp) + (24 * 60 * 60 * 1000L);
     }
 
+    @Override
+    @PreAuthorize("hasAnyRole('RIDER', 'MANAGER', 'ADMIN')")
+    public UserResponse updateDeliveryAssignment(shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentUpdateRequest updateRequest) {
+        log.info("Updating delivery assignment: {}", updateRequest.getAssignmentId());
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        User user = (User) auth.getPrincipal();
+
+        // Fetch the existing assignment
+        DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(updateRequest.getAssignmentId())
+            .orElseThrow(() -> new EntityNotFound("Assignment not found"));
+
+        // Authorization check
+        if (user.getRole() == UserRole.RIDER) {
+            String assignedRiderId = assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderId() : null;
+            if (assignedRiderId == null || !assignedRiderId.equals(user.getUserId())) {
+                throw new WrongCredentialsException("Not authorized to update this assignment");
+            }
+        } else if (user.getRole() == UserRole.MANAGER || user.getRole() == UserRole.FRONTDESK) {
+            if (!assignment.getOfficeId().equals(user.getOfficeId())) {
+                throw new WrongCredentialsException("Not authorized to update assignments from other offices");
+            }
+        }
+
+        // Update assignment fields if provided
+        if (updateRequest.getRiderInfo() != null) {
+            assignment.setRiderInfo(updateRequest.getRiderInfo());
+        }
+
+        if (updateRequest.getStatus() != null) {
+            assignment.setStatus(updateRequest.getStatus());
+        }
+
+        if (updateRequest.getReturnReason() != null) {
+            assignment.setReturnReason(updateRequest.getReturnReason());
+        }
+
+        if (updateRequest.getPayementMethod() != null) {
+            assignment.setPayementMethod(updateRequest.getPayementMethod());
+        }
+
+        assignment.setPayed(updateRequest.isPayed());
+
+        if (updateRequest.getAmount() > 0) {
+            assignment.setAmount(updateRequest.getAmount());
+        }
+
+        if (updateRequest.getInboundCost() > 0) {
+            assignment.setInboundCost(updateRequest.getInboundCost());
+        }
+
+        if (updateRequest.getDeliveryCost() > 0) {
+            assignment.setDeliveryCost(updateRequest.getDeliveryCost());
+        }
+
+        // Update parcels if provided
+        if (updateRequest.getParcels() != null && !updateRequest.getParcels().isEmpty()) {
+            for (ParcelInfo updatedParcelInfo : updateRequest.getParcels()) {
+                // Find the parcel in the assignment
+                int parcelIndex = -1;
+                ParcelInfo existingParcelInfo = null;
+
+                for (int i = 0; i < assignment.getParcels().size(); i++) {
+                    if (assignment.getParcels().get(i).getParcelId().equals(updatedParcelInfo.getParcelId())) {
+                        existingParcelInfo = assignment.getParcels().get(i);
+                        parcelIndex = i;
+                        break;
+                    }
+                }
+
+                if (existingParcelInfo != null) {
+                    // Update the main Parcel database
+                    Parcel parcel = parcelRepository.findById(updatedParcelInfo.getParcelId())
+                        .orElseThrow(() -> new EntityNotFound("Parcel not found: " + updatedParcelInfo.getParcelId()));
+
+                    // Sync changes to the main Parcel table
+                    if (updatedParcelInfo.isDelivered() != existingParcelInfo.isDelivered()) {
+                        parcel.setDelivered(updatedParcelInfo.isDelivered());
+                    }
+
+                    if (updatedParcelInfo.isReturned() != existingParcelInfo.isReturned()) {
+                        if (updatedParcelInfo.isReturned() && !existingParcelInfo.isReturned()) {
+                            parcel.setReturnCount(parcel.getReturnCount() + 1);
+                            parcel.setParcelAssigned(false);
+                        }
+                    }
+
+                    if (updatedParcelInfo.getPaymentMethod() != null) {
+                        parcel.setPaymentMethod(updatedParcelInfo.getPaymentMethod());
+                    }
+
+                    parcelRepository.save(parcel);
+
+                    // Replace the ParcelInfo in the assignment
+                    assignment.getParcels().set(parcelIndex, updatedParcelInfo);
+                }
+            }
+        }
+
+        // Save the updated assignment
+        deliveryAssignmentsRepository.save(assignment);
+
+        log.info("Successfully updated delivery assignment: {}", updateRequest.getAssignmentId());
+        return new UserResponse("Delivery assignment updated successfully", user.getPhoneNumber());
+    }
 
 
 }

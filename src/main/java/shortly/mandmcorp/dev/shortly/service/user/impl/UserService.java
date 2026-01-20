@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.config.FrontEndServerConfig;
 import shortly.mandmcorp.dev.shortly.config.security.JWTConfig;
+import shortly.mandmcorp.dev.shortly.dto.request.AddOfficeToUserRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ForgetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ResetPasswordRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
@@ -96,24 +97,29 @@ public class UserService implements UserServiceInterface {
         User registeredUser = userRepository.findByPhoneNumber(userRequestDetails.getPhoneNumber());
 
         if(registeredUser != null) {
-            throw new EntityAlreadyExist("User already registered");  
-        } 
+            throw new EntityAlreadyExist("User already registered");
+        }
 
+        // Validate all office IDs exist
+       
         Office office = officeRepository.findById(userRequestDetails.getOfficeId())
-            .orElseThrow(() -> new EntityNotFound("Office not found"));
-        
-         userRequestDetails.setOfficeId(office.getId());
+                .orElseThrow(() -> new EntityNotFound("Office not found: " + userRequestDetails.getOfficeId()));
+        List<String> officeIds = List.of(userRequestDetails.getOfficeId());
+
         String password = OtpUtil.generateUserPassword();
         userRequestDetails.setPassword(password);
         User newUser = userMapper.toEntity(userRequestDetails);
-        newUser.setOfficeId(office.getId());
-    if(userRequestDetails.getRole() == UserRole.MANAGER) {
-        userRepository.save(newUser);
-        office.setManager(newUser);
-        officeRepository.save(office);
+        newUser.setOfficeIds(officeIds);
+
+        if(userRequestDetails.getRole() == UserRole.MANAGER) {
+            userRepository.save(newUser);
+                office.setManager(newUser);
+                officeRepository.save(office);
+            
         } else {
-        userRepository.save(newUser);
+            userRepository.save(newUser);
         }
+
         // Create rider status if user is a rider
         if(newUser.getRole() == UserRole.RIDER) {
             RiderStatusModel riderStatus = new RiderStatusModel();
@@ -121,7 +127,7 @@ public class UserService implements UserServiceInterface {
             riderStatus.setRiderStatus(shortly.mandmcorp.dev.shortly.enums.RiderStatus.OFFLINE);
             riderStatusRepository.save(riderStatus);
         }
-        
+
         String message = NotificationUtil.loginCredentials(password, newUser.getPhoneNumber(), newUser.getName(), newUser.getRole().name());
         NotificationRequestTemplate loginCredentails =  NotificationRequestTemplate.builder().body(message).to(newUser.getPhoneNumber()).build();
         notification.send(loginCredentails);
@@ -147,9 +153,15 @@ public class UserService implements UserServiceInterface {
             throw new WrongCredentialsException("phone number or password incorrect");
         }
         String token = jwt.generateAccessToken(userEntity);
-        Office office = officeRepository.findById(userEntity.getOfficeId())
-        .orElseThrow(()-> new EntityNotFound("office not found"));
-        return userMapper.toUserLoginResponse(userEntity, token, office);   
+
+        // Get the first office if user has multiple offices
+        Office office = null;
+        if(userEntity.getOfficeIds() != null && !userEntity.getOfficeIds().isEmpty()) {
+            office = officeRepository.findById(userEntity.getOfficeIds().get(0))
+                .orElseThrow(()-> new EntityNotFound("office not found"));
+        }
+
+        return userMapper.toUserLoginResponse(userEntity, token, office);
     }
 
     /**
@@ -344,11 +356,39 @@ public class UserService implements UserServiceInterface {
         if(auth == null || !(auth.getPrincipal() instanceof User)) {
             throw new WrongCredentialsException("User not authenticated");
         }
-        
+
         User user = (User) auth.getPrincipal();
-        
-        return userRepository.findByRoleAndOfficeIdAndAvailability(UserRole.RIDER, user.getOfficeId(), availability);
+
+        // Get riders from the user's first office (or all offices if needed)
+        if(user.getOfficeIds() == null || user.getOfficeIds().isEmpty()) {
+            throw new WrongCredentialsException("User has no associated offices");
+        }
+
+        return userRepository.findByRoleAndOfficeIdsContainingAndAvailability(UserRole.RIDER, user.getOfficeIds().get(0), availability);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER') or hasRole('FRONTDESK')")
+    public UserResponse addOfficeToUser(AddOfficeToUserRequest request) {
+        User user = userRepository.findByPhoneNumber(request.getUserPhoneNumber());
+
+        if(user == null) {
+            throw new EntityNotFound("User not found");
+        }
+
+        List<String> officeIds = user.getOfficeIds();
+        if(officeIds == null) {
+            officeIds = new java.util.ArrayList<>();
+        }
+
+        if(!officeIds.contains(request.getOfficeId())) {
+            Office office = officeRepository.findById(request.getOfficeId())
+                .orElseThrow(() -> new EntityNotFound("Office not found: " + request.getOfficeId()));
+            officeIds.add(request.getOfficeId());
+            user.setOfficeIds(officeIds);
+            userRepository.save(user);
+        }
+        return new UserResponse("Office added successfully", user.getPhoneNumber());
     }
 
 }
-
