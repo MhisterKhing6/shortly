@@ -53,6 +53,8 @@ public class Parcel {
     private boolean homeDelivery;
     private int returnCount = 0;
     private String riderId;
+    private RiderInfo riderInfo;
+    
     @CreatedDate
     private Long createdAt;
 

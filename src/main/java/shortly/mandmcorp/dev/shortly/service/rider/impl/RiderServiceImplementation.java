@@ -186,7 +186,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         for(String parcelId : assignmentRequest.getParcelIds()) {
             Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found: " + parcelId));
-            if(!parcel.isHasCalled() ||!parcel.isHomeDelivery()) {
+                parcel.setRiderInfo(riderInfo);
+                if(!parcel.isHasCalled() ||!parcel.isHomeDelivery()) {
                 if(assignmentRequest.getParcelIds().size() == 1) {
                     throw new EntityNotFound("Parcel has not been called or is not for home delivery: " + parcelId);
                 }
@@ -361,6 +362,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     parcel.setReturnCount(parcel.getReturnCount() + 1);
                     parcel.setDelivered(false);
                     parcel.setParcelAssigned(false);
+                    parcel.setRiderId(null);
                     parcelRepository.save(parcel);
 
                     double parcelAmount = parcelToCancel.getParcelAmount();

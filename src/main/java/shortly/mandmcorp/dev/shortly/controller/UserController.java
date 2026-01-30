@@ -32,13 +32,7 @@ import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.ContactType;
 import shortly.mandmcorp.dev.shortly.model.Contacts;
-import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
-import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
-import shortly.mandmcorp.dev.shortly.model.User;
-import shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository;
-import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
-import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.contact.ContactServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
@@ -56,9 +50,6 @@ public class UserController {
     private final ContactServiceInterface contactService;
     private final OfficeServiceInterface officeService;
     private final RiderServiceInterface riderService;
-    private final DeliveryAssignmentsRepository deliveryAssignmentsRepository;
-    private final UserRepository userRepository;
-    private final ParcelRepository parcelRepository;
 
      
 
@@ -175,6 +166,7 @@ public class UserController {
     public UserResponse postMethodName(@RequestBody @Valid AddOfficeToUserRequest entity) {
         return userService.addOfficeToUser(entity);
     }
+    
     
     
 }
