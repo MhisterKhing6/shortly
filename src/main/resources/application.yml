@@ -17,7 +17,7 @@ spring:
 
 mnotify:
   accessKey: ${MNOTIFY_API}
-  sender: ShortlyPush
+  sender: Synergetics
   baseUrl: https://api.mnotify.com/api/sms
 
 frontend-server:
