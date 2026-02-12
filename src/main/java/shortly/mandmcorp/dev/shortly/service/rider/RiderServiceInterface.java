@@ -135,10 +135,11 @@ public interface RiderServiceInterface {
      *
      * @param date the date in milliseconds (epoch timestamp)
      * @param useReconciledAt if true, filters by reconciledAt; otherwise uses createdAt
+     * @param officeId the office ID to filter reconciliations for
      * @param pageable pagination information
      * @return Page of reconciliations for the specified date
      */
-    Page<Reconcilations> getReconciliationsByDate(Long date, boolean useReconciledAt, Pageable pageable);
+    Page<Reconcilations> getReconciliationsByDate(Long date, String officeId, boolean useReconciledAt, Pageable pageable);
 
     /**
      * Updates a delivery assignment and syncs changes to Parcel database and ParcelInfo.

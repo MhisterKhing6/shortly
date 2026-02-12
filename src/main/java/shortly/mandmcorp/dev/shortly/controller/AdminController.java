@@ -182,4 +182,22 @@ public class AdminController {
     public Page<Reconcilations> getOfficeReconciliations(Pageable pageable) {
         return riderService.getOfficeReconciliations(pageable);
     }
+
+
+    @GetMapping("/reconciliations/by-date")
+    @Operation(summary = "Get reconciliations by date", description = "Get paginated reconciliations for a specific date filtered by createdAt or reconciledAt. Requires MANAGER or ADMIN role.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Reconciliations retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "User is not a manager or admin")
+    })
+    @TrackUserAction(action = "VIEW_RECONCILIATIONS_BY_DATE", description = "Manager/Admin viewed reconciliations by date")
+    public Page<Reconcilations> getReconciliationsByDate(
+            @RequestParam Long date,
+            @RequestParam String officeId,
+            @RequestParam(defaultValue = "false") boolean useReconciledAt,
+            Pageable pageable) {
+        return riderService.getReconciliationsByDate(date, officeId, useReconciledAt, pageable);
+    }
 }

@@ -233,8 +233,9 @@ public class FrontDeskController {
     @TrackUserAction(action = "VIEW_RECONCILIATIONS_BY_DATE", description = "Manager/Admin viewed reconciliations by date")
     public Page<Reconcilations> getReconciliationsByDate(
             @RequestParam Long date,
+            @RequestParam String officeId,
             @RequestParam(defaultValue = "false") boolean useReconciledAt,
             Pageable pageable) {
-        return riderService.getReconciliationsByDate(date, useReconciledAt, pageable);
+        return riderService.getReconciliationsByDate(date, officeId, useReconciledAt, pageable);
     }
 }

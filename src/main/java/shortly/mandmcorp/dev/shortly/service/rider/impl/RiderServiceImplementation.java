@@ -125,7 +125,12 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     @PreAuthorize("hasRole('FRONTDESK') or hasRole('ADMIN') or hasRole('MANAGER')")
     public UserResponse assignParcelsToRider(DeliveryAssignmentRequest assignmentRequest) {
         log.info("Assigning {} parcels to rider: {}", assignmentRequest.getParcelIds().size(), assignmentRequest.getRiderId());
-
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        
+        User frontDesk = (User) auth.getPrincipal();
         User rider = userRepository.findById(assignmentRequest.getRiderId())
             .orElseThrow(() -> new EntityNotFound("Rider not found"));
 
@@ -161,11 +166,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         boolean isNewAssignment = (assignment == null);
 
+        String officeId = frontDesk != null ? frontDesk.getOfficeIds().get(0) : riderOfficeId;
+
         if (isNewAssignment) {
             assignment = new DeliveryAssignments();
             assignment.setAssignmentId(dailyAssignmentId);
             assignment.setRiderInfo(riderInfo);
-            assignment.setOfficeId(riderOfficeId);
+            assignment.setOfficeId(officeId);
             assignment.setStatus(DeliveryStatus.ASSIGNED);
             assignment.setConfirmationCode(confirmationCode);
             assignment.setAssignedAt(assignedAt);
@@ -367,6 +374,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
                     double parcelAmount = parcelToCancel.getParcelAmount();
                     assignment.setAmount(assignment.getAmount() - parcelAmount);
+                    assignment.setDeliveryCost(assignment.getDeliveryCost() - parcelToCancel.getDeliveryCost());
+                    assignment.setInboundCost(assignment.getInboundCost() - parcelToCancel.getInboundCost());
 
                     parcelToCancel.setReturned(true);
 
@@ -394,7 +403,6 @@ public class RiderServiceImplementation implements RiderServiceInterface {
      * @throws WrongCredentialsException if not authorized
      */
     @Override
-    //manager or admin
     @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     public DeliveryAssignments managerUpdateDeliveryStatus (String assignmentId, DeliveryStatusUpdateRequest statusRequest) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -665,8 +673,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         reconcilation.setAssignmentId(assignment.getAssignmentId());
         reconcilation.setPayedTo(frontDesk.getUserId());
         reconcilation.setType(ReconcilationType.RIDER);
-        reconcilation.setExpectedAmount(assignment.getAmount());
-
+        double expectedAmount = assignment.getAmount() + assignment.getDeliveryCost() + assignment.getInboundCost();
+        reconcilation.setExpectedAmount(expectedAmount);
         // Set rider information (both structured and individual fields for backward compatibility)
         if (assignment.getRiderInfo() != null) {
             reconcilation.setRider(assignment.getRiderInfo());
@@ -1037,36 +1045,26 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
     @Override
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
-    public Page<Reconcilations> getReconciliationsByDate(Long date, boolean useReconciledAt, Pageable pageable) {
+    public Page<Reconcilations> getReconciliationsByDate(Long date, String officeId, boolean useReconciledAt, Pageable pageable) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
             throw new WrongCredentialsException("User not authenticated");
         }
 
-        // Get the first office ID from user's office list
-        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
-            ? user.getOfficeIds().get(0)
-            : null;
-
-        if (officeId == null) {
-            throw new WrongCredentialsException("User has no office assigned");
-        }
-
+        
         // Calculate start and end of the day for the given date
         long startOfDay = getStartOfDay(date);
         long endOfDay = getEndOfDay(date);
-
+        log.info("Fetching reconciliations for office {} on date {} (start: {}, end: {}) using {} timestamp",
+            officeId, date, startOfDay, endOfDay, useReconciledAt ? "reconciledAt" : "createdAt");
         // Build query for reconciliations by date
         Query query = new Query();
         query.addCriteria(Criteria.where("officeId").is(officeId));
 
         // Filter by either reconciledAt or createdAt
-        if (useReconciledAt) {
-            query.addCriteria(Criteria.where("reconciledAt").gte(startOfDay).lt(endOfDay));
-        } else {
-            query.addCriteria(Criteria.where("createdAt").gte(startOfDay).lt(endOfDay));
-        }
-
+    
+        query.addCriteria(Criteria.where("createdAt").gte(startOfDay).lt(endOfDay));
+        
         // Apply sorting from pageable, default to createdAt descending
         if (pageable.getSort().isSorted()) {
             query.with(pageable.getSort());
