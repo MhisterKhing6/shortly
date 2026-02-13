@@ -139,7 +139,7 @@ public interface RiderServiceInterface {
      * @param pageable pagination information
      * @return Page of reconciliations for the specified date
      */
-    Page<Reconcilations> getReconciliationsByDate(Long date, String officeId, boolean useReconciledAt, Pageable pageable);
+    Page<DeliveryAssignments> getReconciliationsByDate(Long date, String officeId, boolean useReconciledAt, Pageable pageable);
 
     /**
      * Updates a delivery assignment and syncs changes to Parcel database and ParcelInfo.

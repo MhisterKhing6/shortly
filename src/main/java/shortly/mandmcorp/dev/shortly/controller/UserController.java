@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.request.AddOfficeToUserRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ForgetPasswordRequest;
@@ -42,6 +43,7 @@ import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 
 
 @RestController
+@Slf4j
 @RequestMapping("/api-user")
 @AllArgsConstructor
 @Tag(name = "User Management", description = "APIs for user registration, login, and password reset")
@@ -166,7 +168,5 @@ public class UserController {
     public UserResponse postMethodName(@RequestBody @Valid AddOfficeToUserRequest entity) {
         return userService.addOfficeToUser(entity);
     }
-    
-    
     
 }

@@ -646,99 +646,14 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(reconcilationRiderRequest.getAssignmentId())
             .orElseThrow(() -> new EntityNotFound("Assignment not found"));
 
-        // Generate daily reconciliation ID based on rider and date
-        String riderId = assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderId() : null;
-        if (riderId == null) {
-            throw new WrongCredentialsException("Assignment has no rider information");
-        }
-
-        String dailyReconciliationId = generateDailyReconciliationId(riderId, reconciledAtTimestamp);
-
-        // Check if reconciliation for this rider+date already exists
-        Reconcilations reconcilation = reconcilationRepository.findById(dailyReconciliationId)
-            .orElse(null);
-
-        boolean isNewReconciliation = (reconcilation == null);
-
-        if (isNewReconciliation) {
-            reconcilation = new Reconcilations();
-            reconcilation.setId(dailyReconciliationId);
-            reconcilation.setCreatedAt(reconciledAtTimestamp);
-        } else {
-            log.info("Found existing reconciliation for rider {} on date {}. Updating it.", riderId, dailyReconciliationId);
-        }
-
-    if (assignment != null) {
-       
-        reconcilation.setAssignmentId(assignment.getAssignmentId());
-        reconcilation.setPayedTo(frontDesk.getUserId());
-        reconcilation.setType(ReconcilationType.RIDER);
-        double expectedAmount = assignment.getAmount() + assignment.getDeliveryCost() + assignment.getInboundCost();
-        reconcilation.setExpectedAmount(expectedAmount);
-        // Set rider information (both structured and individual fields for backward compatibility)
-        if (assignment.getRiderInfo() != null) {
-            reconcilation.setRider(assignment.getRiderInfo());
-            reconcilation.setRiderId(assignment.getRiderInfo().getRiderId());
-            reconcilation.setRiderName(assignment.getRiderInfo().getRiderName());
-            reconcilation.setRiderPhoneNumber(assignment.getRiderInfo().getRiderPhoneNumber());
-        }
-
-        reconcilation.setOfficeId(assignment.getOfficeId());
-        reconcilation.setCompleted(true);
-        reconcilation.setReconciledAt(reconciledAtTimestamp);
-
-        if (isNewReconciliation) {
-            reconcilation.setPayedAmount(reconcilationRiderRequest.getPayedAmount());
-        } else {
-            double currentPayedAmount = reconcilation.getPayedAmount();
-            reconcilation.setPayedAmount(currentPayedAmount + reconcilationRiderRequest.getPayedAmount());
-        }
-        reconcilationRepository.save(reconcilation);
         assignment.setPayed(true);
-
-        // Mark all undelivered and non-returned parcels as returned
-        if (assignment.getParcels() != null && !assignment.getParcels().isEmpty()) {
-            for (int i = 0; i < assignment.getParcels().size(); i++) {
-                ParcelInfo parcelInfo = assignment.getParcels().get(i);
-
-                // If parcel is not delivered and not already marked as returned
-                if (!parcelInfo.isDelivered() && !parcelInfo.isReturned()) {
-                    // Update the main Parcel table
-                    Parcel parcel = parcelRepository.findById(parcelInfo.getParcelId())
-                        .orElse(null);
-
-                    if (parcel != null) {
-                        parcel.setReturnCount(parcel.getReturnCount() + 1);
-                        parcel.setDelivered(false);
-                        parcel.setParcelAssigned(false);
-                        parcelRepository.save(parcel);
-                    }
-
-                    parcelInfo.setReturned(true);
-                }
-            }
-        }
-
-        // Only mark assignment as COMPLETED if all parcels   are delivered
-        boolean allDelivered = assignment.getParcels() != null && !assignment.getParcels().isEmpty() &&
-            assignment.getParcels().stream().allMatch(ParcelInfo::isDelivered);
-
-        if (allDelivered) {
-            assignment.setStatus(DeliveryStatus.COMPLETED);
-        } else {
-            // If not all delivered, check if all are either delivered or returned
-            boolean allProcessed = assignment.getParcels().stream()
-                .allMatch(p -> p.isDelivered() || p.isReturned());
-
-            if (allProcessed) {
-                assignment.setStatus(DeliveryStatus.COMPLETED);
-            }
-        }
-
+        assignment.setPayedAt(reconciledAtTimestamp);
+        assignment.setPayedTo(frontDesk.getUserId());
+        double currentPayedAmount = assignment.getAmountPayed() + reconcilationRiderRequest.getPayedAmount();
+        assignment.setAmountPayed(currentPayedAmount);
+        assignment.setUpdatedAt(System.currentTimeMillis());
         deliveryAssignmentsRepository.save(assignment);
-    }
-
-    return new UserResponse("Reconciliation completed successfully", null);
+        return new UserResponse("Reconciliation completed successfully", null);
     }
 
 
@@ -1045,7 +960,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
     @Override
     @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
-    public Page<Reconcilations> getReconciliationsByDate(Long date, String officeId, boolean useReconciledAt, Pageable pageable) {
+    public Page<DeliveryAssignments> getReconciliationsByDate(Long date, String officeId, boolean useReconciledAt, Pageable pageable) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
             throw new WrongCredentialsException("User not authenticated");
@@ -1055,11 +970,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         // Calculate start and end of the day for the given date
         long startOfDay = getStartOfDay(date);
         long endOfDay = getEndOfDay(date);
+
         log.info("Fetching reconciliations for office {} on date {} (start: {}, end: {}) using {} timestamp",
             officeId, date, startOfDay, endOfDay, useReconciledAt ? "reconciledAt" : "createdAt");
         // Build query for reconciliations by date
         Query query = new Query();
         query.addCriteria(Criteria.where("officeId").is(officeId));
+        query.addCriteria(Criteria.where("payed").is(true));
 
         // Filter by either reconciledAt or createdAt
     
@@ -1074,14 +991,14 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         }
 
         // Get total count
-        long total = mongoTemplate.count(query, Reconcilations.class);
+        long total = mongoTemplate.count(query, DeliveryAssignments.class);
 
         // Apply pagination
         query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
         query.limit(pageable.getPageSize());
 
         // Execute query
-        List<Reconcilations> reconciliations = mongoTemplate.find(query, Reconcilations.class);
+        List<DeliveryAssignments> reconciliations = mongoTemplate.find(query, DeliveryAssignments.class);
         return new PageImpl<>(reconciliations, pageable, total);
     }
 

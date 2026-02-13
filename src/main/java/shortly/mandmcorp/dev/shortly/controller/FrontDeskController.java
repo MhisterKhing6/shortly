@@ -231,7 +231,7 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "403", description = "User is not a manager or admin")
     })
     @TrackUserAction(action = "VIEW_RECONCILIATIONS_BY_DATE", description = "Manager/Admin viewed reconciliations by date")
-    public Page<Reconcilations> getReconciliationsByDate(
+    public Page<DeliveryAssignments> getReconciliationsByDate(
             @RequestParam Long date,
             @RequestParam String officeId,
             @RequestParam(defaultValue = "false") boolean useReconciledAt,

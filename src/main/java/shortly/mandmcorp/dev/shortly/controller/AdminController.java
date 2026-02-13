@@ -37,6 +37,7 @@ import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.impl.UserService;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
+import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 
 @RestController
 @AllArgsConstructor
@@ -193,7 +194,7 @@ public class AdminController {
         @ApiResponse(responseCode = "403", description = "User is not a manager or admin")
     })
     @TrackUserAction(action = "VIEW_RECONCILIATIONS_BY_DATE", description = "Manager/Admin viewed reconciliations by date")
-    public Page<Reconcilations> getReconciliationsByDate(
+    public Page<DeliveryAssignments> getReconciliationsByDate(
             @RequestParam Long date,
             @RequestParam String officeId,
             @RequestParam(defaultValue = "false") boolean useReconciledAt,

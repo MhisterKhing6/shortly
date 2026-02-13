@@ -55,6 +55,12 @@ public class DeliveryAssignments {
 
     private String returnReason;
 
+    private double amountPayed;
+
+    private long payedAt;
+
+    private String payedTo;
+
     @CreatedDate
     private Long createdAt;
 
