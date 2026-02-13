@@ -89,11 +89,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
      * @param timestamp the assignment timestamp in milliseconds
      * @return formatted assignment ID
      */
-    private String generateDailyAssignmentId(String riderId, long timestamp) {
+    private String generateDailyAssignmentId(String riderId, long timestamp, String officeId) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
         dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
         String dateStr = dateFormat.format(new Date(timestamp));
-        return riderId + "_" + dateStr;
+        return riderId + "_" + dateStr + "_" + officeId;
     }
 
     /**
@@ -131,6 +131,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         }
         
         User frontDesk = (User) auth.getPrincipal();
+
         User rider = userRepository.findById(assignmentRequest.getRiderId())
             .orElseThrow(() -> new EntityNotFound("Rider not found"));
 
@@ -158,15 +159,16 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         long assignedAt = System.currentTimeMillis();
         String confirmationCode = "";
 
-        // Generate daily assignment ID: {riderId}_{YYYYMMDD}
-        String dailyAssignmentId = generateDailyAssignmentId(rider.getUserId(), assignedAt);
+        String officeId = frontDesk.getOfficeIds().get(0);
+        // Generate daily assignment ID: {riderId}_{YYYYMMDD}_{officeId}
+        String dailyAssignmentId = generateDailyAssignmentId(rider.getUserId(), assignedAt, officeId);
 
         DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(dailyAssignmentId)
                 .orElse(null);
 
         boolean isNewAssignment = (assignment == null);
 
-        String officeId = frontDesk != null ? frontDesk.getOfficeIds().get(0) : riderOfficeId;
+        
 
         if (isNewAssignment) {
             assignment = new DeliveryAssignments();
