@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,9 +30,9 @@ import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
+import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
-import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
@@ -233,9 +235,14 @@ public class FrontDeskController {
     @TrackUserAction(action = "VIEW_RECONCILIATIONS_BY_DATE", description = "Manager/Admin viewed reconciliations by date")
     public Page<DeliveryAssignments> getReconciliationsByDate(
             @RequestParam Long date,
-            @RequestParam String officeId,
             @RequestParam(defaultValue = "false") boolean useReconciledAt,
             Pageable pageable) {
-        return riderService.getReconciliationsByDate(date, officeId, useReconciledAt, pageable);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        
+        User frontDesk = (User) auth.getPrincipal();
+        return riderService.getReconciliationsByDate(date, frontDesk.getOfficeId(), useReconciledAt, pageable);
     }
 }
