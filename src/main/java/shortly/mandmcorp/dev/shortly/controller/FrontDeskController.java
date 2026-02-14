@@ -243,6 +243,6 @@ public class FrontDeskController {
         }
         
         User frontDesk = (User) auth.getPrincipal();
-        return riderService.getReconciliationsByDate(date, frontDesk.getOfficeId(), useReconciledAt, pageable);
+        return riderService.getReconciliationsByDate(date, frontDesk.getOfficeIds().get(0), useReconciledAt, pageable);
     }
 }
