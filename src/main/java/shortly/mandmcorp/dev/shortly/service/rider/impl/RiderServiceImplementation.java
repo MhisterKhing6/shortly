@@ -25,7 +25,6 @@ import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
-import shortly.mandmcorp.dev.shortly.enums.ReconcilationType;
 import shortly.mandmcorp.dev.shortly.enums.UserRole;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
@@ -220,7 +219,6 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             double parcelAmount = parcel.getDeliveryCost() + parcel.getInboundCost();
             ParcelInfo parcelInfo = ParcelInfo.builder()
                 .parcelId(parcel.getParcelId())
-                .parcelDescription(parcel.getParcelDescription())
                 .receiverName(parcel.getReceiverName())
                 .receiverPhoneNumber(parcel.getRecieverPhoneNumber())
                 .receiverAddress(parcel.getReceiverAddress())
@@ -229,6 +227,31 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 .inboundCost(parcel.getInboundCost())
                 .deliveryCost(parcel.getDeliveryCost())
                 .senderPhoneNumber(parcel.getSenderPhoneNumber())
+                .isPOD(parcel.isPOD())
+                .isFragile(parcel.isFragile())
+                .storageCost(parcel.getStorageCost())
+                .pickUpCost(parcel.getPickUpCost())
+                .pickedUp(parcel.isPickedUp())
+                .homeDelivery(parcel.isHomeDelivery())
+                .vehicleNumber(parcel.getVehicleNumber())
+                .driverName(parcel.getDriverName())
+                .driverPhoneNumber(parcel.getDriverPhoneNumber())
+                .driverId(parcel.getDriverId())
+                .officeId(parcel.getOfficeId())
+                .paymentMethod(parcel.getPaymentMethod())
+                .shelfName(parcel.getShelfName())
+                .inboudPayed(parcel.isInboudPayed())
+                .shelfId(parcel.getShelfId())
+                .typeofParcel(parcel.getTypeofParcel())
+                .ItemCost(parcel.getItemCost())
+                .pickupAddress(parcel.getPickupAddress())
+                .pickupContactName(parcel.getPickupContactName())
+                .pickupContactPhoneNumber(parcel.getPickupContactPhoneNumber())
+                .pickupInstructions(parcel.getPickupInstructions())
+                .deliveryAddress(parcel.getDeliveryAddress())
+                .deliveryContactName(parcel.getDeliveryContactName())
+                .deliveryContactPhoneNumber(parcel.getDeliveryContactPhoneNumber())
+                .specialInstructions(parcel.getSpecialInstructions())
                 .build();
             newParcels.add(parcelInfo);
             assignment.setInboundCost(assignment.getInboundCost() + parcel.getInboundCost());
@@ -1116,18 +1139,61 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
                     parcelRepository.save(parcel);
 
-                    // Replace the ParcelInfo in the assignment
                     assignment.getParcels().set(parcelIndex, updatedParcelInfo);
                 }
             }
         }
 
-        // Save the updated assignment
         deliveryAssignmentsRepository.save(assignment);
 
         log.info("Successfully updated delivery assignment: {}", updateRequest.getAssignmentId());
         return new UserResponse("Delivery assignment updated successfully", user.getPhoneNumber());
     }
 
+
+    @Override    
+    @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')")
+    public UserResponse removeParcelFromAssignment(String assignmentId, String parcelId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        User frontDesk = (User) auth.getPrincipal();
+        
+        DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(assignmentId)
+            .orElseThrow(() -> new EntityNotFound("Delivery assignment not found: " + assignmentId));
+
+        if(frontDesk.getOfficeIds().get(0) != null && !assignment.getOfficeId().equals(frontDesk.getOfficeIds().get(0))) {
+            throw new WrongCredentialsException("User does not have permission to remove parcel from assignment");
+        }
+        ParcelInfo parcelInfoToRemove = null;
+        for (ParcelInfo parcelInfo : assignment.getParcels()) {
+            if (parcelInfo.getParcelId().equals(parcelId)) {
+                parcelInfoToRemove = parcelInfo;
+                break;
+            }
+        }
+        if (parcelInfoToRemove == null) {
+            throw new EntityNotFound("Parcel not found in assignment: " + parcelId);
+        }
+        Parcel parcel = parcelRepository.findById(parcelId)
+            .orElseThrow(() -> new EntityNotFound("Parcel not found: " + parcelId));
+
+        parcel.setParcelAssigned(false);
+        parcel.setRiderInfo(null);
+        parcelRepository.save(parcel);
+
+        assignment.setDeliveryCost(assignment.getDeliveryCost() - parcelInfoToRemove.getDeliveryCost());
+        assignment.setInboundCost(assignment.getInboundCost() - parcelInfoToRemove.getInboundCost());      
+        
+        assignment.getParcels().removeIf(parcelInfo -> parcelInfo.getParcelId().equals(parcelId));
+
+
+        deliveryAssignmentsRepository.save(assignment);
+
+        log.info("Successfully removed parcel {} from delivery assignment {}", parcelId, assignmentId);
+        return new UserResponse("Parcel removed from delivery assignment successfully", parcelId);
+    }
 
 }

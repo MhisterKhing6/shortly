@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
+import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
 
 @Data
 @Document(collection = "parcelss")
@@ -26,7 +27,6 @@ public class Parcel {
     private boolean isDelivered;
     private boolean isParcelAssigned;
     private double inboundCost;
-    private double pickUpCost;
     private boolean isFragile;
     private double deliveryCost;
     private double storageCost;
@@ -54,6 +54,23 @@ public class Parcel {
     private int returnCount = 0;
     private String riderId;
     private RiderInfo riderInfo;
+
+    private ParcelTypes typeofParcel = ParcelTypes.PARCEL;
+    //for online
+    private double ItemCost;
+
+    private boolean isItemOwnerPaid = false;
+
+    //For pickup
+    private String pickupAddress;
+    private String pickupContactName;
+    private String pickupContactPhoneNumber;
+    private String pickupInstructions;
+    private String deliveryAddress;
+    private String deliveryContactName;
+    private String deliveryContactPhoneNumber;
+    private String specialInstructions;
+    private double pickUpCost;
     
     @CreatedDate
     private Long createdAt;

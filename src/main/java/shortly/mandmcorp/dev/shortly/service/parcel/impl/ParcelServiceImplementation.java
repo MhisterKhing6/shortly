@@ -19,10 +19,12 @@ import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
+import shortly.mandmcorp.dev.shortly.model.RiderInfo;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
@@ -78,6 +80,17 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         } 
         parcel.setShelfName(shelf.getName());
         parcel.setShelfId(shelf.getId());
+        
+        if(parcelRequest.getTypeofParcel() == ParcelTypes.PICKUP && parcelRequest.getRiderId() != null) {
+            User rider = userRepository.findById(parcelRequest.getRiderId())
+                    .orElseThrow(() -> new EntityNotFound("Rider not found"));
+            RiderInfo riderInfo = new RiderInfo();
+            riderInfo.setRiderName(rider.getName());
+            riderInfo.setRiderPhoneNumber(rider.getPhoneNumber());
+            riderInfo.setRiderId(rider.getUserId());
+            parcel.setRiderInfo(riderInfo);
+        }
+       
         Parcel savedParcel = parcelRepository.save(parcel);
         return savedParcel;
     }
@@ -172,6 +185,71 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                 .orElseThrow(() -> new EntityNotFound("Shelf not found"));
         parcel.setShelfId(shelf.getId());
         parcel.setShelfName(shelf.getName());
+    }
+
+    // Payment and shelf info
+    if (updateRequest.getPaymentMethod() != null) {
+        parcel.setPaymentMethod(updateRequest.getPaymentMethod());
+    }
+
+    if (updateRequest.getShelfName() != null) {
+        parcel.setShelfName(updateRequest.getShelfName());
+    }
+
+    if (updateRequest.getInboudPayed() != null) {
+        parcel.setInboudPayed(updateRequest.getInboudPayed());
+    }
+
+    if (updateRequest.getShelfId() != null) {
+        parcel.setShelfId(updateRequest.getShelfId());
+    }
+
+    // Parcel type
+    if (updateRequest.getTypeofParcel() != null) {
+        parcel.setTypeofParcel(updateRequest.getTypeofParcel());
+    }
+
+    // Online order fields
+    if (updateRequest.getItemCost() != null) {
+        parcel.setItemCost(updateRequest.getItemCost());
+    }
+
+    if (updateRequest.getIsItemOwnerPaid() != null) {
+        parcel.setItemOwnerPaid(updateRequest.getIsItemOwnerPaid());
+    }
+
+    // Pickup fields
+    if (updateRequest.getPickupAddress() != null) {
+        parcel.setPickupAddress(updateRequest.getPickupAddress());
+    }
+
+    if (updateRequest.getPickupContactName() != null) {
+        parcel.setPickupContactName(updateRequest.getPickupContactName());
+    }
+
+    if (updateRequest.getPickupContactPhoneNumber() != null) {
+        parcel.setPickupContactPhoneNumber(updateRequest.getPickupContactPhoneNumber());
+    }
+
+    if (updateRequest.getPickupInstructions() != null) {
+        parcel.setPickupInstructions(updateRequest.getPickupInstructions());
+    }
+
+    // Delivery fields
+    if (updateRequest.getDeliveryAddress() != null) {
+        parcel.setDeliveryAddress(updateRequest.getDeliveryAddress());
+    }
+
+    if (updateRequest.getDeliveryContactName() != null) {
+        parcel.setDeliveryContactName(updateRequest.getDeliveryContactName());
+    }
+
+    if (updateRequest.getDeliveryContactPhoneNumber() != null) {
+        parcel.setDeliveryContactPhoneNumber(updateRequest.getDeliveryContactPhoneNumber());
+    }
+
+    if (updateRequest.getSpecialInstructions() != null) {
+        parcel.setSpecialInstructions(updateRequest.getSpecialInstructions());
     }
 
     return parcelRepository.save(parcel);

@@ -147,6 +147,15 @@ public interface RiderServiceInterface {
      * @param updateRequest the update request containing assignment data
      * @return UserResponse with success message
      */
-    UserResponse updateDeliveryAssignment(shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentUpdateRequest updateRequest);
+    UserResponse updateDeliveryAssignment(shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentUpdateRequest updateRequest);            // Fetch and update all parcels using parcelIds from embedded ParcelInfo list
+
+     /**
+     * Remove parcel from assignment.
+     *
+     * @param assignmentId the assignment ID
+     * @param parcelId the parcel ID to remove
+     * @return UserResponse with success message
+     */
+    UserResponse removeParcelFromAssignment(String assignmentId, String parcelId);
 
 }

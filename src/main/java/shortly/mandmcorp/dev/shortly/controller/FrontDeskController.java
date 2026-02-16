@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -245,4 +246,18 @@ public class FrontDeskController {
         User frontDesk = (User) auth.getPrincipal();
         return riderService.getReconciliationsByDate(date, frontDesk.getOfficeIds().get(0), useReconciledAt, pageable);
     }
-}
+
+    @DeleteMapping("/assignment/{assignmentId}/parcel/{parcelId}")
+    @Operation(summary = "Remove parcel from assignment", description = "Remove a specific parcel from a delivery assignment")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Parcel removed from assignment successfully"),
+        @ApiResponse(responseCode = "404", description = "Assignment or parcel not found")
+    })
+    @TrackUserAction(action = "REMOVE_PARCEL_FROM_ASSIGNMENT", description = "Front desk removed a parcel from an assignment")
+    public UserResponse removeParcelFromAssignment(     
+        @PathVariable String assignmentId,
+        @PathVariable String parcelId) {
+        return riderService.removeParcelFromAssignment(assignmentId, parcelId);
+        }
+    }

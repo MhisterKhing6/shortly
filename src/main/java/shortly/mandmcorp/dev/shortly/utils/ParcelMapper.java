@@ -4,7 +4,6 @@ import org.springframework.stereotype.Component;
 
 import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
-import shortly.mandmcorp.dev.shortly.dto.response.ParcelResponse;
 import shortly.mandmcorp.dev.shortly.enums.ContactType;
 import shortly.mandmcorp.dev.shortly.model.Contacts;
 import shortly.mandmcorp.dev.shortly.model.Office;
@@ -40,61 +39,41 @@ public class ParcelMapper {
         parcel.setDriverName(request.getDriverName());
         parcel.setDriverPhoneNumber(request.getDriverPhoneNumber());
         parcel.setHomeDelivery(request.isHomeDelivery());
+        parcel.setHasCalled(request.isHasCalled());
+        parcel.setPickedUp(request.isPickedUp());
+
+        // Payment and shelf info
+        parcel.setPaymentMethod(request.getPaymentMethod());
+        parcel.setShelfName(request.getShelfName());
+        parcel.setInboudPayed(request.isInboudPayed());
+        parcel.setShelfId(request.getShelfId());
+
+        // Parcel type
+        parcel.setTypeofParcel(request.getTypeofParcel());
+
+        // Online order fields
+        parcel.setItemCost(request.getItemCost());
+        parcel.setItemOwnerPaid(request.isItemOwnerPaid());
+
+        // Pickup fields
+        parcel.setPickupAddress(request.getPickupAddress());
+        parcel.setPickupContactName(request.getPickupContactName());
+        parcel.setPickupContactPhoneNumber(request.getPickupContactPhoneNumber());
+        parcel.setPickupInstructions(request.getPickupInstructions());
+
+        // Delivery fields
+        parcel.setDeliveryAddress(request.getDeliveryAddress());
+        parcel.setDeliveryContactName(request.getDeliveryContactName());
+        parcel.setDeliveryContactPhoneNumber(request.getDeliveryContactPhoneNumber());
+        parcel.setSpecialInstructions(request.getSpecialInstructions());
+
         return parcel;
     }
 
     /**
      * Fully null-safe mapping from Parcel → ParcelResponse
      */
-    public ParcelResponse toResponse(Parcel parcel, Contacts driver, Contacts sender, Contacts receiver) {
-        ParcelResponse response = new ParcelResponse();
-
-        response.setParcelId(parcel.getParcelId());
-        response.setParcelDescription(parcel.getParcelDescription());
-        response.setPOD(parcel.isPOD());
-        response.setDelivered(parcel.isDelivered());
-        response.setParcelAssigned(parcel.isParcelAssigned());
-        response.setInboundCost(parcel.getInboundCost());
-        response.setPickUpCost(parcel.getPickUpCost());
-        response.setFragile(parcel.isFragile());
-        response.setDeliveryCost(parcel.getDeliveryCost());
-        response.setStorageCost(parcel.getStorageCost());
-
-        // ---------- SENDER (null-safe) ----------
-        if (sender != null) {
-            response.setSenderName(sender.getName());
-            response.setSenderPhoneNumber(sender.getPhoneNumber());
-        } else {
-            response.setSenderName(null);
-            response.setSenderPhoneNumber(null);
-        }
-
-        // ---------- RECEIVER (null-safe) — THIS WAS CAUSING THE NPE ----------
-        if (receiver != null) {
-            response.setReceiverName(receiver.getName());
-            response.setReceiverAddress(receiver.getAddress());
-            response.setRecieverPhoneNumber(receiver.getPhoneNumber());
-        } else {
-            response.setReceiverName(null);
-            response.setReceiverAddress(null);
-            response.setRecieverPhoneNumber(null);
-        }
-
-        // ---------- DRIVER (null-safe) ----------
-        if (driver != null) {
-            response.setDriverName(driver.getName());
-            response.setDriverPhoneNumber(driver.getPhoneNumber());
-            // vehicleNumber is driver-specific
-            response.setVehicleNumber(driver.getVehicleNumber());
-        } else {
-            response.setDriverName(null);
-            response.setDriverPhoneNumber(null);
-            response.setVehicleNumber(null);
-        }
-
-        return response;
-    }
-
+    
     public Contacts getOrCreateSender(String phoneNumber, String name) {
         Contacts sender = contactRepository.findByPhoneNumber(phoneNumber);
         if (sender == null) {
