@@ -71,7 +71,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         }
         if(parcelRequest.isHasCalled()) {
             parcel.setHasCalled(true);
-        } 
+        }
+    if(parcelRequest.getShelfNumber() != null) {
         Shelf shelf = shelfRepository.findById(parcelRequest.getShelfNumber())
                 .orElseThrow(() -> new EntityNotFound("Shelf not found"));
 
@@ -80,6 +81,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         } 
         parcel.setShelfName(shelf.getName());
         parcel.setShelfId(shelf.getId());
+    }
         
         if(parcelRequest.getTypeofParcel() == ParcelTypes.PICKUP && parcelRequest.getRiderId() != null) {
             User rider = userRepository.findById(parcelRequest.getRiderId())
