@@ -43,7 +43,7 @@ public class UserMapper {
                 .name(user.getName())
                 .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole().name())
-                .office(office)
+                .office(office == null ? null : office)
                 .build();
     }   
 }

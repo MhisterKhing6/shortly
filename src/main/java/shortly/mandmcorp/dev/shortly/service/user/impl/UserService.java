@@ -156,6 +156,10 @@ public class UserService implements UserServiceInterface {
 
         // Get the first office if user has multiple offices
         Office office = null;
+        if(userEntity.getRole() == UserRole.ADMIN) {
+            return userMapper.toUserLoginResponse(userEntity, token, office);
+        }
+
         if(userEntity.getOfficeIds() != null && !userEntity.getOfficeIds().isEmpty()) {
             office = officeRepository.findById(userEntity.getOfficeIds().get(0))
                 .orElseThrow(()-> new EntityNotFound("office not found"));
