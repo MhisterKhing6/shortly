@@ -54,6 +54,8 @@ public class ParcelRequest {
     // For online
     private double ItemCost;
     private boolean isItemOwnerPaid = false;
+    private String fromOfficeId;
+    private String toOfficeId;
 
     // For pickup
     private String pickupAddress;

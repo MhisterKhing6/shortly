@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
@@ -23,6 +24,7 @@ import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.Office;
+import shortly.mandmcorp.dev.shortly.model.OfficeInfo;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.RiderInfo;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
@@ -72,6 +74,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         if(parcelRequest.isHasCalled()) {
             parcel.setHasCalled(true);
         }
+        
     if(parcelRequest.getShelfNumber() != null) {
         Shelf shelf = shelfRepository.findById(parcelRequest.getShelfNumber())
                 .orElseThrow(() -> new EntityNotFound("Shelf not found"));
@@ -92,6 +95,27 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             riderInfo.setRiderId(rider.getUserId());
             parcel.setRiderInfo(riderInfo);
         }
+
+            if(parcelRequest.getTypeofParcel() == ParcelTypes.ONLINE) {
+                if(parcelRequest.getFromOfficeId() != null) {
+                    Office fromOffice = officeRepository.findById(parcelRequest.getFromOfficeId())
+                            .orElseThrow(() -> new EntityNotFound("From office not found"));
+                    OfficeInfo from = new OfficeInfo();
+                    from.setOfficeId(fromOffice.getId());
+                    from.setOfficeName(fromOffice.getName());
+                    parcel.setFrom(from);
+                }
+    
+                if(parcelRequest.getToOfficeId() != null) {
+                    Office toOffice = officeRepository.findById(parcelRequest.getToOfficeId())
+                            .orElseThrow(() -> new EntityNotFound("To office not found"));
+                    OfficeInfo to = new OfficeInfo();
+                    to.setOfficeId(toOffice.getId());
+                    to.setOfficeName(toOffice.getName());
+                    parcel.setOfficeId(parcelRequest.getToOfficeId());
+                    parcel.setTo(to);
+                }
+            }
        
         Parcel savedParcel = parcelRepository.save(parcel);
         return savedParcel;
@@ -362,6 +386,46 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         return null;
 
     }
+
+    @Override
+    //hasrole frontedesk, manager, admin
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER')")    
+    public Page<Parcel> getOnlineParcelsThatareMeantToBePayed(Pageable pageable) {
+            Query query = new Query();
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+                throw new WrongCredentialsException("User not authenticated");
+            }  
+            List<Criteria> criteria = new ArrayList<>();
+
+            criteria.add(Criteria.where("isItemOwnerPaid").is(false));
+            criteria.add(Criteria.where("typeofParcel").is(ParcelTypes.ONLINE));
+            criteria.add(Criteria.where("isDelivered").is(true));
+            String officeId = user.getOfficeIds().get(0);
+            criteria.add(Criteria.where("officeId").is(officeId));
+            query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+            org.springframework.data.domain.Sort sort;
+            if (pageable.getSort().isSorted()) {
+                sort = pageable.getSort();
+            } else {
+                sort = org.springframework.data.domain.Sort.by(
+                    org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+            }
+            query.with(sort);
+
+            // Count total documents matching criteria
+            long total = mongoTemplate.count(query, Parcel.class);
+
+            // Apply pagination
+            query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+            query.limit(pageable.getPageSize());
+
+            // Execute query
+            List<Parcel> parcels = mongoTemplate.find(query, Parcel.class);
+
+            return new PageImpl<>(parcels, pageable, total);
+        };
+
 
     @Override
     public Page<Parcel> getHomeDeliveryParcels(Pageable pageable) {

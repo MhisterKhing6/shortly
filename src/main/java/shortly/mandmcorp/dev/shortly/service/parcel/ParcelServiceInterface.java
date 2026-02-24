@@ -23,7 +23,13 @@ public interface ParcelServiceInterface {
      */
     java.util.List<Parcel> getParcelsByDriverId(String driverId, boolean isPOD, String inboundPayed);
 
-
+    
+   /**
+    * Gets online parcels that are meant to be payed (isItemOwnerPaid = false).
+     *
+    * @return onlin parcels that are meant to be payed (isItemOwnerPaid = false)
+    */
+    Page<Parcel> getOnlineParcelsThatareMeantToBePayed(Pageable pageable);
 
     /**
      * Gets parcels available for office pickup (not home delivery, not delivered, in user's office).

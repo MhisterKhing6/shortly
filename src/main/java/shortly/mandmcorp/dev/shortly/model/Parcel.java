@@ -56,9 +56,12 @@ public class Parcel {
     private RiderInfo riderInfo;
 
     private ParcelTypes typeofParcel = ParcelTypes.PARCEL;
+    
     //for online
     private double ItemCost;
-
+    private OfficeInfo from;
+    private OfficeInfo to;
+    private boolean hasArrivedAtOffice = false;
     private boolean isItemOwnerPaid = false;
 
     //For pickup

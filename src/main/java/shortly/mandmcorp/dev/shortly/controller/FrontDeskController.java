@@ -260,4 +260,17 @@ public class FrontDeskController {
         @PathVariable String parcelId) {
         return riderService.removeParcelFromAssignment(assignmentId, parcelId);
         }
-    }
+
+        @GetMapping("/online-parcels/unpaid")
+        @Operation(summary = "Get unpaid online parcels", description = "Get all unpaid online parcels in the user's office")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Unpaid online parcels retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        @TrackUserAction(action = "VIEW_UNPAID_ONLINE_PARCELS", description = "Front desk viewed unpaid online parcels")
+        public Page<Parcel> getUnpaidOnlineParcels(Pageable pageable) {
+          return parcelService.getOnlineParcelsThatareMeantToBePayed(pageable);
+        }
+        }
+
