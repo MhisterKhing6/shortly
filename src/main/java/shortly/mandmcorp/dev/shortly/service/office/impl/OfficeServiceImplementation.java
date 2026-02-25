@@ -5,10 +5,13 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import shortly.mandmcorp.dev.shortly.dto.request.AddAddressRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.LocationRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.LocationUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.OfficeRequest;
@@ -20,16 +23,20 @@ import shortly.mandmcorp.dev.shortly.dto.response.OfficeResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityAlreadyExist;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
+import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
+import shortly.mandmcorp.dev.shortly.model.Address;
 import shortly.mandmcorp.dev.shortly.model.Location;
 import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
+import shortly.mandmcorp.dev.shortly.repository.AddressRepository;
 import shortly.mandmcorp.dev.shortly.repository.LocationRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.ShelfRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.utils.OfficeMapper;
+
 
 @Service
 @Slf4j
@@ -41,6 +48,7 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
     private final LocationRepository locationRepository;
     private final OfficeMapper officeMapper;
     private final ShelfRepository shelfRepository;
+    private final AddressRepository addressRepository;
     
     @Override
     @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
@@ -227,7 +235,33 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
             .orElseThrow(() -> new EntityNotFound("Office not found"));
         return shelfRepository.findByOffice(office);
     }
-    
+    @Override
+    public Address addAddres(AddAddressRequest request){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        
+        User frontDesk = (User) auth.getPrincipal();
+        Address newAddress = new Address();
+        newAddress.setName(request.getName());
+        newAddress.setCost(request.getCost());
+        newAddress.setOfficeId(frontDesk.getOfficeIds().get(0));
+        return newAddress;
+    }
+    @Override
+    public List<Address> getAllAddressesByName(String name) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        User frontDesk = (User) auth.getPrincipal();
+        String officeId = frontDesk.getOfficeIds().get(0);
+         if (name == null || name.isBlank()) {
+            return addressRepository.findAllByOfficeId(officeId);
+            }
+            return addressRepository.findAllByOfficeIdAndNameContainingIgnoreCase(officeId, name);
+    }
     private String generateOfficeCode() {
         Random random = new Random();
         String code;

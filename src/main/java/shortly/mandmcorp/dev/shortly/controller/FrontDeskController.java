@@ -24,6 +24,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
+import shortly.mandmcorp.dev.shortly.dto.request.AddAddressRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
@@ -32,9 +33,11 @@ import shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
+import shortly.mandmcorp.dev.shortly.model.Address;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.User;
+import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
@@ -51,6 +54,7 @@ public class FrontDeskController {
     private final ParcelServiceInterface parcelService;
     private final RiderServiceInterface riderService;
     private final UserServiceInterface userService;
+    private final OfficeServiceInterface officeService;
 
     @PostMapping("/parcel")
     @Operation(summary = "Add a new parcel", description = "Create a new parcel entry in the system")
@@ -272,5 +276,28 @@ public class FrontDeskController {
         public Page<Parcel> getUnpaidOnlineParcels(Pageable pageable) {
           return parcelService.getOnlineParcelsThatareMeantToBePayed(pageable);
         }
+
+        @GetMapping("/addresses")
+        @Operation(summary = "Get addresses stored", description = "get address by office")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "addresses saved "),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        public List<Address> search(@RequestParam(required = false) String name) {
+            return officeService.getAllAddressesByName(name);
         }
+
+
+        @PostMapping("/addresses")
+        @Operation(summary = "save addresses ", description = "save office address")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "successfully saved address"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        public Address postAddress(@RequestBody @Valid AddAddressRequest request) {
+            return officeService.addAddres(request);
+        }
+    }
 
