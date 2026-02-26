@@ -247,6 +247,7 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         newAddress.setName(request.getName());
         newAddress.setCost(request.getCost());
         newAddress.setOfficeId(frontDesk.getOfficeIds().get(0));
+        addressRepository.save(newAddress);
         return newAddress;
     }
     @Override
