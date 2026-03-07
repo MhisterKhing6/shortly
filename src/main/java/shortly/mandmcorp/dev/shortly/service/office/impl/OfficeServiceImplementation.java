@@ -27,11 +27,13 @@ import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.Address;
 import shortly.mandmcorp.dev.shortly.model.Location;
 import shortly.mandmcorp.dev.shortly.model.Office;
+import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.repository.AddressRepository;
 import shortly.mandmcorp.dev.shortly.repository.LocationRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
+import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.ShelfRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
@@ -49,6 +51,7 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
     private final OfficeMapper officeMapper;
     private final ShelfRepository shelfRepository;
     private final AddressRepository addressRepository;
+    private final ParcelRepository parcelRepository;
     
     @Override
     @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
@@ -263,6 +266,11 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
             }
             return addressRepository.findAllByOfficeIdAndNameContainingIgnoreCase(officeId, name);
     }
+    @Override
+    public List<Parcel> getParcelsByAddressNumber(String phoneNumber) {
+        return parcelRepository.findByRecieverPhoneNumberAndIsDeliveredFalse(phoneNumber);
+    }
+
     private String generateOfficeCode() {
         Random random = new Random();
         String code;

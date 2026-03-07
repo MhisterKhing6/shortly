@@ -31,4 +31,6 @@ List<Parcel> findByDriverPhoneNumberAndIsPOD(
         boolean inboundPaid
 );
 
+List<Parcel> findByRecieverPhoneNumberAndIsDeliveredFalse(String recieverPhoneNumber);
+
 }

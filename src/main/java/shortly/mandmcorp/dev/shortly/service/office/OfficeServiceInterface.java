@@ -13,6 +13,7 @@ import shortly.mandmcorp.dev.shortly.dto.response.LocationWithOfficesResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.OfficeResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.model.Address;
+import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 
 public interface OfficeServiceInterface {
@@ -26,6 +27,7 @@ public interface OfficeServiceInterface {
     List<Shelf> getOfficeShelf(String officeId);
     Address addAddres(AddAddressRequest request);
     List<Address> getAllAddressesByName(String name);
+    List<Parcel> getParcelsByAddressNumber(String phoneNumber);
     
 
 

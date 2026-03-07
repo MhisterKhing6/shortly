@@ -32,7 +32,9 @@ import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.ContactType;
+import shortly.mandmcorp.dev.shortly.exceptions.ActionNotAllowed;
 import shortly.mandmcorp.dev.shortly.model.Contacts;
+import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.service.contact.ContactServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
@@ -77,6 +79,19 @@ public class UserController {
     @TrackUserAction(action = "USER_LOGIN", description = "User logged into the system")
     public UserLoginResponse userLogin(@RequestBody @Valid UserLoginRequestDto loginDetails) {
         return userService.login(loginDetails);
+    }
+
+
+    @GetMapping("/parcel-search")
+    @Operation(summary = "search user parcel", description = "check to see if user parcel has arrived")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "return user result"),
+    })
+    public List<Parcel> searParcel(@RequestParam String phoneNumber) {
+        if(phoneNumber == null || phoneNumber.isEmpty()) {
+            throw new ActionNotAllowed("phone number required");
+        }
+        return officeService.getParcelsByAddressNumber(phoneNumber);
     }
 
     @PostMapping("/request-password-reset")
