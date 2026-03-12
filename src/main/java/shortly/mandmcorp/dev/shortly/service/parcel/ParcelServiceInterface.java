@@ -46,4 +46,29 @@ public interface ParcelServiceInterface {
      * @return Page of parcels that are uncalled in the user's office
      */
     Page<Parcel> getUncalledParcels(Pageable pageable);
+
+    /**
+     * Gets delivered parcels from yesterday where the call center has not yet spoken to the client.
+     * Results are sorted by createdAt descending.
+     *
+     * @param pageable pagination parameters
+     * @return Page of parcels delivered yesterday with hasCallCenterSpokenToClient = false
+     */
+    Page<Parcel> getYesterdayDeliveredParcelsNotCalledByCallCenter(Pageable pageable);
+
+    /**
+     * Updates the call center outcome for a parcel. If callOutCome is REACHED,
+     * hasCallCenterSpokenToClient is set to true.
+     *
+     * @param parcelId the ID of the parcel to update
+     * @param request  the call center update request containing the call outcome
+     * @return the updated Parcel
+     */
+    Parcel updateCallCenterOutcome(String parcelId, shortly.mandmcorp.dev.shortly.dto.request.CallCenterUpdateRequest request);
+
+    /**
+     * Returns call center statistics for parcels delivered yesterday:
+     * total delivered, reached, unreachable, and not yet called.
+     */
+    shortly.mandmcorp.dev.shortly.dto.response.CallCenterStatsResponse getCallCenterStats();
 }

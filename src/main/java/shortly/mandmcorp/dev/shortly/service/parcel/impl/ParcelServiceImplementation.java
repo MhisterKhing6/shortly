@@ -1,5 +1,7 @@
 package shortly.mandmcorp.dev.shortly.service.parcel.impl;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,14 +14,16 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import shortly.mandmcorp.dev.shortly.dto.request.CallCenterUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.response.CallCenterStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.enums.CallCenterCallOutCome;
 import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
@@ -525,5 +529,88 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         List<Parcel> parcels = mongoTemplate.find(query, Parcel.class);
 
         return new PageImpl<>(parcels, pageable, total);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public Page<Parcel> getYesterdayDeliveredParcelsNotCalledByCallCenter(Pageable pageable) {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        long startOfYesterday = yesterday.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long endOfYesterday = yesterday.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1;
+
+        Query query = new Query();
+        List<Criteria> criteria = new ArrayList<>();
+
+        criteria.add(Criteria.where("isDelivered").is(true));
+        //criteria.add(Criteria.where("hasCallCenterSpokenToClient").is(false));
+        criteria.add(Criteria.where("updatedAt").gte(startOfYesterday).lte(endOfYesterday));
+
+        query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+        query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        long total = mongoTemplate.count(query, Parcel.class);
+
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        List<Parcel> parcels = mongoTemplate.find(query, Parcel.class);
+
+        return new PageImpl<>(parcels, pageable, total);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public Parcel updateCallCenterOutcome(String parcelId, CallCenterUpdateRequest request) {
+        Parcel parcel = parcelRepository.findById(parcelId)
+                .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+
+        parcel.setCallOutCome(request.getCallOutCome());
+        if (request.getCallOutCome() == CallCenterCallOutCome.REACHED) {
+            parcel.setHasCallCenterSpokenToClient(true);
+        }
+
+        return parcelRepository.save(parcel);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public CallCenterStatsResponse getCallCenterStats() {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        long startOfYesterday = yesterday.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long endOfYesterday = yesterday.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1;
+
+        Criteria deliveredYesterday = new Criteria().andOperator(
+                Criteria.where("isDelivered").is(true),
+                Criteria.where("updatedAt").gte(startOfYesterday).lte(endOfYesterday)
+        );
+
+        long totalDeliveredYesterday = mongoTemplate.count(new Query(deliveredYesterday), Parcel.class);
+
+        long reached = mongoTemplate.count(new Query(new Criteria().andOperator(
+                Criteria.where("isDelivered").is(true),
+                Criteria.where("updatedAt").gte(startOfYesterday).lte(endOfYesterday),
+                Criteria.where("callOutCome").is(CallCenterCallOutCome.REACHED)
+        )), Parcel.class);
+
+        long unreachable = mongoTemplate.count(new Query(new Criteria().andOperator(
+                Criteria.where("isDelivered").is(true),
+                Criteria.where("updatedAt").gte(startOfYesterday).lte(endOfYesterday),
+                Criteria.where("callOutCome").is(CallCenterCallOutCome.UNREACHABLE)
+        )), Parcel.class);
+
+        long notCalled = mongoTemplate.count(new Query(new Criteria().andOperator(
+                Criteria.where("isDelivered").is(true),
+                Criteria.where("updatedAt").gte(startOfYesterday).lte(endOfYesterday),
+                Criteria.where("hasCallCenterSpokenToClient").is(false),
+                Criteria.where("callOutCome").isNull()
+        )), Parcel.class);
+
+        return CallCenterStatsResponse.builder()
+                .totalDeliveredYesterday(totalDeliveredYesterday)
+                .reached(reached)
+                .unreachable(unreachable)
+                .notCalled(notCalled)
+                .build();
     }
 }

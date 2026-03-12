@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
+import shortly.mandmcorp.dev.shortly.enums.CallCenterCallOutCome;
 import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
 
 @Data
@@ -74,7 +75,8 @@ public class Parcel {
     private String deliveryContactPhoneNumber;
     private String specialInstructions;
     private double pickUpCost;
-    
+    private boolean hasCallCenterSpokenToClient;
+    private  CallCenterCallOutCome callOutCome;
     @CreatedDate
     private Long createdAt;
 
