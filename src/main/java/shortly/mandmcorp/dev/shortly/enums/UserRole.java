@@ -4,6 +4,7 @@ public enum UserRole {
     ADMIN,
     RIDER,
     FRONTDESK,
-    MANAGER
+    MANAGER,
+    CALLER
 
 }
