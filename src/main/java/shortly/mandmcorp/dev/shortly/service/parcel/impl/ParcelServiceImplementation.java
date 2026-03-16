@@ -533,19 +533,13 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     @Override
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public Page<Parcel> getYesterdayDeliveredParcelsNotCalledByCallCenter(Pageable pageable) {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-        long startOfYesterday = yesterday.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        long endOfYesterday = yesterday.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1;
+    public Page<Parcel> getUncalledCallCenterParcels(Pageable pageable) {
+        Criteria notCalled = new Criteria().orOperator(
+                Criteria.where("hasCallCenterSpokenToClient").is(false),
+                Criteria.where("hasCallCenterSpokenToClient").isNull()
+        );
 
-        Query query = new Query();
-        List<Criteria> criteria = new ArrayList<>();
-
-        criteria.add(Criteria.where("isDelivered").is(true));
-        //criteria.add(Criteria.where("hasCallCenterSpokenToClient").is(false));
-        criteria.add(Criteria.where("updatedAt").gte(startOfYesterday).lte(endOfYesterday));
-
-        query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+        Query query = new Query(notCalled);
         query.with(org.springframework.data.domain.Sort.by(
                 org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
 
@@ -566,6 +560,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                 .orElseThrow(() -> new EntityNotFound("Parcel not found"));
 
         parcel.setCallOutCome(request.getCallOutCome());
+        parcel.setCallCenterRemark(request.getRemark());
         if (request.getCallOutCome() == CallCenterCallOutCome.REACHED) {
             parcel.setHasCallCenterSpokenToClient(true);
         }
@@ -574,7 +569,6 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public CallCenterStatsResponse getCallCenterStats() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         long startOfYesterday = yesterday.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();

@@ -48,13 +48,13 @@ public interface ParcelServiceInterface {
     Page<Parcel> getUncalledParcels(Pageable pageable);
 
     /**
-     * Gets delivered parcels from yesterday where the call center has not yet spoken to the client.
+     * Gets parcels where the call center has not yet spoken to the client.
      * Results are sorted by createdAt descending.
      *
      * @param pageable pagination parameters
-     * @return Page of parcels delivered yesterday with hasCallCenterSpokenToClient = false
+     * @return Page of parcels with hasCallCenterSpokenToClient = false or null
      */
-    Page<Parcel> getYesterdayDeliveredParcelsNotCalledByCallCenter(Pageable pageable);
+    Page<Parcel> getUncalledCallCenterParcels(Pageable pageable);
 
     /**
      * Updates the call center outcome for a parcel. If callOutCome is REACHED,

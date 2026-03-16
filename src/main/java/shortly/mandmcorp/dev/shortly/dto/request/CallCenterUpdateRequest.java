@@ -8,4 +8,5 @@ import shortly.mandmcorp.dev.shortly.enums.CallCenterCallOutCome;
 public class CallCenterUpdateRequest {
     @NotNull(message = "Call outcome is required")
     private CallCenterCallOutCome callOutCome;
+    private String remark;
 }

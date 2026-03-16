@@ -29,17 +29,17 @@ public class CallCenterController {
 
     private final ParcelServiceInterface parcelService;
 
-    @GetMapping("/parcels/delivered-yesterday-uncalled")
-    @Operation(summary = "Get yesterday's delivered parcels not called by call center",
-               description = "Returns paginated parcels that were delivered yesterday and have hasCallCenterSpokenToClient set to false, sorted by createdAt descending")
+    @GetMapping("/parcels/uncalled")
+    @Operation(summary = "Get parcels not called by call center",
+               description = "Returns paginated parcels that have hasCallCenterSpokenToClient set to false or null, sorted by createdAt descending")
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully"),
         @ApiResponse(responseCode = "401", description = "User not authenticated"),
         @ApiResponse(responseCode = "403", description = "Insufficient privileges")
     })
-    public Page<Parcel> getYesterdayDeliveredParcelsNotCalledByCallCenter(Pageable pageable) {
-        return parcelService.getYesterdayDeliveredParcelsNotCalledByCallCenter(pageable);
+    public Page<Parcel> getUncalledParcels(Pageable pageable) {
+        return parcelService.getUncalledCallCenterParcels(pageable);
     }
 
     @PutMapping("/parcels/{parcelId}/call-outcome")

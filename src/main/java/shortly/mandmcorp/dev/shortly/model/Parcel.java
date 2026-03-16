@@ -76,7 +76,8 @@ public class Parcel {
     private String specialInstructions;
     private double pickUpCost;
     private boolean hasCallCenterSpokenToClient;
-    private  CallCenterCallOutCome callOutCome;
+    private CallCenterCallOutCome callOutCome;
+    private String callCenterRemark;
     @CreatedDate
     private Long createdAt;
 
