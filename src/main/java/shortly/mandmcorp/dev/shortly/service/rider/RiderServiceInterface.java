@@ -12,6 +12,7 @@ import shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
+import shortly.mandmcorp.dev.shortly.model.DriverReconcilation;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 
 public interface RiderServiceInterface {
@@ -157,5 +158,21 @@ public interface RiderServiceInterface {
      * @return UserResponse with success message
      */
     UserResponse removeParcelFromAssignment(String assignmentId, String parcelId);
+
+    /**
+     * Gets paginated unpaid driver reconciliations for the logged-in user's office.
+     *
+     * @param pageable pagination parameters
+     * @return Page of unpaid DriverReconcilation records
+     */
+    Page<DriverReconcilation> getUnpaidDriverReconciliations(Pageable pageable);
+
+    /**
+     * Marks a driver reconciliation as paid.
+     *
+     * @param reconciliationId the ID of the reconciliation to mark as paid
+     * @return the updated DriverReconcilation
+     */
+    DriverReconcilation payDriverReconciliation(String reconciliationId);
 
 }

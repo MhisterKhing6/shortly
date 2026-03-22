@@ -1,9 +1,11 @@
 package shortly.mandmcorp.dev.shortly.service.parcel.impl;
 
+import java.lang.foreign.Linker.Option;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -27,17 +29,21 @@ import shortly.mandmcorp.dev.shortly.enums.CallCenterCallOutCome;
 import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
+import shortly.mandmcorp.dev.shortly.model.DriverReconcilation;
 import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.OfficeInfo;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
+import shortly.mandmcorp.dev.shortly.model.ParcelInfo;
 import shortly.mandmcorp.dev.shortly.model.RiderInfo;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
+import shortly.mandmcorp.dev.shortly.repository.DriverReconcilationRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.ShelfRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
+import shortly.mandmcorp.dev.shortly.utils.DriverIDFormatter;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
 
 @Service
@@ -51,6 +57,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final UserRepository userRepository;
     private final ShelfRepository shelfRepository;
     private final MongoTemplate mongoTemplate;
+    private final DriverReconcilationRepository driverReconcilationRepository;
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
@@ -120,7 +127,35 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
                     parcel.setTo(to);
                 }
             }
-       
+
+        //check to see if there is inbound cost
+        if(parcel.getInboundCost() > 0) {
+            if(parcel.getDriverPhoneNumber() == null) {
+                throw new WrongCredentialsException("Driver phone number is required when inbound cost is provided");
+            }
+            //get driver phonenumber id format
+            String driverId = DriverIDFormatter.formatRiderId(parcel.getDriverPhoneNumber());
+            DriverReconcilation driverReconcilation = driverReconcilationRepository.findByIdAndPayedFalse(driverId).orElse(null);
+            //check to see if it is empty
+            if(driverReconcilation == null) {
+                driverReconcilation = new DriverReconcilation();
+                driverReconcilation.setId(driverId);
+                driverReconcilation.setParcels(new ArrayList<ParcelInfo>());
+                driverReconcilation.setPayed(false);
+                driverReconcilation.setOfficeId(parcel.getOfficeId());
+            }
+            //form parcel info
+            ParcelInfo parcelInfo = new ParcelInfo();
+            parcelInfo.setDelivered(false);
+            parcelInfo.setParcelId(parcel.getParcelId());
+            parcelInfo.setInboundCost(parcel.getInboundCost());
+            parcelInfo.setDeliveryAddress(parcel.getDeliveryAddress());
+            parcelInfo.setDeliveryCost(parcel.getDeliveryCost());
+            parcelInfo.setInboudPayed(false);
+            driverReconcilation.setTotalAmount(driverReconcilation.getTotalAmount() + parcelInfo.getInboundCost());
+            driverReconcilation.getParcels().add(parcelInfo);
+            driverReconcilationRepository.save(driverReconcilation);
+        }
         Parcel savedParcel = parcelRepository.save(parcel);
         return savedParcel;
     }

@@ -29,18 +29,21 @@ import shortly.mandmcorp.dev.shortly.enums.UserRole;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
+import shortly.mandmcorp.dev.shortly.model.DriverReconcilation;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.ParcelInfo;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.model.RiderInfo;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository;
+import shortly.mandmcorp.dev.shortly.repository.DriverReconcilationRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.ReconcilationRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
+import shortly.mandmcorp.dev.shortly.utils.DriverIDFormatter;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.OtpUtil;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
@@ -66,10 +69,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     private MongoTemplate mongoTemplate;
     private final DeliveryAssignmentsRepository deliveryRepository;
     private final ReconcilationRepository reconcilationRepository;
+    private final DriverReconcilationRepository driverReconcilationRepository;
 
     public RiderServiceImplementation(DeliveryAssignmentsRepository deliveryAssignmentsRepository, UserRepository userRepository, ParcelRepository parcelRepository, 
         @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate, 
-        DeliveryAssignmentsRepository deliveryRepo, ReconcilationRepository reconcilationRepository  ) {
+        DeliveryAssignmentsRepository deliveryRepo, ReconcilationRepository reconcilationRepository , DriverReconcilationRepository drivRecon ) {
         this.deliveryAssignmentsRepository = deliveryAssignmentsRepository;
         this.userRepository = userRepository;
         this.parcelRepository = parcelRepository;
@@ -78,6 +82,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         this.mongoTemplate = mongoTemplate;
         this.deliveryRepository = deliveryRepo;
         this.reconcilationRepository = reconcilationRepository;
+        this.driverReconcilationRepository = drivRecon;
     }
 
     /**
@@ -180,6 +185,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             assignment.setCreatedAt(assignedAt);
             assignment.setParcels(new ArrayList<>());
             assignment.setAmount(0.0);
+
         } else {
             log.info("Found existing assignment for rider {} on date {}. Adding parcels to it.", rider.getUserId(), dailyAssignmentId);
         }
@@ -320,7 +326,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         User rider = (User) auth.getPrincipal();
         DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(assignmentId)
             .orElseThrow(() -> new EntityNotFound("Assignment not found"));
-
+        //find the parcel using parcel
+        Parcel parcelEntity = parcelRepository.findById(statusRequest.getParcelId()).orElseThrow(()-> new EntityNotFound("Parcel not found"));
         // Check if rider is authorized using embedded RiderInfo
         String assignedRiderId = assignment.getRiderInfo() != null ? assignment.getRiderInfo().getRiderId() : null;
         if(assignedRiderId == null || !assignedRiderId.equals(rider.getUserId())) {
@@ -331,6 +338,25 @@ public class RiderServiceImplementation implements RiderServiceInterface {
            /* if( !statusRequest.getConfirmationCode().equals(assignment.getConfirmationCode())) {
                 throw new ActionNotAllowed("Invalid  confirmation code");
             } */
+           //check 
+           if (parcelEntity.getInboundCost() > 0) {
+            String driverId = DriverIDFormatter.formatRiderId(parcelEntity.getDriverPhoneNumber());
+            //find the driverReconcilation
+            DriverReconcilation driverReconcilation = this.driverReconcilationRepository.findByIdAndPayedFalse(driverId).orElse(null);
+            if(driverReconcilation != null) {
+                //find that parcel and set it to null
+                ParcelInfo selectedParcel = null;
+                for(ParcelInfo parcelInfo : driverReconcilation.getParcels()) {
+                    if(parcelInfo.getParcelId() == parcelEntity.getParcelId()){
+                        selectedParcel = parcelInfo;
+                        break;
+                    }
+                }
+                selectedParcel.setDelivered(true);
+                driverReconcilation.setAmountDelivered(parcelEntity.getInboundCost() + driverReconcilation.getAmountDelivered());
+                this.driverReconcilationRepository.save(driverReconcilation);
+            }
+           }
 
             // Fetch and update all parcels using parcelIds from embedded ParcelInfo list
             if(assignment.getParcels() != null && !assignment.getParcels().isEmpty()) {
@@ -1194,6 +1220,37 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         log.info("Successfully removed parcel {} from delivery assignment {}", parcelId, assignmentId);
         return new UserResponse("Parcel removed from delivery assignment successfully", parcelId);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'ADMIN', 'MANAGER')")
+    public Page<DriverReconcilation> getUnpaidDriverReconciliations(Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        User user = (User) auth.getPrincipal();
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                ? user.getOfficeIds().get(0)
+                : null;
+
+        if (officeId == null) {
+            throw new WrongCredentialsException("User has no assigned office");
+        }
+
+        return driverReconcilationRepository.findByOfficeIdAndPayedFalse(officeId, pageable);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'ADMIN', 'MANAGER')")
+    public DriverReconcilation payDriverReconciliation(String reconciliationId) {
+        DriverReconcilation reconciliation = driverReconcilationRepository.findByIdAndPayedFalse(reconciliationId)
+                .orElseThrow(() -> new EntityNotFound("Driver reconciliation not found or already paid"));
+
+        reconciliation.setPayed(true);
+        log.info("Driver reconciliation {} marked as paid", reconciliationId);
+        return driverReconcilationRepository.save(reconciliation);
     }
 
 }

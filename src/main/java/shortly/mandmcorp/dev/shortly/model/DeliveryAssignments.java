@@ -60,7 +60,7 @@ public class DeliveryAssignments {
     private long payedAt;
 
     private String payedTo;
-
+    
     @CreatedDate
     private Long createdAt;
 

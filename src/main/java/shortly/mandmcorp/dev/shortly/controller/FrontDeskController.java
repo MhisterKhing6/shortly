@@ -35,6 +35,7 @@ import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.Address;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
+import shortly.mandmcorp.dev.shortly.model.DriverReconcilation;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
@@ -298,6 +299,33 @@ public class FrontDeskController {
         })
         public Address postAddress(@RequestBody @Valid AddAddressRequest request) {
             return officeService.addAddres(request);
+        }
+
+        @GetMapping("/driver-reconciliations/unpaid")
+        @Operation(summary = "Get unpaid driver reconciliations",
+                   description = "Returns paginated driver reconciliations that have not been paid for a given office.")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Unpaid driver reconciliations retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated"),
+            @ApiResponse(responseCode = "403", description = "Insufficient privileges")
+        })
+        public Page<DriverReconcilation> getUnpaidDriverReconciliations(Pageable pageable) {
+            return riderService.getUnpaidDriverReconciliations(pageable);
+        }
+
+        @PutMapping("/driver-reconciliations/{reconciliationId}/pay")
+        @Operation(summary = "Mark driver reconciliation as paid",
+                   description = "Sets payed to true for the given driver reconciliation record.")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Driver reconciliation marked as paid"),
+            @ApiResponse(responseCode = "404", description = "Reconciliation not found or already paid"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated"),
+            @ApiResponse(responseCode = "403", description = "Insufficient privileges")
+        })
+        public DriverReconcilation payDriverReconciliation(@PathVariable String reconciliationId) {
+            return riderService.payDriverReconciliation(reconciliationId);
         }
     }
 
