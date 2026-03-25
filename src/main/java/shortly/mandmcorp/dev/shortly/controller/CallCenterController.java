@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.request.CallCenterUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.CallCenterStatsResponse;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
@@ -38,6 +39,7 @@ public class CallCenterController {
         @ApiResponse(responseCode = "401", description = "User not authenticated"),
         @ApiResponse(responseCode = "403", description = "Insufficient privileges")
     })
+    @TrackUserAction(action = "VIEW_UNCALLED_PARCELS", description = "Call center agent viewed parcels not yet called")
     public Page<Parcel> getUncalledParcels(Pageable pageable) {
         return parcelService.getUncalledCallCenterParcels(pageable);
     }
@@ -52,6 +54,7 @@ public class CallCenterController {
         @ApiResponse(responseCode = "401", description = "User not authenticated"),
         @ApiResponse(responseCode = "403", description = "Insufficient privileges")
     })
+    @TrackUserAction(action = "UPDATE_CALL_CENTER_OUTCOME", description = "Call center agent updated call outcome for a parcel")
     public Parcel updateCallCenterOutcome(@PathVariable String parcelId,
                                           @RequestBody @Valid CallCenterUpdateRequest request) {
         return parcelService.updateCallCenterOutcome(parcelId, request);
@@ -66,6 +69,7 @@ public class CallCenterController {
         @ApiResponse(responseCode = "401", description = "User not authenticated"),
         @ApiResponse(responseCode = "403", description = "Insufficient privileges")
     })
+    @TrackUserAction(action = "VIEW_CALL_CENTER_STATS", description = "Call center agent viewed call center statistics")
     public CallCenterStatsResponse getCallCenterStats() {
         return parcelService.getCallCenterStats();
     }

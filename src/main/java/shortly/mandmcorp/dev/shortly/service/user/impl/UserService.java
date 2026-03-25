@@ -35,8 +35,14 @@ import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.RiderStatusModel;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.model.VerificationToken;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import shortly.mandmcorp.dev.shortly.model.UserAction;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.RiderStatusRepository;
+import shortly.mandmcorp.dev.shortly.repository.UserActionRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.repository.VerificationTokenRepository;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
@@ -67,11 +73,14 @@ public class UserService implements UserServiceInterface {
     private final FrontEndServerConfig frontendConfig;
     private final RiderStatusRepository riderStatusRepository;
     private final OfficeRepository officeRepository;
+    private final UserActionRepository userActionRepository;
+    private final MongoTemplate mongoTemplate;
 
 
-    public UserService(FrontEndServerConfig frontend,UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification, 
-    PasswordEncoder passwordEncoder, JWTConfig jwtConfig, VerificationTokenRepository verificationTokenRepository, 
-    RiderStatusRepository riderStatusRepository, OfficeRepository officeRepository) {
+    public UserService(FrontEndServerConfig frontend, UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification,
+    PasswordEncoder passwordEncoder, JWTConfig jwtConfig, VerificationTokenRepository verificationTokenRepository,
+    RiderStatusRepository riderStatusRepository, OfficeRepository officeRepository,
+    UserActionRepository userActionRepository, MongoTemplate mongoTemplate) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.notification = smsNotification;
@@ -81,6 +90,8 @@ public class UserService implements UserServiceInterface {
         this.frontendConfig = frontend;
         this.riderStatusRepository = riderStatusRepository;
         this.officeRepository = officeRepository;
+        this.userActionRepository = userActionRepository;
+        this.mongoTemplate = mongoTemplate;
     }   
 
     /**
@@ -389,6 +400,30 @@ public class UserService implements UserServiceInterface {
             userRepository.save(user);
         }
         return new UserResponse("Office added successfully", user.getPhoneNumber());
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public Page<UserAction> getUserActions(String userEmail, String officeId, Pageable pageable) {
+        Query query = new Query();
+
+        if (userEmail != null && !userEmail.isBlank()) {
+            query.addCriteria(Criteria.where("userEmai").is(userEmail));
+        }
+
+        if (officeId != null && !officeId.isBlank()) {
+            query.addCriteria(Criteria.where("officeId").is(officeId));
+        }
+
+        query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        long total = mongoTemplate.count(query, UserAction.class);
+
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        return new PageImpl<>(mongoTemplate.find(query, UserAction.class), pageable, total);
     }
 
 }

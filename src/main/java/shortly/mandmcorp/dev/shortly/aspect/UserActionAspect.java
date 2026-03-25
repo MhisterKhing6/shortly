@@ -1,6 +1,6 @@
 package shortly.mandmcorp.dev.shortly.aspect;
 
-/*import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
@@ -32,16 +32,27 @@ public class UserActionAspect {
             if (annotation != null) {
                 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
                 String userId = null;
+                String userName = null;
+                String userEmail = null;
+
+                String officeId = null;
 
                 if (auth != null && auth.getPrincipal() instanceof User) {
                     User user = (User) auth.getPrincipal();
                     userId = user.getUserId();
+                    userEmail = user.getEmail();
+                    userName = user.getName();
+                    officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                            ? user.getOfficeIds().get(0) : null;
                 }
 
                 UserAction userAction = UserAction.builder()
                         .userId(userId)
                         .action(annotation.action())
+                        .userName(userName)
+                        .userEmai(userEmail)
                         .description(annotation.description())
+                        .officeId(officeId)
                         .build();
 
                 userActionRepository.save(userAction);
@@ -53,4 +64,4 @@ public class UserActionAspect {
             log.error("Error tracking user action", e);
         }
     }
-} */
+} 

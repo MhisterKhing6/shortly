@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
+import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.response.LocationWithOfficesResponse;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 
@@ -30,6 +31,7 @@ public class OfficeController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Locations retrieved successfully")
     })
+    @TrackUserAction(action = "VIEW_LOCATIONS", description = "User viewed all locations with offices")
     public List<LocationWithOfficesResponse> getAllLocationsWithOffices(
             @RequestParam(required = false) String locationName,
             @RequestParam(required = false) String officeName) {
@@ -43,6 +45,7 @@ public class OfficeController {
         @ApiResponse(responseCode = "200", description = "Location retrieved successfully"),
         @ApiResponse(responseCode = "404", description = "Location not found")
     })
+    @TrackUserAction(action = "VIEW_LOCATION_BY_ID", description = "User viewed a location by ID")
     public LocationWithOfficesResponse getLocationById(@PathVariable String id) {
         return officeService.getLocationById(id);
     }

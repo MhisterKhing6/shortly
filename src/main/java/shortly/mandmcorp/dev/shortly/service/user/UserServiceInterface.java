@@ -89,4 +89,6 @@ public interface UserServiceInterface {
     List<User> getRidersByOfficeId(boolean availability);
 
     UserResponse addOfficeToUser(AddOfficeToUserRequest request);
+
+    Page<shortly.mandmcorp.dev.shortly.model.UserAction> getUserActions(String userEmail, String officeId, Pageable pageable);
 }

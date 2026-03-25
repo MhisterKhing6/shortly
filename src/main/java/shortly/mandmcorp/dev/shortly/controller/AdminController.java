@@ -38,6 +38,7 @@ import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.user.impl.UserService;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
+import shortly.mandmcorp.dev.shortly.model.UserAction;
 
 @RestController
 @AllArgsConstructor
@@ -56,6 +57,7 @@ public class AdminController {
         @ApiResponse(responseCode = "200", description = "User registered successfully"),
         @ApiResponse(responseCode = "409", description = "User already exists")
     })
+    @TrackUserAction(action = "REGISTER_USER", description = "Admin registered a new user")
     public UserRegistrationResponse registerUser(@RequestBody @Valid UserRegistrationRequest userRegistrationRequest) {
         return  userService.register(userRegistrationRequest);
     }
@@ -93,6 +95,7 @@ public class AdminController {
         @ApiResponse(responseCode = "200", description = "Location added successfully"),
         @ApiResponse(responseCode = "409", description = "Location name already exists")
     })
+    @TrackUserAction(action = "ADD_LOCATION", description = "Admin added a new location")
     public LocationResponse addLocation(@RequestBody @Valid LocationRequest locationRequest) {
         return officeService.addLocation(locationRequest);
     }
@@ -104,6 +107,7 @@ public class AdminController {
         @ApiResponse(responseCode = "200", description = "Office updated successfully"),
         @ApiResponse(responseCode = "404", description = "Office not found")
     })
+    @TrackUserAction(action = "UPDATE_OFFICE", description = "Admin updated office details")
     public OfficeResponse updateOffice(@PathVariable String id, @RequestBody @Valid OfficeUpdateRequest updateRequest) {
         return officeService.updateOffice(id, updateRequest);
     }
@@ -115,6 +119,7 @@ public class AdminController {
         @ApiResponse(responseCode = "200", description = "Location updated successfully"),
         @ApiResponse(responseCode = "404", description = "Location not found")
     })
+    @TrackUserAction(action = "UPDATE_LOCATION", description = "Admin updated location details")
     public LocationResponse updateLocation(@PathVariable String id, @RequestBody @Valid LocationUpdateRequest updateRequest) {
         return officeService.updateLocation(id, updateRequest);
     }
@@ -127,6 +132,7 @@ public class AdminController {
         @ApiResponse(responseCode = "404", description = "User not found"),
         @ApiResponse(responseCode = "400", description = "Invalid status value")
     })
+    @TrackUserAction(action = "CHANGE_USER_STATUS", description = "Admin changed user availability status")
     public UserResponse chageUserAvailabiltyStatus(@PathVariable String userId, @PathVariable String status) {
         return userService.chageUserAvailabiltyStatus(userId, status);
     }
@@ -139,6 +145,8 @@ public class AdminController {
         @ApiResponse(responseCode = "200", description = "User deleted successfully"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
+
+    @TrackUserAction(action = "DELETE_USER", description = "Admin deleted a user")
     public UserResponse deleteUser(@PathVariable String userId) {
         return userService.deleteUser(userId);
     }
@@ -149,6 +157,7 @@ public class AdminController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
     })
+    @TrackUserAction(action = "VIEW_ALL_USERS", description = "Admin/Manager viewed all users")
     public Page<User> getAllUsers(Pageable pageable) {
         return userService.getAllUsers(pageable);
     }
@@ -160,6 +169,7 @@ public class AdminController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully")
     })
+    @TrackUserAction(action = "SEARCH_PARCELS", description = "Admin/Manager searched parcels")
     public Page<Parcel> searchParcels(
             @RequestParam(required = false) Boolean isPOD,
             @RequestParam(required = false) Boolean isDelivered,
@@ -184,6 +194,22 @@ public class AdminController {
         return riderService.getOfficeReconciliations(pageable);
     }
 
+
+    @GetMapping("/user-actions")
+    @Operation(summary = "Get user actions", description = "Get paginated user actions sorted by date descending. Optionally filter by user email.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User actions retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "Insufficient privileges")
+    })
+    @TrackUserAction(action = "VIEW_USER_ACTIONS", description = "Admin/Manager viewed user action logs")
+    public Page<UserAction> getUserActions(
+            @RequestParam(required = false) String userEmail,
+            @RequestParam(required = false) String officeId,
+            Pageable pageable) {
+        return userService.getUserActions(userEmail, officeId, pageable);
+    }
 
     @GetMapping("/reconciliations/by-date")
     @Operation(summary = "Get reconciliations by date", description = "Get paginated reconciliations for a specific date filtered by createdAt or reconciledAt. Requires MANAGER or ADMIN role.")

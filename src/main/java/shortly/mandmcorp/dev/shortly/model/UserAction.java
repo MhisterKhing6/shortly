@@ -20,9 +20,15 @@ public class UserAction {
 
     private String userId;
 
+    private String userEmai;
+
+    private String userName;
+
     private String action;
 
     private String description;
+
+    private String officeId;
 
     @CreatedDate
     private Long createdAt;
