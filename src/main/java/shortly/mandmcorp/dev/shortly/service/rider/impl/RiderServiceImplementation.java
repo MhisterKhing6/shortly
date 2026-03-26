@@ -347,14 +347,16 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 //find that parcel and set it to null
                 ParcelInfo selectedParcel = null;
                 for(ParcelInfo parcelInfo : driverReconcilation.getParcels()) {
-                    if(parcelInfo.getParcelId() == parcelEntity.getParcelId()){
+                    if(parcelInfo.getParcelId().equals(parcelEntity.getParcelId())){
                         selectedParcel = parcelInfo;
                         break;
                     }
                 }
-                selectedParcel.setDelivered(true);
-                driverReconcilation.setAmountDelivered(parcelEntity.getInboundCost() + driverReconcilation.getAmountDelivered());
-                this.driverReconcilationRepository.save(driverReconcilation);
+                if(selectedParcel != null) {
+                    selectedParcel.setDelivered(true);
+                    driverReconcilation.setAmountDelivered(parcelEntity.getInboundCost() + driverReconcilation.getAmountDelivered());
+                    this.driverReconcilationRepository.save(driverReconcilation);
+                }
             }
            }
 
