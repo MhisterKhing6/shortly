@@ -126,13 +126,16 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
                 }
             }
 
+        // Save the parcel first so it gets its generated ID before building ParcelInfo
+        Parcel savedParcel = parcelRepository.save(parcel);
+
         //check to see if there is inbound cost
-        if(parcel.getInboundCost() > 0) {
-            if(parcel.getDriverPhoneNumber() == null) {
+        if(savedParcel.getInboundCost() > 0) {
+            if(savedParcel.getDriverPhoneNumber() == null) {
                 throw new WrongCredentialsException("Driver phone number is required when inbound cost is provided");
             }
             //get driver phonenumber id format
-            String driverId = DriverIDFormatter.formatRiderId(parcel.getDriverPhoneNumber());
+            String driverId = DriverIDFormatter.formatRiderId(savedParcel.getDriverPhoneNumber());
             DriverReconcilation driverReconcilation = driverReconcilationRepository.findByIdAndPayedFalse(driverId).orElse(null);
             //check to see if it is empty
             if(driverReconcilation == null) {
@@ -140,53 +143,53 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
                 driverReconcilation.setId(driverId);
                 driverReconcilation.setParcels(new ArrayList<ParcelInfo>());
                 driverReconcilation.setPayed(false);
-                driverReconcilation.setOfficeId(parcel.getOfficeId());
-                driverReconcilation.setRiderName(parcel.getDriverName());
-                driverReconcilation.setRiderPhoneNumber(parcel.getDriverPhoneNumber());
+                driverReconcilation.setOfficeId(savedParcel.getOfficeId());
+                driverReconcilation.setRiderName(savedParcel.getDriverName());
+                driverReconcilation.setRiderPhoneNumber(savedParcel.getDriverPhoneNumber());
             }
             //form parcel info
             ParcelInfo parcelInfo = new ParcelInfo();
-            parcelInfo.setParcelId(parcel.getParcelId());
+            parcelInfo.setParcelId(savedParcel.getParcelId());
             parcelInfo.setDelivered(false);
             parcelInfo.setPayed(false);
             parcelInfo.setReturned(false);
             parcelInfo.setInboudPayed(false);
-            parcelInfo.setReceiverName(parcel.getReceiverName());
-            parcelInfo.setReceiverPhoneNumber(parcel.getRecieverPhoneNumber());
-            parcelInfo.setReceiverAddress(parcel.getReceiverAddress());
-            parcelInfo.setSenderName(parcel.getSenderName());
-            parcelInfo.setSenderPhoneNumber(parcel.getSenderPhoneNumber());
-            parcelInfo.setPaymentMethod(parcel.getPaymentMethod());
-            parcelInfo.setInboundCost(parcel.getInboundCost());
-            parcelInfo.setDeliveryCost(parcel.getDeliveryCost());
-            parcelInfo.setStorageCost(parcel.getStorageCost());
-            parcelInfo.setPickUpCost(parcel.getPickUpCost());
-            parcelInfo.setPickedUp(parcel.isPickedUp());
-            parcelInfo.setHomeDelivery(parcel.isHomeDelivery());
-            parcelInfo.setPOD(parcel.isPOD());
-            parcelInfo.setFragile(parcel.isFragile());
-            parcelInfo.setVehicleNumber(parcel.getVehicleNumber());
-            parcelInfo.setDriverName(parcel.getDriverName());
-            parcelInfo.setDriverPhoneNumber(parcel.getDriverPhoneNumber());
+            parcelInfo.setReceiverName(savedParcel.getReceiverName());
+            parcelInfo.setReceiverPhoneNumber(savedParcel.getRecieverPhoneNumber());
+            parcelInfo.setReceiverAddress(savedParcel.getReceiverAddress());
+            parcelInfo.setSenderName(savedParcel.getSenderName());
+            parcelInfo.setSenderPhoneNumber(savedParcel.getSenderPhoneNumber());
+            parcelInfo.setPaymentMethod(savedParcel.getPaymentMethod());
+            parcelInfo.setInboundCost(savedParcel.getInboundCost());
+            parcelInfo.setDeliveryCost(savedParcel.getDeliveryCost());
+            parcelInfo.setStorageCost(savedParcel.getStorageCost());
+            parcelInfo.setPickUpCost(savedParcel.getPickUpCost());
+            parcelInfo.setPickedUp(savedParcel.isPickedUp());
+            parcelInfo.setHomeDelivery(savedParcel.isHomeDelivery());
+            parcelInfo.setPOD(savedParcel.isPOD());
+            parcelInfo.setFragile(savedParcel.isFragile());
+            parcelInfo.setVehicleNumber(savedParcel.getVehicleNumber());
+            parcelInfo.setDriverName(savedParcel.getDriverName());
+            parcelInfo.setDriverPhoneNumber(savedParcel.getDriverPhoneNumber());
             parcelInfo.setDriverId(driverId);
-            parcelInfo.setOfficeId(parcel.getOfficeId());
-            parcelInfo.setShelfName(parcel.getShelfName());
-            parcelInfo.setShelfId(parcel.getShelfId());
-            parcelInfo.setTypeofParcel(parcel.getTypeofParcel());
-            parcelInfo.setItemCost(parcel.getItemCost());
-            parcelInfo.setDeliveryAddress(parcel.getDeliveryAddress());
-            parcelInfo.setDeliveryContactName(parcel.getDeliveryContactName());
-            parcelInfo.setDeliveryContactPhoneNumber(parcel.getDeliveryContactPhoneNumber());
-            parcelInfo.setPickupAddress(parcel.getPickupAddress());
-            parcelInfo.setPickupContactName(parcel.getPickupContactName());
-            parcelInfo.setPickupContactPhoneNumber(parcel.getPickupContactPhoneNumber());
-            parcelInfo.setPickupInstructions(parcel.getPickupInstructions());
-            parcelInfo.setSpecialInstructions(parcel.getSpecialInstructions());
+            parcelInfo.setOfficeId(savedParcel.getOfficeId());
+            parcelInfo.setShelfName(savedParcel.getShelfName());
+            parcelInfo.setShelfId(savedParcel.getShelfId());
+            parcelInfo.setTypeofParcel(savedParcel.getTypeofParcel());
+            parcelInfo.setItemCost(savedParcel.getItemCost());
+            parcelInfo.setDeliveryAddress(savedParcel.getDeliveryAddress());
+            parcelInfo.setDeliveryContactName(savedParcel.getDeliveryContactName());
+            parcelInfo.setDeliveryContactPhoneNumber(savedParcel.getDeliveryContactPhoneNumber());
+            parcelInfo.setPickupAddress(savedParcel.getPickupAddress());
+            parcelInfo.setPickupContactName(savedParcel.getPickupContactName());
+            parcelInfo.setPickupContactPhoneNumber(savedParcel.getPickupContactPhoneNumber());
+            parcelInfo.setPickupInstructions(savedParcel.getPickupInstructions());
+            parcelInfo.setSpecialInstructions(savedParcel.getSpecialInstructions());
             driverReconcilation.setTotalAmount(driverReconcilation.getTotalAmount() + parcelInfo.getInboundCost());
             driverReconcilation.getParcels().add(parcelInfo);
             driverReconcilationRepository.save(driverReconcilation);
         }
-        Parcel savedParcel = parcelRepository.save(parcel);
+
         return savedParcel;
     }
 
