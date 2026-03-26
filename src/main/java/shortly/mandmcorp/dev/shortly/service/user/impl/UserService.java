@@ -404,7 +404,7 @@ public class UserService implements UserServiceInterface {
 
     @Override
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public Page<UserAction> getUserActions(String userEmail, String officeId, Pageable pageable) {
+    public Page<UserAction> getUserActions(String userEmail, String officeId, String phoneNumber, Pageable pageable) {
         Query query = new Query();
 
         if (userEmail != null && !userEmail.isBlank()) {
@@ -413,6 +413,10 @@ public class UserService implements UserServiceInterface {
 
         if (officeId != null && !officeId.isBlank()) {
             query.addCriteria(Criteria.where("officeId").is(officeId));
+        }
+
+        if (phoneNumber != null && !phoneNumber.isBlank()) {
+            query.addCriteria(Criteria.where("phoneNumber").is(phoneNumber));
         }
 
         query.with(org.springframework.data.domain.Sort.by(

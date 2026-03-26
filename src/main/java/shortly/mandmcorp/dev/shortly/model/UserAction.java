@@ -30,6 +30,8 @@ public class UserAction {
 
     private String officeId;
 
+    private String phoneNumber;
+    
     @CreatedDate
     private Long createdAt;
 }

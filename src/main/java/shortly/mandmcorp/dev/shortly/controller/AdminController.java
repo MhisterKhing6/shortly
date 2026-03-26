@@ -207,8 +207,9 @@ public class AdminController {
     public Page<UserAction> getUserActions(
             @RequestParam(required = false) String userEmail,
             @RequestParam(required = false) String officeId,
+            @RequestParam(required = false) String phoneNumber,
             Pageable pageable) {
-        return userService.getUserActions(userEmail, officeId, pageable);
+        return userService.getUserActions(userEmail, officeId, phoneNumber, pageable);
     }
 
     @GetMapping("/reconciliations/by-date")

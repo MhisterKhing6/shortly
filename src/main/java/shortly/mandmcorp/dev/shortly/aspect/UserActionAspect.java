@@ -34,6 +34,7 @@ public class UserActionAspect {
                 String userId = null;
                 String userName = null;
                 String userEmail = null;
+                String phoneNumber = null;
 
                 String officeId = null;
 
@@ -42,6 +43,7 @@ public class UserActionAspect {
                     userId = user.getUserId();
                     userEmail = user.getEmail();
                     userName = user.getName();
+                    phoneNumber = user.getPhoneNumber();
                     officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
                             ? user.getOfficeIds().get(0) : null;
                 }
@@ -51,6 +53,7 @@ public class UserActionAspect {
                         .action(annotation.action())
                         .userName(userName)
                         .userEmai(userEmail)
+                        .phoneNumber(phoneNumber)
                         .description(annotation.description())
                         .officeId(officeId)
                         .build();

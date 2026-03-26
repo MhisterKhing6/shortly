@@ -90,5 +90,5 @@ public interface UserServiceInterface {
 
     UserResponse addOfficeToUser(AddOfficeToUserRequest request);
 
-    Page<shortly.mandmcorp.dev.shortly.model.UserAction> getUserActions(String userEmail, String officeId, Pageable pageable);
+    Page<shortly.mandmcorp.dev.shortly.model.UserAction> getUserActions(String userEmail, String officeId, String phoneNumber, Pageable pageable);
 }
