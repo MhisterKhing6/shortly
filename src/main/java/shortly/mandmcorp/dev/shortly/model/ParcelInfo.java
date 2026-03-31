@@ -14,6 +14,7 @@ public class ParcelInfo {
     private String parcelId;
     private String receiverName;
     private String receiverPhoneNumber;
+    private String alternativePhoneNumber;
     private String receiverAddress;
     private String senderName;
     private String senderPhoneNumber;

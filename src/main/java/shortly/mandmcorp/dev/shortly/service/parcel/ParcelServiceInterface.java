@@ -71,4 +71,22 @@ public interface ParcelServiceInterface {
      * total delivered, reached, unreachable, and not yet called.
      */
     shortly.mandmcorp.dev.shortly.dto.response.CallCenterStatsResponse getCallCenterStats();
+
+    /**
+     * Returns paginated parcels that are delivered and have not been called (hasCalled=false),
+     * filtered by the logged-in user's officeId.
+     */
+    Page<Parcel> getDeliveredUncalledParcels(Pageable pageable);
+
+    /**
+     * Returns paginated parcels that are NOT delivered and have not been called (hasCalled=false),
+     * filtered by the logged-in user's officeId.
+     */
+    Page<Parcel> getNotDeliveredUncalledParcels(Pageable pageable);
+
+    /**
+     * Returns call stats for a specific caller by phone number.
+     * period = "all" returns all-time stats; period = "month" returns stats for the current month.
+     */
+    shortly.mandmcorp.dev.shortly.dto.response.CallerStatsResponse getCallerStats(String callerPhoneNumber, String period);
 }

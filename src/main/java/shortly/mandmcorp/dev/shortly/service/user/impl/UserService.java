@@ -294,6 +294,15 @@ public class UserService implements UserServiceInterface {
         return userRepository.findAll(pageable);
     }
 
+    @Override
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
+    public Page<User> getUsers(String officeId, Pageable pageable) {
+        if (officeId != null && !officeId.isBlank()) {
+            return userRepository.findByOfficeIdsContaining(officeId, pageable);
+        }
+        return userRepository.findAll(pageable);
+    }
+
     /**
      * Updates authenticated user's profile information.
      * 

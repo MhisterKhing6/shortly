@@ -15,7 +15,8 @@ public class ParcelRequest {
     private String receiverAddress;
 
     private String recieverPhoneNumber;
-    
+    private String alternativePhoneNumber;
+
     private String parcelDescription;
     
     private String driverName;

@@ -39,6 +39,7 @@ import shortly.mandmcorp.dev.shortly.service.user.impl.UserService;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.UserAction;
+import shortly.mandmcorp.dev.shortly.dto.response.CallerStatsResponse;
 
 @RestController
 @AllArgsConstructor
@@ -152,14 +153,16 @@ public class AdminController {
     }
     
     @GetMapping("/users")
-    @Operation(summary = "Get all users", description = "Admin/Manager endpoint to retrieve all users with pagination")
+    @Operation(summary = "Get users", description = "Admin/Manager endpoint to retrieve users with pagination. Provide officeId to filter by office, or omit to return all users.")
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
     })
-    @TrackUserAction(action = "VIEW_ALL_USERS", description = "Admin/Manager viewed all users")
-    public Page<User> getAllUsers(Pageable pageable) {
-        return userService.getAllUsers(pageable);
+    @TrackUserAction(action = "VIEW_ALL_USERS", description = "Admin/Manager viewed users")
+    public Page<User> getAllUsers(
+            @RequestParam(required = false) String officeId,
+            Pageable pageable) {
+        return userService.getUsers(officeId, pageable);
     }
 
 
@@ -210,6 +213,21 @@ public class AdminController {
             @RequestParam(required = false) String phoneNumber,
             Pageable pageable) {
         return userService.getUserActions(userEmail, officeId, phoneNumber, pageable);
+    }
+
+    @GetMapping("/caller-stats")
+    @Operation(summary = "Get caller stats", description = "Returns call statistics for a caller by phone number. Use period=all for all-time or period=month for the current month.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Stats retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "User is not an admin or manager")
+    })
+    @TrackUserAction(action = "VIEW_CALLER_STATS", description = "Admin/Manager viewed caller statistics")
+    public CallerStatsResponse getCallerStats(
+            @RequestParam String callerPhoneNumber,
+            @RequestParam(defaultValue = "all") String period) {
+        return parcelService.getCallerStats(callerPhoneNumber, period);
     }
 
     @GetMapping("/reconciliations/by-date")

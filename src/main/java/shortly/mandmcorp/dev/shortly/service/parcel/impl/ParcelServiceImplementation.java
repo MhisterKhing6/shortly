@@ -22,11 +22,14 @@ import shortly.mandmcorp.dev.shortly.dto.request.CallCenterUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.CallCenterStatsResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.CallerStatsResponse;
+import shortly.mandmcorp.dev.shortly.model.CalledParcelInfo;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.CallCenterCallOutCome;
 import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
+import shortly.mandmcorp.dev.shortly.model.CalledParcelInfo;
 import shortly.mandmcorp.dev.shortly.model.DriverReconcilation;
 import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.OfficeInfo;
@@ -35,6 +38,7 @@ import shortly.mandmcorp.dev.shortly.model.ParcelInfo;
 import shortly.mandmcorp.dev.shortly.model.RiderInfo;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
+import shortly.mandmcorp.dev.shortly.repository.CalledParcelInfoRepository;
 import shortly.mandmcorp.dev.shortly.repository.DriverReconcilationRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
@@ -56,6 +60,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final ShelfRepository shelfRepository;
     private final MongoTemplate mongoTemplate;
     private final DriverReconcilationRepository driverReconcilationRepository;
+    private final CalledParcelInfoRepository calledParcelInfoRepository;
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
@@ -156,6 +161,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             parcelInfo.setInboudPayed(false);
             parcelInfo.setReceiverName(savedParcel.getReceiverName());
             parcelInfo.setReceiverPhoneNumber(savedParcel.getRecieverPhoneNumber());
+            parcelInfo.setAlternativePhoneNumber(savedParcel.getAlternativePhoneNumber());
             parcelInfo.setReceiverAddress(savedParcel.getReceiverAddress());
             parcelInfo.setSenderName(savedParcel.getSenderName());
             parcelInfo.setSenderPhoneNumber(savedParcel.getSenderPhoneNumber());
@@ -232,6 +238,10 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     if (updateRequest.getRecieverPhoneNumber() != null) {
         parcel.setRecieverPhoneNumber(updateRequest.getRecieverPhoneNumber());
+    }
+
+    if (updateRequest.getAlternativePhoneNumber() != null) {
+        parcel.setAlternativePhoneNumber(updateRequest.getAlternativePhoneNumber());
     }
 
     if (updateRequest.getParcelDescription() != null) {
@@ -551,6 +561,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     }
 
     @Override
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CALLCENTER')")
     public Page<Parcel> getUncalledParcels(Pageable pageable) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -600,7 +611,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CALLCENTER')")
     public Page<Parcel> getUncalledCallCenterParcels(Pageable pageable) {
         Criteria notCalled = new Criteria().orOperator(
                 Criteria.where("hasCallCenterSpokenToClient").is(false),
@@ -622,15 +633,85 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CALLCENTER')")
     public Parcel updateCallCenterOutcome(String parcelId, CallCenterUpdateRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        User caller = (User) auth.getPrincipal();
+
         Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found"));
 
         parcel.setCallOutCome(request.getCallOutCome());
         parcel.setCallCenterRemark(request.getRemark());
+
         if (request.getCallOutCome() == CallCenterCallOutCome.REACHED) {
             parcel.setHasCallCenterSpokenToClient(true);
+
+            // If home delivery, update the parcel address
+            if (Boolean.TRUE.equals(request.getHomeDelivered())) {
+                parcel.setHomeDelivery(true);
+                if (request.getHomeDeliveryAddress() != null) {
+                    parcel.setReceiverAddress(request.getHomeDeliveryAddress());
+                }
+                if (request.getHomeDeliveryPhoneNumber() != null) {
+                    parcel.setRecieverPhoneNumber(request.getHomeDeliveryPhoneNumber());
+                }
+            }
+
+            Parcel savedParcel = parcelRepository.save(parcel);
+
+            // Build ParcelInfo snapshot for the CalledParcelInfo record
+            ParcelInfo parcelInfo = new ParcelInfo();
+            parcelInfo.setParcelId(savedParcel.getParcelId());
+            parcelInfo.setReceiverName(savedParcel.getReceiverName());
+            parcelInfo.setReceiverPhoneNumber(savedParcel.getRecieverPhoneNumber());
+            parcelInfo.setAlternativePhoneNumber(savedParcel.getAlternativePhoneNumber());
+            parcelInfo.setReceiverAddress(savedParcel.getReceiverAddress());
+            parcelInfo.setSenderName(savedParcel.getSenderName());
+            parcelInfo.setSenderPhoneNumber(savedParcel.getSenderPhoneNumber());
+            parcelInfo.setPaymentMethod(savedParcel.getPaymentMethod());
+            parcelInfo.setInboundCost(savedParcel.getInboundCost());
+            parcelInfo.setDeliveryCost(savedParcel.getDeliveryCost());
+            parcelInfo.setStorageCost(savedParcel.getStorageCost());
+            parcelInfo.setPickUpCost(savedParcel.getPickUpCost());
+            parcelInfo.setDelivered(savedParcel.isDelivered());
+            parcelInfo.setHomeDelivery(savedParcel.isHomeDelivery());
+            parcelInfo.setPOD(savedParcel.isPOD());
+            parcelInfo.setFragile(savedParcel.isFragile());
+            parcelInfo.setPickedUp(savedParcel.isPickedUp());
+            parcelInfo.setDriverName(savedParcel.getDriverName());
+            parcelInfo.setDriverPhoneNumber(savedParcel.getDriverPhoneNumber());
+            parcelInfo.setVehicleNumber(savedParcel.getVehicleNumber());
+            parcelInfo.setOfficeId(savedParcel.getOfficeId());
+            parcelInfo.setShelfName(savedParcel.getShelfName());
+            parcelInfo.setShelfId(savedParcel.getShelfId());
+            parcelInfo.setTypeofParcel(savedParcel.getTypeofParcel());
+            parcelInfo.setItemCost(savedParcel.getItemCost());
+            parcelInfo.setPickupAddress(savedParcel.getPickupAddress());
+            parcelInfo.setPickupContactName(savedParcel.getPickupContactName());
+            parcelInfo.setPickupContactPhoneNumber(savedParcel.getPickupContactPhoneNumber());
+            parcelInfo.setPickupInstructions(savedParcel.getPickupInstructions());
+            parcelInfo.setDeliveryAddress(savedParcel.getDeliveryAddress());
+            parcelInfo.setDeliveryContactName(savedParcel.getDeliveryContactName());
+            parcelInfo.setDeliveryContactPhoneNumber(savedParcel.getDeliveryContactPhoneNumber());
+            parcelInfo.setSpecialInstructions(savedParcel.getSpecialInstructions());
+
+            String callerOfficeId = (caller.getOfficeIds() != null && !caller.getOfficeIds().isEmpty())
+                    ? caller.getOfficeIds().get(0) : null;
+
+            CalledParcelInfo calledParcelInfo = new CalledParcelInfo();
+            calledParcelInfo.setParcelInfo(parcelInfo);
+            calledParcelInfo.setCallerName(caller.getName());
+            calledParcelInfo.setCallerPhoneNumber(caller.getPhoneNumber());
+            calledParcelInfo.setOfficeId(callerOfficeId);
+            calledParcelInfo.setNotes(request.getRemark());
+            calledParcelInfo.setHomeDelivered(Boolean.TRUE.equals(request.getHomeDelivered()));
+            calledParcelInfoRepository.save(calledParcelInfo);
+
+            return savedParcel;
         }
 
         return parcelRepository.save(parcel);
@@ -674,5 +755,94 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                 .unreachable(unreachable)
                 .notCalled(notCalled)
                 .build();
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public CallerStatsResponse getCallerStats(String callerPhoneNumber, String period) {
+        List<Criteria> criteria = new ArrayList<>();
+        criteria.add(Criteria.where("callerPhoneNumber").is(callerPhoneNumber));
+
+        if ("month".equalsIgnoreCase(period)) {
+            LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
+            long startMillis = startOfMonth.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            criteria.add(Criteria.where("createdAt").gte(startMillis));
+        }
+
+        Query baseQuery = new Query(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+
+        Query homeQuery = new Query(new Criteria().andOperator(
+                new ArrayList<>(criteria) {{
+                    add(Criteria.where("homeDelivered").is(true));
+                }}.toArray(new Criteria[0])
+        ));
+
+        Query nonHomeQuery = new Query(new Criteria().andOperator(
+                new ArrayList<>(criteria) {{
+                    add(Criteria.where("homeDelivered").is(false));
+                }}.toArray(new Criteria[0])
+        ));
+
+        long totalCalls = mongoTemplate.count(baseQuery, CalledParcelInfo.class);
+        long homeDeliveredCalls = mongoTemplate.count(homeQuery, CalledParcelInfo.class);
+        long nonHomeDeliveredCalls = mongoTemplate.count(nonHomeQuery, CalledParcelInfo.class);
+
+        return CallerStatsResponse.builder()
+                .callerPhoneNumber(callerPhoneNumber)
+                .period("month".equalsIgnoreCase(period) ? "month" : "all")
+                .totalCalls(totalCalls)
+                .homeDeliveredCalls(homeDeliveredCalls)
+                .nonHomeDeliveredCalls(nonHomeDeliveredCalls)
+                .build();
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CALLCENTER')")
+    public Page<Parcel> getDeliveredUncalledParcels(Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                ? user.getOfficeIds().get(0) : null;
+
+        Query query = new Query(new Criteria().andOperator(
+                Criteria.where("officeId").is(officeId),
+                Criteria.where("isDelivered").is(true),
+                Criteria.where("hasCalled").is(false)
+        ));
+        query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        long total = mongoTemplate.count(query, Parcel.class);
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        return new PageImpl<>(mongoTemplate.find(query, Parcel.class), pageable, total);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CALLCENTER')")
+    public Page<Parcel> getNotDeliveredUncalledParcels(Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                ? user.getOfficeIds().get(0) : null;
+
+        Query query = new Query(new Criteria().andOperator(
+                Criteria.where("officeId").is(officeId),
+                Criteria.where("isDelivered").is(false),
+                Criteria.where("hasCalled").is(false)
+        ));
+        query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        long total = mongoTemplate.count(query, Parcel.class);
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        return new PageImpl<>(mongoTemplate.find(query, Parcel.class), pageable, total);
     }
 }

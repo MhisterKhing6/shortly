@@ -81,6 +81,8 @@ public interface UserServiceInterface {
     public UserResponse chageUserAvailabiltyStatus(String userId, String status);
 
     Page<User> getAllUsers(Pageable pageable);
+
+    Page<User> getUsers(String officeId, Pageable pageable);
     
     UserResponse updateProfile(UserUpdateRequest updateRequest);
     

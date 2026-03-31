@@ -4,6 +4,8 @@ package shortly.mandmcorp.dev.shortly.repository;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import shortly.mandmcorp.dev.shortly.enums.UserRole;
@@ -15,5 +17,6 @@ public interface  UserRepository extends  MongoRepository  <User,String> {
     User findByUserId(String userId);
     List<User> findByRoleAndOfficeIdsContainingAndAvailability(UserRole role, String officeId, boolean availability);
     List<User> findByRoleAndOfficeIdsContaining(UserRole role, String officeId);
+    Page<User> findByOfficeIdsContaining(String officeId, Pageable pageable);
 
 }

@@ -60,6 +60,34 @@ public class CallCenterController {
         return parcelService.updateCallCenterOutcome(parcelId, request);
     }
 
+    @GetMapping("/parcels/delivered-uncalled")
+    @Operation(summary = "Get delivered parcels not yet called",
+               description = "Returns paginated parcels that are delivered and hasCalled=false, filtered by the logged-in user's office.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "Insufficient privileges")
+    })
+    @TrackUserAction(action = "VIEW_DELIVERED_UNCALLED_PARCELS", description = "Call center agent viewed delivered parcels not yet called")
+    public Page<Parcel> getDeliveredUncalledParcels(Pageable pageable) {
+        return parcelService.getDeliveredUncalledParcels(pageable);
+    }
+
+    @GetMapping("/parcels/not-delivered-uncalled")
+    @Operation(summary = "Get undelivered parcels not yet called",
+               description = "Returns paginated parcels that are not delivered and hasCalled=false, filtered by the logged-in user's office.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Parcels retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "Insufficient privileges")
+    })
+    @TrackUserAction(action = "VIEW_NOT_DELIVERED_UNCALLED_PARCELS", description = "Call center agent viewed undelivered parcels not yet called")
+    public Page<Parcel> getNotDeliveredUncalledParcels(Pageable pageable) {
+        return parcelService.getNotDeliveredUncalledParcels(pageable);
+    }
+
     @GetMapping("/stats")
     @Operation(summary = "Get call center statistics",
                description = "Returns statistics for parcels delivered yesterday: total delivered, reached, unreachable, and not yet called.")
