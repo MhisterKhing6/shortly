@@ -671,13 +671,19 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     @Override
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CALLCENTER')")
-    public Page<Parcel> getUncalledCallCenterParcels(Pageable pageable) {
+    public Page<Parcel> getUncalledCallCenterParcels(String officeId, Pageable pageable) {
         Criteria notCalled = new Criteria().orOperator(
                 Criteria.where("hasCallCenterSpokenToClient").is(false),
                 Criteria.where("hasCallCenterSpokenToClient").isNull()
         );
 
-        Query query = new Query(notCalled);
+        List<Criteria> criteria = new ArrayList<>();
+        criteria.add(notCalled);
+        if (officeId != null && !officeId.isBlank()) {
+            criteria.add(Criteria.where("officeId").is(officeId));
+        }
+
+        Query query = new Query(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
         query.with(org.springframework.data.domain.Sort.by(
                 org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
 
@@ -947,14 +953,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     @Override
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CALLCENTER')")
-    public Page<Parcel> getDeliveredUncalledParcels(Pageable pageable) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
-            throw new WrongCredentialsException("User not authenticated");
-        }
-        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
-                ? user.getOfficeIds().get(0) : null;
-
+    public Page<Parcel> getDeliveredUncalledParcels(String officeId, Pageable pageable) {
         Query query = new Query(new Criteria().andOperator(
                 Criteria.where("officeId").is(officeId),
                 Criteria.where("isDelivered").is(true),
@@ -972,14 +971,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     @Override
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CALLCENTER')")
-    public Page<Parcel> getNotDeliveredUncalledParcels(Pageable pageable) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
-            throw new WrongCredentialsException("User not authenticated");
-        }
-        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
-                ? user.getOfficeIds().get(0) : null;
-
+    public Page<Parcel> getNotDeliveredUncalledParcels(String officeId, Pageable pageable) {
         Query query = new Query(new Criteria().andOperator(
                 Criteria.where("officeId").is(officeId),
                 Criteria.where("isDelivered").is(false),

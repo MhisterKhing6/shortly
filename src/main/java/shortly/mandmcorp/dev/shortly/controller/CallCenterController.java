@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,8 +41,10 @@ public class CallCenterController {
         @ApiResponse(responseCode = "403", description = "Insufficient privileges")
     })
     @TrackUserAction(action = "VIEW_UNCALLED_PARCELS", description = "Call center agent viewed parcels not yet called")
-    public Page<Parcel> getUncalledParcels(Pageable pageable) {
-        return parcelService.getUncalledCallCenterParcels(pageable);
+    public Page<Parcel> getUncalledParcels(
+            @RequestParam(required = false) String officeId,
+            Pageable pageable) {
+        return parcelService.getUncalledCallCenterParcels(officeId, pageable);
     }
 
     @PutMapping("/parcels/{parcelId}/call-outcome")
@@ -70,8 +73,10 @@ public class CallCenterController {
         @ApiResponse(responseCode = "403", description = "Insufficient privileges")
     })
     @TrackUserAction(action = "VIEW_DELIVERED_UNCALLED_PARCELS", description = "Call center agent viewed delivered parcels not yet called")
-    public Page<Parcel> getDeliveredUncalledParcels(Pageable pageable) {
-        return parcelService.getDeliveredUncalledParcels(pageable);
+    public Page<Parcel> getDeliveredUncalledParcels(
+            @RequestParam String officeId,
+            Pageable pageable) {
+        return parcelService.getDeliveredUncalledParcels(officeId, pageable);
     }
 
     @GetMapping("/parcels/not-delivered-uncalled")
@@ -84,8 +89,10 @@ public class CallCenterController {
         @ApiResponse(responseCode = "403", description = "Insufficient privileges")
     })
     @TrackUserAction(action = "VIEW_NOT_DELIVERED_UNCALLED_PARCELS", description = "Call center agent viewed undelivered parcels not yet called")
-    public Page<Parcel> getNotDeliveredUncalledParcels(Pageable pageable) {
-        return parcelService.getNotDeliveredUncalledParcels(pageable);
+    public Page<Parcel> getNotDeliveredUncalledParcels(
+            @RequestParam String officeId,
+            Pageable pageable) {
+        return parcelService.getNotDeliveredUncalledParcels(officeId, pageable);
     }
 
     @GetMapping("/stats")

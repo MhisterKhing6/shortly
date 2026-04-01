@@ -54,7 +54,7 @@ public interface ParcelServiceInterface {
      * @param pageable pagination parameters
      * @return Page of parcels with hasCallCenterSpokenToClient = false or null
      */
-    Page<Parcel> getUncalledCallCenterParcels(Pageable pageable);
+    Page<Parcel> getUncalledCallCenterParcels(String officeId, Pageable pageable);
 
     /**
      * Updates the call center outcome for a parcel. If callOutCome is REACHED,
@@ -88,13 +88,13 @@ public interface ParcelServiceInterface {
      * Returns paginated parcels that are delivered and have not been called (hasCalled=false),
      * filtered by the logged-in user's officeId.
      */
-    Page<Parcel> getDeliveredUncalledParcels(Pageable pageable);
+    Page<Parcel> getDeliveredUncalledParcels(String officeId, Pageable pageable);
 
     /**
      * Returns paginated parcels that are NOT delivered and have not been called (hasCalled=false),
-     * filtered by the logged-in user's officeId.
+     * filtered by the given officeId.
      */
-    Page<Parcel> getNotDeliveredUncalledParcels(Pageable pageable);
+    Page<Parcel> getNotDeliveredUncalledParcels(String officeId, Pageable pageable);
 
     /**
      * Returns call stats for a specific caller by phone number.
