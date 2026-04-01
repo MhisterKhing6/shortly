@@ -39,6 +39,7 @@ import shortly.mandmcorp.dev.shortly.service.user.impl.UserService;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.UserAction;
+import shortly.mandmcorp.dev.shortly.model.ParcelSystemLog;
 import shortly.mandmcorp.dev.shortly.dto.response.CallerStatsResponse;
 
 @RestController
@@ -228,6 +229,22 @@ public class AdminController {
             @RequestParam String callerPhoneNumber,
             @RequestParam(defaultValue = "all") String period) {
         return parcelService.getCallerStats(callerPhoneNumber, period);
+    }
+
+    @GetMapping("/parcel-system-logs")
+    @Operation(summary = "Get parcel system logs", description = "Returns paginated ParcelSystemLog entries. Filter by officeId and/or parcelId. If no officeId is given, returns logs from all offices.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Logs retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "User is not an admin or manager")
+    })
+    @TrackUserAction(action = "VIEW_PARCEL_SYSTEM_LOGS", description = "Admin/Manager viewed parcel system logs")
+    public Page<ParcelSystemLog> getParcelSystemLogs(
+            @RequestParam(required = false) String officeId,
+            @RequestParam(required = false) String parcelId,
+            Pageable pageable) {
+        return parcelService.getParcelSystemLogs(officeId, parcelId, pageable);
     }
 
     @GetMapping("/reconciliations/by-date")

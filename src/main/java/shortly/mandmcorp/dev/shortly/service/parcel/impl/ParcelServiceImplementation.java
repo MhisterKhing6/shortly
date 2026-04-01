@@ -38,7 +38,10 @@ import shortly.mandmcorp.dev.shortly.model.ParcelInfo;
 import shortly.mandmcorp.dev.shortly.model.RiderInfo;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
+import shortly.mandmcorp.dev.shortly.dto.request.PickedUpRequest;
+import shortly.mandmcorp.dev.shortly.model.ParcelSystemLog;
 import shortly.mandmcorp.dev.shortly.repository.CalledParcelInfoRepository;
+import shortly.mandmcorp.dev.shortly.repository.ParcelSystemLogRepository;
 import shortly.mandmcorp.dev.shortly.repository.DriverReconcilationRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
@@ -61,6 +64,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final MongoTemplate mongoTemplate;
     private final DriverReconcilationRepository driverReconcilationRepository;
     private final CalledParcelInfoRepository calledParcelInfoRepository;
+    private final ParcelSystemLogRepository parcelSystemLogRepository;
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
@@ -360,7 +364,62 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         parcel.setSpecialInstructions(updateRequest.getSpecialInstructions());
     }
 
-    return parcelRepository.save(parcel);
+    Parcel savedParcel = parcelRepository.save(parcel);
+
+    if (savedParcel.getInboundCost() > 0) {
+        Query reconcQuery = new Query(Criteria.where("parcels.parcelId").is(parcelId));
+        DriverReconcilation reconcilation = mongoTemplate.findOne(reconcQuery, DriverReconcilation.class);
+
+        if (reconcilation != null) {
+            for (ParcelInfo pi : reconcilation.getParcels()) {
+                if (parcelId.equals(pi.getParcelId())) {
+                    double oldInboundCost = pi.getInboundCost();
+
+                    pi.setReceiverName(savedParcel.getReceiverName());
+                    pi.setReceiverPhoneNumber(savedParcel.getRecieverPhoneNumber());
+                    pi.setAlternativePhoneNumber(savedParcel.getAlternativePhoneNumber());
+                    pi.setReceiverAddress(savedParcel.getReceiverAddress());
+                    pi.setSenderName(savedParcel.getSenderName());
+                    pi.setSenderPhoneNumber(savedParcel.getSenderPhoneNumber());
+                    pi.setPaymentMethod(savedParcel.getPaymentMethod());
+                    pi.setInboundCost(savedParcel.getInboundCost());
+                    pi.setDeliveryCost(savedParcel.getDeliveryCost());
+                    pi.setStorageCost(savedParcel.getStorageCost());
+                    pi.setPickUpCost(savedParcel.getPickUpCost());
+                    pi.setDelivered(savedParcel.isDelivered());
+                    pi.setHomeDelivery(savedParcel.isHomeDelivery());
+                    pi.setPOD(savedParcel.isPOD());
+                    pi.setFragile(savedParcel.isFragile());
+                    pi.setPickedUp(savedParcel.isPickedUp());
+                    pi.setInboudPayed(savedParcel.isInboudPayed());
+                    pi.setDriverName(savedParcel.getDriverName());
+                    pi.setDriverPhoneNumber(savedParcel.getDriverPhoneNumber());
+                    pi.setVehicleNumber(savedParcel.getVehicleNumber());
+                    pi.setOfficeId(savedParcel.getOfficeId());
+                    pi.setShelfName(savedParcel.getShelfName());
+                    pi.setShelfId(savedParcel.getShelfId());
+                    pi.setTypeofParcel(savedParcel.getTypeofParcel());
+                    pi.setItemCost(savedParcel.getItemCost());
+                    pi.setPickupAddress(savedParcel.getPickupAddress());
+                    pi.setPickupContactName(savedParcel.getPickupContactName());
+                    pi.setPickupContactPhoneNumber(savedParcel.getPickupContactPhoneNumber());
+                    pi.setPickupInstructions(savedParcel.getPickupInstructions());
+                    pi.setDeliveryAddress(savedParcel.getDeliveryAddress());
+                    pi.setDeliveryContactName(savedParcel.getDeliveryContactName());
+                    pi.setDeliveryContactPhoneNumber(savedParcel.getDeliveryContactPhoneNumber());
+                    pi.setSpecialInstructions(savedParcel.getSpecialInstructions());
+
+                    reconcilation.setTotalAmount(
+                            reconcilation.getTotalAmount() - oldInboundCost + savedParcel.getInboundCost());
+                    break;
+                }
+            }
+
+            driverReconcilationRepository.save(reconcilation);
+        }
+    }
+
+    return savedParcel;
 }
 
 
@@ -794,6 +853,96 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                 .homeDeliveredCalls(homeDeliveredCalls)
                 .nonHomeDeliveredCalls(nonHomeDeliveredCalls)
                 .build();
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public Page<ParcelSystemLog> getParcelSystemLogs(String officeId, String parcelId, Pageable pageable) {
+        Query query = new Query();
+
+        if (officeId != null && !officeId.isBlank()) {
+            query.addCriteria(Criteria.where("officeId").is(officeId));
+        }
+
+        if (parcelId != null && !parcelId.isBlank()) {
+            query.addCriteria(Criteria.where("parcelId").is(parcelId));
+        }
+
+        query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        long total = mongoTemplate.count(query, ParcelSystemLog.class);
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        return new PageImpl<>(mongoTemplate.find(query, ParcelSystemLog.class), pageable, total);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public ParcelSystemLog pickedUp(PickedUpRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                ? user.getOfficeIds().get(0) : null;
+
+        Parcel parcel = parcelRepository.findById(request.getParcelId())
+                .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+
+        parcel.setDelivered(true);
+        parcel.setPickedUp(true);
+        Parcel savedParcel = parcelRepository.save(parcel);
+
+        ParcelInfo parcelInfo = new ParcelInfo();
+        parcelInfo.setParcelId(savedParcel.getParcelId());
+        parcelInfo.setReceiverName(savedParcel.getReceiverName());
+        parcelInfo.setReceiverPhoneNumber(savedParcel.getRecieverPhoneNumber());
+        parcelInfo.setAlternativePhoneNumber(savedParcel.getAlternativePhoneNumber());
+        parcelInfo.setReceiverAddress(savedParcel.getReceiverAddress());
+        parcelInfo.setSenderName(savedParcel.getSenderName());
+        parcelInfo.setSenderPhoneNumber(savedParcel.getSenderPhoneNumber());
+        parcelInfo.setPaymentMethod(savedParcel.getPaymentMethod());
+        parcelInfo.setInboundCost(savedParcel.getInboundCost());
+        parcelInfo.setDeliveryCost(savedParcel.getDeliveryCost());
+        parcelInfo.setStorageCost(savedParcel.getStorageCost());
+        parcelInfo.setPickUpCost(savedParcel.getPickUpCost());
+        parcelInfo.setDelivered(savedParcel.isDelivered());
+        parcelInfo.setHomeDelivery(savedParcel.isHomeDelivery());
+        parcelInfo.setPOD(savedParcel.isPOD());
+        parcelInfo.setFragile(savedParcel.isFragile());
+        parcelInfo.setPickedUp(savedParcel.isPickedUp());
+        parcelInfo.setInboudPayed(savedParcel.isInboudPayed());
+        parcelInfo.setDriverName(savedParcel.getDriverName());
+        parcelInfo.setDriverPhoneNumber(savedParcel.getDriverPhoneNumber());
+        parcelInfo.setVehicleNumber(savedParcel.getVehicleNumber());
+        parcelInfo.setOfficeId(savedParcel.getOfficeId());
+        parcelInfo.setShelfName(savedParcel.getShelfName());
+        parcelInfo.setShelfId(savedParcel.getShelfId());
+        parcelInfo.setTypeofParcel(savedParcel.getTypeofParcel());
+        parcelInfo.setItemCost(savedParcel.getItemCost());
+        parcelInfo.setPickupAddress(savedParcel.getPickupAddress());
+        parcelInfo.setPickupContactName(savedParcel.getPickupContactName());
+        parcelInfo.setPickupContactPhoneNumber(savedParcel.getPickupContactPhoneNumber());
+        parcelInfo.setPickupInstructions(savedParcel.getPickupInstructions());
+        parcelInfo.setDeliveryAddress(savedParcel.getDeliveryAddress());
+        parcelInfo.setDeliveryContactName(savedParcel.getDeliveryContactName());
+        parcelInfo.setDeliveryContactPhoneNumber(savedParcel.getDeliveryContactPhoneNumber());
+        parcelInfo.setSpecialInstructions(savedParcel.getSpecialInstructions());
+
+        ParcelSystemLog log = new ParcelSystemLog();
+        log.setParcelId(savedParcel.getParcelId());
+        log.setParcelInfo(parcelInfo);
+        log.setPickUpTime(java.time.Instant.now().toString());
+        log.setWhoPickedUpName(request.getWhoPickedUpName());
+        log.setWhoPickedUpTelephoneNumber(request.getWhoPickedUpTelephoneNumber());
+        log.setFrontDeskPersonellName(user.getName());
+        log.setFrontDeskPersonellPhoneNumber(user.getPhoneNumber());
+        log.setOfficeId(officeId);
+
+        return parcelSystemLogRepository.save(log);
     }
 
     @Override

@@ -25,6 +25,8 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.request.AddAddressRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.PickedUpRequest;
+import shortly.mandmcorp.dev.shortly.model.ParcelSystemLog;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
@@ -312,6 +314,19 @@ public class FrontDeskController {
         })
         public Page<DriverReconcilation> getUnpaidDriverReconciliations(Pageable pageable) {
             return riderService.getUnpaidDriverReconciliations(pageable);
+        }
+
+        @PostMapping("/parcel/picked-up")
+        @Operation(summary = "Mark parcel as picked up", description = "Marks a parcel as delivered/picked up and saves a system log entry. Front desk name, phone, and office are taken from the logged-in user.")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Parcel marked as picked up successfully"),
+            @ApiResponse(responseCode = "404", description = "Parcel not found"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        @TrackUserAction(action = "PARCEL_PICKED_UP", description = "Front desk marked a parcel as picked up")
+        public ParcelSystemLog pickedUp(@RequestBody @Valid PickedUpRequest request) {
+            return parcelService.pickedUp(request);
         }
 
         @PutMapping("/driver-reconciliations/{reconciliationId}/pay")

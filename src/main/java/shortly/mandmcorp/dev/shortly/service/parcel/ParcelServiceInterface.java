@@ -67,6 +67,18 @@ public interface ParcelServiceInterface {
     Parcel updateCallCenterOutcome(String parcelId, shortly.mandmcorp.dev.shortly.dto.request.CallCenterUpdateRequest request);
 
     /**
+     * Returns paginated ParcelSystemLog entries. Optionally filtered by officeId and/or parcelId.
+     * If neither is provided, returns logs from all offices.
+     */
+    org.springframework.data.domain.Page<shortly.mandmcorp.dev.shortly.model.ParcelSystemLog> getParcelSystemLogs(String officeId, String parcelId, org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * Marks a parcel as picked up/delivered and saves a ParcelSystemLog entry.
+     * frontDeskPersonellName, frontDeskPersonellPhoneNumber and officeId are taken from the logged-in user.
+     */
+    shortly.mandmcorp.dev.shortly.model.ParcelSystemLog pickedUp(shortly.mandmcorp.dev.shortly.dto.request.PickedUpRequest request);
+
+    /**
      * Returns call center statistics for parcels delivered yesterday:
      * total delivered, reached, unreachable, and not yet called.
      */
