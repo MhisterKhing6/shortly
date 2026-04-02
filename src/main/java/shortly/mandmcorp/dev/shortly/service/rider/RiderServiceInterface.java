@@ -175,4 +175,20 @@ public interface RiderServiceInterface {
      */
     DriverReconcilation payDriverReconciliation(String reconciliationId);
 
+    /**
+     * Marks a list of DriverAssignments as paid.
+     * whoPayedDriverName and whoPayedDriverPhoneNumber are taken from the logged-in user.
+     *
+     * @param assignmentIds list of DriverAssignment IDs to mark as paid
+     * @return UserResponse with success message
+     */
+    UserResponse payDriverAssignments(java.util.List<String> assignmentIds);
+
+    /**
+     * Returns paginated unpaid DriverAssignments for the logged-in user's office,
+     * sorted by driverPhoneNumber ascending.
+     * If driverPhoneNumber is provided, filters to only that driver's assignments.
+     */
+    Page<shortly.mandmcorp.dev.shortly.model.DriverAssignment> getUnpaidDriverAssignments(String driverPhoneNumber, Pageable pageable);
+
 }

@@ -21,30 +21,31 @@ import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.dto.request.CallCenterUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.PickedUpRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.CallCenterStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.CallerStatsResponse;
-import shortly.mandmcorp.dev.shortly.model.CalledParcelInfo;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.CallCenterCallOutCome;
 import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.CalledParcelInfo;
+import shortly.mandmcorp.dev.shortly.model.DriverAssignment;
 import shortly.mandmcorp.dev.shortly.model.DriverReconcilation;
 import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.OfficeInfo;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.ParcelInfo;
+import shortly.mandmcorp.dev.shortly.model.ParcelSystemLog;
 import shortly.mandmcorp.dev.shortly.model.RiderInfo;
 import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.model.User;
-import shortly.mandmcorp.dev.shortly.dto.request.PickedUpRequest;
-import shortly.mandmcorp.dev.shortly.model.ParcelSystemLog;
 import shortly.mandmcorp.dev.shortly.repository.CalledParcelInfoRepository;
-import shortly.mandmcorp.dev.shortly.repository.ParcelSystemLogRepository;
+import shortly.mandmcorp.dev.shortly.repository.DriverAssignmentRepository;
 import shortly.mandmcorp.dev.shortly.repository.DriverReconcilationRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
+import shortly.mandmcorp.dev.shortly.repository.ParcelSystemLogRepository;
 import shortly.mandmcorp.dev.shortly.repository.ShelfRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
@@ -65,6 +66,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final DriverReconcilationRepository driverReconcilationRepository;
     private final CalledParcelInfoRepository calledParcelInfoRepository;
     private final ParcelSystemLogRepository parcelSystemLogRepository;
+    private final DriverAssignmentRepository driverAssignmentRepository;
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
@@ -144,18 +146,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
                 throw new WrongCredentialsException("Driver phone number is required when inbound cost is provided");
             }
             //get driver phonenumber id format
-            String driverId = DriverIDFormatter.formatRiderId(savedParcel.getDriverPhoneNumber());
-            DriverReconcilation driverReconcilation = driverReconcilationRepository.findByIdAndPayedFalse(driverId).orElse(null);
-            //check to see if it is empty
-            if(driverReconcilation == null) {
-                driverReconcilation = new DriverReconcilation();
-                driverReconcilation.setId(driverId);
-                driverReconcilation.setParcels(new ArrayList<ParcelInfo>());
-                driverReconcilation.setPayed(false);
-                driverReconcilation.setOfficeId(savedParcel.getOfficeId());
-                driverReconcilation.setRiderName(savedParcel.getDriverName());
-                driverReconcilation.setRiderPhoneNumber(savedParcel.getDriverPhoneNumber());
-            }
+            
+            
             //form parcel info
             ParcelInfo parcelInfo = new ParcelInfo();
             parcelInfo.setParcelId(savedParcel.getParcelId());
@@ -181,7 +173,6 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             parcelInfo.setVehicleNumber(savedParcel.getVehicleNumber());
             parcelInfo.setDriverName(savedParcel.getDriverName());
             parcelInfo.setDriverPhoneNumber(savedParcel.getDriverPhoneNumber());
-            parcelInfo.setDriverId(driverId);
             parcelInfo.setOfficeId(savedParcel.getOfficeId());
             parcelInfo.setShelfName(savedParcel.getShelfName());
             parcelInfo.setShelfId(savedParcel.getShelfId());
@@ -195,9 +186,17 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             parcelInfo.setPickupContactPhoneNumber(savedParcel.getPickupContactPhoneNumber());
             parcelInfo.setPickupInstructions(savedParcel.getPickupInstructions());
             parcelInfo.setSpecialInstructions(savedParcel.getSpecialInstructions());
-            driverReconcilation.setTotalAmount(driverReconcilation.getTotalAmount() + parcelInfo.getInboundCost());
-            driverReconcilation.getParcels().add(parcelInfo);
-            driverReconcilationRepository.save(driverReconcilation);
+
+            DriverAssignment driverAssignment = new DriverAssignment();
+            driverAssignment.setParcelId(savedParcel.getParcelId());
+            driverAssignment.setOfficeId(savedParcel.getOfficeId());
+            driverAssignment.setDriverName(savedParcel.getDriverName());
+            driverAssignment.setDriverPhoneNumber(savedParcel.getDriverPhoneNumber());
+            driverAssignment.setParcelInfo(parcelInfo);
+            driverAssignment.setPayed(false);
+            driverAssignment.setAmount(savedParcel.getInboundCost());
+
+            driverAssignmentRepository.save(driverAssignment);
         }
 
         return savedParcel;
@@ -715,7 +714,6 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         if (request.getCallOutCome() == CallCenterCallOutCome.REACHED) {
             parcel.setHasCallCenterSpokenToClient(true);
 
-            // If home delivery, update the parcel address
             if (Boolean.TRUE.equals(request.getHomeDelivered())) {
                 parcel.setHomeDelivery(true);
                 if (request.getHomeDeliveryAddress() != null) {
@@ -725,56 +723,12 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                     parcel.setRecieverPhoneNumber(request.getHomeDeliveryPhoneNumber());
                 }
             }
-
+            parcel.setCallerName(caller.getName());
+            parcel.setCallerPhoneNumber(caller.getPhoneNumber());
+            parcel.setCallCenterRemark(request.getRemark());
+            parcel.setNotes(request.getNotes());
+            
             Parcel savedParcel = parcelRepository.save(parcel);
-
-            // Build ParcelInfo snapshot for the CalledParcelInfo record
-            ParcelInfo parcelInfo = new ParcelInfo();
-            parcelInfo.setParcelId(savedParcel.getParcelId());
-            parcelInfo.setReceiverName(savedParcel.getReceiverName());
-            parcelInfo.setReceiverPhoneNumber(savedParcel.getRecieverPhoneNumber());
-            parcelInfo.setAlternativePhoneNumber(savedParcel.getAlternativePhoneNumber());
-            parcelInfo.setReceiverAddress(savedParcel.getReceiverAddress());
-            parcelInfo.setSenderName(savedParcel.getSenderName());
-            parcelInfo.setSenderPhoneNumber(savedParcel.getSenderPhoneNumber());
-            parcelInfo.setPaymentMethod(savedParcel.getPaymentMethod());
-            parcelInfo.setInboundCost(savedParcel.getInboundCost());
-            parcelInfo.setDeliveryCost(savedParcel.getDeliveryCost());
-            parcelInfo.setStorageCost(savedParcel.getStorageCost());
-            parcelInfo.setPickUpCost(savedParcel.getPickUpCost());
-            parcelInfo.setDelivered(savedParcel.isDelivered());
-            parcelInfo.setHomeDelivery(savedParcel.isHomeDelivery());
-            parcelInfo.setPOD(savedParcel.isPOD());
-            parcelInfo.setFragile(savedParcel.isFragile());
-            parcelInfo.setPickedUp(savedParcel.isPickedUp());
-            parcelInfo.setDriverName(savedParcel.getDriverName());
-            parcelInfo.setDriverPhoneNumber(savedParcel.getDriverPhoneNumber());
-            parcelInfo.setVehicleNumber(savedParcel.getVehicleNumber());
-            parcelInfo.setOfficeId(savedParcel.getOfficeId());
-            parcelInfo.setShelfName(savedParcel.getShelfName());
-            parcelInfo.setShelfId(savedParcel.getShelfId());
-            parcelInfo.setTypeofParcel(savedParcel.getTypeofParcel());
-            parcelInfo.setItemCost(savedParcel.getItemCost());
-            parcelInfo.setPickupAddress(savedParcel.getPickupAddress());
-            parcelInfo.setPickupContactName(savedParcel.getPickupContactName());
-            parcelInfo.setPickupContactPhoneNumber(savedParcel.getPickupContactPhoneNumber());
-            parcelInfo.setPickupInstructions(savedParcel.getPickupInstructions());
-            parcelInfo.setDeliveryAddress(savedParcel.getDeliveryAddress());
-            parcelInfo.setDeliveryContactName(savedParcel.getDeliveryContactName());
-            parcelInfo.setDeliveryContactPhoneNumber(savedParcel.getDeliveryContactPhoneNumber());
-            parcelInfo.setSpecialInstructions(savedParcel.getSpecialInstructions());
-
-            String callerOfficeId = (caller.getOfficeIds() != null && !caller.getOfficeIds().isEmpty())
-                    ? caller.getOfficeIds().get(0) : null;
-
-            CalledParcelInfo calledParcelInfo = new CalledParcelInfo();
-            calledParcelInfo.setParcelInfo(parcelInfo);
-            calledParcelInfo.setCallerName(caller.getName());
-            calledParcelInfo.setCallerPhoneNumber(caller.getPhoneNumber());
-            calledParcelInfo.setOfficeId(callerOfficeId);
-            calledParcelInfo.setNotes(request.getRemark());
-            calledParcelInfo.setHomeDelivered(Boolean.TRUE.equals(request.getHomeDelivered()));
-            calledParcelInfoRepository.save(calledParcelInfo);
 
             return savedParcel;
         }

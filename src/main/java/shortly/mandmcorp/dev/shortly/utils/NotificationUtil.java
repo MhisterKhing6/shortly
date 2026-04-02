@@ -18,6 +18,13 @@ public class NotificationUtil {
     public static String genrateRiderAssMsg(String name, int parcelCount) {
         return "Hello " + name + ", you have been assigned " + parcelCount + " new parcels for delivery. Please check your dashboard for details.";
     }
+
+    public static String generateDriverDeliveredSms(String driverName, String pId, double amount) {
+        return "Hello " + driverName
+                + " Your parcel with Id " + pId
+                + " has been delivered by rider "
+                + " amount that will be given to you is " + amount;
+    }
     
 
     public static String generateParcelStatusUpdateMsg(String parcelCode, String status) {

@@ -36,6 +36,8 @@ import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.model.RiderInfo;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository;
+import shortly.mandmcorp.dev.shortly.model.DriverAssignment;
+import shortly.mandmcorp.dev.shortly.repository.DriverAssignmentRepository;
 import shortly.mandmcorp.dev.shortly.repository.DriverReconcilationRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.ReconcilationRepository;
@@ -70,10 +72,12 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     private final DeliveryAssignmentsRepository deliveryRepository;
     private final ReconcilationRepository reconcilationRepository;
     private final DriverReconcilationRepository driverReconcilationRepository;
+    private final DriverAssignmentRepository driverAssignmentRepository;
 
-    public RiderServiceImplementation(DeliveryAssignmentsRepository deliveryAssignmentsRepository, UserRepository userRepository, ParcelRepository parcelRepository, 
-        @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate, 
-        DeliveryAssignmentsRepository deliveryRepo, ReconcilationRepository reconcilationRepository , DriverReconcilationRepository drivRecon ) {
+    public RiderServiceImplementation(DeliveryAssignmentsRepository deliveryAssignmentsRepository, UserRepository userRepository, ParcelRepository parcelRepository,
+        @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate,
+        DeliveryAssignmentsRepository deliveryRepo, ReconcilationRepository reconcilationRepository, DriverReconcilationRepository drivRecon,
+        DriverAssignmentRepository driverAssignmentRepository) {
         this.deliveryAssignmentsRepository = deliveryAssignmentsRepository;
         this.userRepository = userRepository;
         this.parcelRepository = parcelRepository;
@@ -83,6 +87,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         this.deliveryRepository = deliveryRepo;
         this.reconcilationRepository = reconcilationRepository;
         this.driverReconcilationRepository = drivRecon;
+        this.driverAssignmentRepository = driverAssignmentRepository;
     }
 
     /**
@@ -340,24 +345,17 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             } */
            //check 
            if (parcelEntity.getInboundCost() > 0) {
-            String driverId = DriverIDFormatter.formatRiderId(parcelEntity.getDriverPhoneNumber());
-            //find the driverReconcilation
-            DriverReconcilation driverReconcilation = this.driverReconcilationRepository.findByIdAndPayedFalse(driverId).orElse(null);
-            if(driverReconcilation != null) {
-                //find that parcel and set it to null
-                ParcelInfo selectedParcel = null;
-                for(ParcelInfo parcelInfo : driverReconcilation.getParcels()) {
-                    if(parcelInfo.getParcelId() != null && parcelInfo.getParcelId().equals(parcelEntity.getParcelId())){
-                        selectedParcel = parcelInfo;
-                        break;
-                    }
-                }
-                if(selectedParcel != null) {
-                    selectedParcel.setDelivered(true);
-                    driverReconcilation.setAmountDelivered(parcelEntity.getInboundCost() + driverReconcilation.getAmountDelivered());
-                    this.driverReconcilationRepository.save(driverReconcilation);
-                }
-            }
+            DriverAssignment driverAssignment = driverAssignmentRepository.findByParcelId(parcelEntity.getParcelId())
+                .orElseThrow(() -> new EntityNotFound("Driver assignment not found for parcel"));
+
+            driverAssignment.setDelivered(true);
+            driverAssignmentRepository.save(driverAssignment);
+            NotificationRequestTemplate notify = NotificationRequestTemplate.builder()
+                .body(NotificationUtil.generateDriverDeliveredSms(driverAssignment.getDriverName(), parcelEntity.getParcelId(), driverAssignment.getAmount()))
+                .to(parcelEntity.getDriverPhoneNumber())
+                .build();
+            notification.send(notify);
+
            }
 
             // Fetch and update all parcels using parcelIds from embedded ParcelInfo list
@@ -1253,6 +1251,59 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         reconciliation.setPayed(true);
         log.info("Driver reconciliation {} marked as paid", reconciliationId);
         return driverReconcilationRepository.save(reconciliation);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public Page<DriverAssignment> getUnpaidDriverAssignments(String driverPhoneNumber, Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                ? user.getOfficeIds().get(0) : null;
+
+        List<Criteria> criteriaList = new ArrayList<>();
+        criteriaList.add(Criteria.where("officeId").is(officeId));
+        criteriaList.add(Criteria.where("payed").is(false));
+        if (driverPhoneNumber != null && !driverPhoneNumber.isBlank()) {
+            criteriaList.add(Criteria.where("driverPhoneNumber").is(driverPhoneNumber));
+        }
+
+        Query query = new Query(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
+        query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.ASC, "driverPhoneNumber"));
+
+        long total = mongoTemplate.count(query, DriverAssignment.class);
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        return new PageImpl<>(mongoTemplate.find(query, DriverAssignment.class), pageable, total);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public UserResponse payDriverAssignments(List<String> assignmentIds) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
+        List<DriverAssignment> assignments = driverAssignmentRepository.findAllById(assignmentIds);
+
+        if (assignments.isEmpty()) {
+            throw new EntityNotFound("No driver assignments found for the provided IDs");
+        }
+
+        for (DriverAssignment assignment : assignments) {
+            assignment.setPayed(true);
+            assignment.setWhoPayedDriverName(user.getName());
+            assignment.setWhoPayedDriverPhoneNumber(user.getPhoneNumber());
+        }
+
+        driverAssignmentRepository.saveAll(assignments);
+
+        return new UserResponse("Driver assignments marked as paid successfully", String.valueOf(assignments.size()));
     }
 
 }

@@ -246,11 +246,12 @@ public class FrontDeskController {
             @RequestParam(defaultValue = "false") boolean useReconciledAt,
             Pageable pageable) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if(auth == null || !(auth.getPrincipal() instanceof User)) {
+        if (auth == null || !(auth.getPrincipal() instanceof User frontDesk)) {
             throw new WrongCredentialsException("User not authenticated");
         }
-        
-        User frontDesk = (User) auth.getPrincipal();
+        if (frontDesk.getOfficeIds() == null || frontDesk.getOfficeIds().isEmpty()) {
+            throw new WrongCredentialsException("User has no associated office");
+        }
         return riderService.getReconciliationsByDate(date, frontDesk.getOfficeIds().get(0), useReconciledAt, pageable);
     }
 
@@ -329,18 +330,33 @@ public class FrontDeskController {
             return parcelService.pickedUp(request);
         }
 
-        @PutMapping("/driver-reconciliations/{reconciliationId}/pay")
-        @Operation(summary = "Mark driver reconciliation as paid",
-                   description = "Sets payed to true for the given driver reconciliation record.")
+        @GetMapping("/driver-assignments/unpaid")
+        @Operation(summary = "Get unpaid driver assignments", description = "Returns paginated unpaid driver assignments for the logged-in user's office, sorted by driver phone number.")
         @SecurityRequirement(name = "Bearer Authentication")
         @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Driver reconciliation marked as paid"),
-            @ApiResponse(responseCode = "404", description = "Reconciliation not found or already paid"),
-            @ApiResponse(responseCode = "401", description = "User not authenticated"),
-            @ApiResponse(responseCode = "403", description = "Insufficient privileges")
+            @ApiResponse(responseCode = "200", description = "Unpaid driver assignments retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
         })
-        public DriverReconcilation payDriverReconciliation(@PathVariable String reconciliationId) {
-            return riderService.payDriverReconciliation(reconciliationId);
+        @TrackUserAction(action = "VIEW_UNPAID_DRIVER_ASSIGNMENTS", description = "Front desk viewed unpaid driver assignments")
+        public Page<shortly.mandmcorp.dev.shortly.model.DriverAssignment> getUnpaidDriverAssignments(
+                @RequestParam(required = false) String driverPhoneNumber,
+                Pageable pageable) {
+            return riderService.getUnpaidDriverAssignments(driverPhoneNumber, pageable);
         }
+
+        @PutMapping("/driver-assignments/pay")
+        @Operation(summary = "Pay driver assignments", description = "Marks a list of driver assignments as paid. The logged-in user is recorded as who paid.")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Driver assignments marked as paid successfully"),
+            @ApiResponse(responseCode = "404", description = "No assignments found for the provided IDs"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        @TrackUserAction(action = "PAY_DRIVER_ASSIGNMENTS", description = "Front desk marked driver assignments as paid")
+        public UserResponse payDriverAssignments(@RequestBody List<String> assignmentIds) {
+            return riderService.payDriverAssignments(assignmentIds);
+        }
+
+        
     }
 

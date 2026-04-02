@@ -76,15 +76,18 @@ public class Parcel {
     private String deliveryContactPhoneNumber;
     private String specialInstructions;
     private double pickUpCost;
-    private boolean hasCallCenterSpokenToClient;
-    private CallCenterCallOutCome callOutCome;
-    private String callCenterRemark;
+    
     @CreatedDate
     private Long createdAt;
 
     @LastModifiedDate
     private Long updatedAt;
 
-
-
+    //caller details
+    private String callerName;
+    private String callerPhoneNumber;
+    private String notes; // Any additional notes about the call
+    private boolean hasCallCenterSpokenToClient;
+    private CallCenterCallOutCome callOutCome;
+    private String callCenterRemark;
 }

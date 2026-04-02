@@ -11,5 +11,6 @@ public class CallCenterUpdateRequest {
     private String remark;
     private Boolean homeDelivered;
     private String homeDeliveryAddress;
+    private String notes;
     private String homeDeliveryPhoneNumber; // Optional, only needed if homeDelivered is true
 }
