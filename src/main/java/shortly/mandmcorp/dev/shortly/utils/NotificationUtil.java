@@ -31,6 +31,12 @@ public class NotificationUtil {
         return "The status of your parcel with code " + parcelCode + " has been updated to: " + status;
     }
 
+    public static String generateParcelPickedUpDriverSms(String driverName, String pId, double pickUpCost) {
+        return "Hello " + driverName
+                + ", parcel with Id " + pId
+                + " has been picked up. Pickup cost: " + pickUpCost;
+    }
+
     public static String generateAssignmentMessgeCustomer(String riderPhoneNumber, String riderName, String vCode, String receiverName, String pId) {
         return "Hello " + receiverName
                 + " Your parcel with Id " + pId

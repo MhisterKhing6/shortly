@@ -48,8 +48,12 @@ import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelSystemLogRepository;
 import shortly.mandmcorp.dev.shortly.repository.ShelfRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Qualifier;
+import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
+import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
 import shortly.mandmcorp.dev.shortly.utils.DriverIDFormatter;
+import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
 
 @Service
@@ -67,6 +71,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final CalledParcelInfoRepository calledParcelInfoRepository;
     private final ParcelSystemLogRepository parcelSystemLogRepository;
     private final DriverAssignmentRepository driverAssignmentRepository;
+    @Qualifier("smsNotification")
+    private final NotificationInterface notification;
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
@@ -854,7 +860,22 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
         parcel.setPickedUp(true);
         Parcel savedParcel = parcelRepository.save(parcel);
-
+        if(parcel.getInboundCost() > 0) {
+            DriverAssignment driverAssignment = driverAssignmentRepository.findByParcelId(parcel.getParcelId())
+                    .orElseThrow(() -> new EntityNotFound("Driver assignment not found"));
+            driverAssignment.setDelivered(true);
+            driverAssignmentRepository.save(driverAssignment);
+            if (parcel.getPickUpCost() > 0 && driverAssignment.getDriverPhoneNumber() != null) {
+                String smsBody = NotificationUtil.generateParcelPickedUpDriverSms(
+                        driverAssignment.getDriverName(),
+                        parcel.getParcelId(),
+                        parcel.getPickUpCost());
+                notification.send(NotificationRequestTemplate.builder()
+                        .to(driverAssignment.getDriverPhoneNumber())
+                        .body(smsBody)
+                        .build());
+            }
+        }   
         ParcelInfo parcelInfo = new ParcelInfo();
         parcelInfo.setParcelId(savedParcel.getParcelId());
         parcelInfo.setReceiverName(savedParcel.getReceiverName());
@@ -892,6 +913,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         parcelInfo.setSpecialInstructions(savedParcel.getSpecialInstructions());
 
         ParcelSystemLog log = new ParcelSystemLog();
+
         log.setParcelId(savedParcel.getParcelId());
         log.setParcelInfo(parcelInfo);
         log.setPickUpTime(java.time.Instant.now().toString());
