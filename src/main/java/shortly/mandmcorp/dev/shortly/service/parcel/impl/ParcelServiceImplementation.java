@@ -852,7 +852,6 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         Parcel parcel = parcelRepository.findById(request.getParcelId())
                 .orElseThrow(() -> new EntityNotFound("Parcel not found"));
 
-        parcel.setDelivered(true);
         parcel.setPickedUp(true);
         Parcel savedParcel = parcelRepository.save(parcel);
 
