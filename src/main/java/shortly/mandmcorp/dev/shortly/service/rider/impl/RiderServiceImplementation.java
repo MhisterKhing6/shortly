@@ -345,9 +345,10 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             } */
            //check 
            if (parcelEntity.getInboundCost() > 0) {
-            DriverAssignment driverAssignment = driverAssignmentRepository.findByParcelId(parcelEntity.getParcelId())
-                .orElseThrow(() -> new EntityNotFound("Driver assignment not found for parcel"));
-
+            DriverAssignment driverAssignment = driverAssignmentRepository.findByParcelId(parcelEntity.getParcelId()).orElse(null);
+            if(driverAssignment != null) {
+                driverAssignment.setAmount(driverAssignment.getAmount() + parcelEntity.getInboundCost());
+             
             driverAssignment.setDelivered(true);
             driverAssignmentRepository.save(driverAssignment);
             NotificationRequestTemplate notify = NotificationRequestTemplate.builder()
@@ -355,7 +356,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 .to(parcelEntity.getDriverPhoneNumber())
                 .build();
             notification.send(notify);
-
+            }
            }
 
             // Fetch and update all parcels using parcelIds from embedded ParcelInfo list
