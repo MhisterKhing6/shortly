@@ -79,7 +79,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     public Parcel addParcel(ParcelRequest parcelRequest) {
       
 
-        Parcel parcel = parcelMapper.toEntity(parcelRequest,  null);
+        Parcel parcel = parcelMapper.toEntity(parcelRequest);
 
         if (parcelRequest.getOfficeId() != null) {
             Office office = officeRepository.findById(parcelRequest.getOfficeId())
@@ -335,6 +335,41 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         parcel.setItemOwnerPaid(updateRequest.getIsItemOwnerPaid());
     }
 
+    if (updateRequest.getHasArrivedAtOffice() != null) {
+        parcel.setHasArrivedAtOffice(updateRequest.getHasArrivedAtOffice());
+    }
+
+    if (updateRequest.getFromOfficeId() != null) {
+        Office fromOffice = officeRepository.findById(updateRequest.getFromOfficeId())
+                .orElseThrow(() -> new EntityNotFound("From office not found"));
+        OfficeInfo from = new OfficeInfo();
+        from.setOfficeId(fromOffice.getId());
+        from.setOfficeName(fromOffice.getName());
+        parcel.setFrom(from);
+        parcel.setFromOfficeId(fromOffice.getId());
+    }
+
+    if (updateRequest.getToOfficeId() != null) {
+        Office toOffice = officeRepository.findById(updateRequest.getToOfficeId())
+                .orElseThrow(() -> new EntityNotFound("To office not found"));
+        OfficeInfo to = new OfficeInfo();
+        to.setOfficeId(toOffice.getId());
+        to.setOfficeName(toOffice.getName());
+        parcel.setTo(to);
+        parcel.setToOfficeId(toOffice.getId());
+    }
+
+    if (updateRequest.getRiderId() != null) {
+        User rider = userRepository.findById(updateRequest.getRiderId())
+                .orElseThrow(() -> new EntityNotFound("Rider not found"));
+        parcel.setRiderId(rider.getUserId());
+        RiderInfo riderInfo = new RiderInfo();
+        riderInfo.setRiderName(rider.getName());
+        riderInfo.setRiderPhoneNumber(rider.getPhoneNumber());
+        riderInfo.setRiderId(rider.getUserId());
+        parcel.setRiderInfo(riderInfo);
+    }
+
     // Pickup fields
     if (updateRequest.getPickupAddress() != null) {
         parcel.setPickupAddress(updateRequest.getPickupAddress());
@@ -468,7 +503,13 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     }
 
     if (officeId != null) {
-        criteria.add(Criteria.where("officeId").is(officeId));
+        criteria.add(new Criteria().orOperator(
+            Criteria.where("officeId").is(officeId),
+            new Criteria().andOperator(
+                Criteria.where("toOfficeId").is(officeId),
+                Criteria.where("hasArrivedAtOffice").is(true)
+            )
+        ));
     }
 
     if (driverPhoneNumber != null) {
@@ -548,7 +589,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
             criteria.add(Criteria.where("typeofParcel").is(ParcelTypes.ONLINE));
             criteria.add(Criteria.where("isDelivered").is(true));
             String officeId = user.getOfficeIds().get(0);
-            criteria.add(Criteria.where("officeId").is(officeId));
+            criteria.add(Criteria.where("toOfficeId").is(officeId));
             query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
             org.springframework.data.domain.Sort sort;
             if (pageable.getSort().isSorted()) {
@@ -572,6 +613,94 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
             return new PageImpl<>(parcels, pageable, total);
         };
 
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public Page<Parcel> getOnlineParcelsInTransit(Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                ? user.getOfficeIds().get(0) : null;
+
+        List<Criteria> criteria = new ArrayList<>();
+        criteria.add(Criteria.where("typeofParcel").is(ParcelTypes.ONLINE));
+        criteria.add(Criteria.where("toOfficeId").is(officeId));
+        criteria.add(Criteria.where("hasArrivedAtOffice").is(false));
+
+        Query query = new Query(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+        query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        long total = mongoTemplate.count(query, Parcel.class);
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        return new PageImpl<>(mongoTemplate.find(query, Parcel.class), pageable, total);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public Page<Parcel> getOnlineParcelsArrived(Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                ? user.getOfficeIds().get(0) : null;
+
+        List<Criteria> criteria = new ArrayList<>();
+        criteria.add(Criteria.where("typeofParcel").is(ParcelTypes.ONLINE));
+        criteria.add(Criteria.where("toOfficeId").is(officeId));
+        criteria.add(Criteria.where("hasArrivedAtOffice").is(true));
+
+        Query query = new Query(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+        query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        long total = mongoTemplate.count(query, Parcel.class);
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        return new PageImpl<>(mongoTemplate.find(query, Parcel.class), pageable, total);
+    }
+
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public Page<Parcel> getOnlineParcelsOutgoing(Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                ? user.getOfficeIds().get(0) : null;
+
+        List<Criteria> criteria = new ArrayList<>();
+        criteria.add(Criteria.where("typeofParcel").is(ParcelTypes.ONLINE));
+        criteria.add(Criteria.where("fromOfficeId").is(officeId));
+        criteria.add(Criteria.where("hasArrivedAtOffice").is(false));
+
+        Query query = new Query(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+        query.with(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        long total = mongoTemplate.count(query, Parcel.class);
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        return new PageImpl<>(mongoTemplate.find(query, Parcel.class), pageable, total);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public Parcel markParcelAsArrived(String parcelId, String shelfName) {
+        Parcel parcel = parcelRepository.findById(parcelId)
+                .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+        parcel.setHasArrivedAtOffice(true);
+        parcel.setShelfName(shelfName);
+        return parcelRepository.save(parcel);
+    }
 
     @Override
     public Page<Parcel> getHomeDeliveryParcels(Pageable pageable) {
@@ -646,7 +775,10 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         Query query = new Query();
         List<Criteria> criteria = new ArrayList<>();
 
-        criteria.add(Criteria.where("hasCalled").is(false));
+        criteria.add(new Criteria().orOperator(
+                Criteria.where("hasCallCenterSpokenToClient").is(false),
+                Criteria.where("hasCallCenterSpokenToClient").isNull()
+        ));
 
         criteria.add(Criteria.where("officeId").is(officeId));
 
@@ -929,10 +1061,17 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     @Override
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CALLCENTER')")
     public Page<Parcel> getDeliveredUncalledParcels(String officeId, Pageable pageable) {
+        long startOfYesterday = LocalDate.now().minusDays(1)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
         Query query = new Query(new Criteria().andOperator(
                 Criteria.where("officeId").is(officeId),
                 Criteria.where("isDelivered").is(true),
-                Criteria.where("hasCalled").is(false)
+                Criteria.where("createdAt").gte(startOfYesterday),
+                new Criteria().orOperator(
+                        Criteria.where("hasCallCenterSpokenToClient").is(false),
+                        Criteria.where("hasCallCenterSpokenToClient").isNull()
+                )
         ));
         query.with(org.springframework.data.domain.Sort.by(
                 org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
@@ -950,7 +1089,10 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         Query query = new Query(new Criteria().andOperator(
                 Criteria.where("officeId").is(officeId),
                 Criteria.where("isDelivered").is(false),
-                Criteria.where("hasCalled").is(false)
+                new Criteria().orOperator(
+                        Criteria.where("hasCallCenterSpokenToClient").is(false),
+                        Criteria.where("hasCallCenterSpokenToClient").isNull()
+                )
         ));
         query.with(org.springframework.data.domain.Sort.by(
                 org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));

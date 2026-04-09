@@ -8,7 +8,6 @@ import shortly.mandmcorp.dev.shortly.enums.ContactType;
 import shortly.mandmcorp.dev.shortly.model.Contacts;
 import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
-import shortly.mandmcorp.dev.shortly.model.Shelf;
 import shortly.mandmcorp.dev.shortly.repository.ContaceRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 
@@ -19,7 +18,7 @@ public class ParcelMapper {
     private final ContaceRepository contactRepository;
     private final OfficeRepository officeRepository;
 
-    public Parcel toEntity(ParcelRequest request, Shelf shelf) {
+    public Parcel toEntity(ParcelRequest request) {
         Parcel parcel = new Parcel();
         parcel.setSenderName(request.getSenderName());
         parcel.setSenderPhoneNumber(request.getSenderPhoneNumber());
@@ -52,9 +51,15 @@ public class ParcelMapper {
         // Parcel type
         parcel.setTypeofParcel(request.getTypeofParcel());
 
+        // Rider
+        parcel.setRiderId(request.getRiderId());
+
         // Online order fields
         parcel.setItemCost(request.getItemCost());
         parcel.setItemOwnerPaid(request.isItemOwnerPaid());
+        parcel.setFromOfficeId(request.getFromOfficeId());
+        parcel.setToOfficeId(request.getToOfficeId());
+        parcel.setHasArrivedAtOffice(request.isHasArrivedAtOffice());
 
         // Pickup fields
         parcel.setPickupAddress(request.getPickupAddress());

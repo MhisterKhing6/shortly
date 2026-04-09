@@ -57,7 +57,7 @@ public class ParcelRequest {
     private boolean isItemOwnerPaid = false;
     private String fromOfficeId;
     private String toOfficeId;
-
+    private boolean hasArrivedAtOffice = false; 
     // For pickup
     private String pickupAddress;
     private String pickupContactName;
@@ -68,4 +68,6 @@ public class ParcelRequest {
     private String deliveryContactPhoneNumber;
     private String specialInstructions;
     private String riderId;
+    //for calllcenter
+    private boolean hasCallCenterSpokenToClient = false;
 }

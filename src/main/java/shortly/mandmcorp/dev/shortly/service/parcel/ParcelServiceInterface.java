@@ -101,4 +101,27 @@ public interface ParcelServiceInterface {
      * period = "all" returns all-time stats; period = "month" returns stats for the current month.
      */
     shortly.mandmcorp.dev.shortly.dto.response.CallerStatsResponse getCallerStats(String callerPhoneNumber, String period);
+
+    /**
+     * Returns paginated online parcels (typeofParcel=ONLINE) in transit to the logged-in user's office
+     * (to.officeId == user's officeId, hasArrivedAtOffice=false).
+     */
+    Page<Parcel> getOnlineParcelsInTransit(Pageable pageable);
+
+    /**
+     * Returns paginated online parcels (typeofParcel=ONLINE) that have arrived at the logged-in user's office
+     * (to.officeId == user's officeId, hasArrivedAtOffice=true).
+     */
+    Page<Parcel> getOnlineParcelsArrived(Pageable pageable);
+
+    /**
+     * Returns paginated online parcels (typeofParcel=ONLINE) dispatched from the logged-in user's office
+     * that have not yet arrived at the destination (from.officeId == user's officeId, hasArrivedAtOffice=false).
+     */
+    Page<Parcel> getOnlineParcelsOutgoing(Pageable pageable);
+
+    /**
+     * Marks an online parcel as arrived at the destination office (hasArrivedAtOffice=true).
+     */
+    Parcel markParcelAsArrived(String parcelId, String shelfName);
 }

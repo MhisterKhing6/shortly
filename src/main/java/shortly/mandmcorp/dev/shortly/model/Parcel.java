@@ -63,6 +63,8 @@ public class Parcel {
     private double ItemCost;
     private OfficeInfo from;
     private OfficeInfo to;
+    private String fromOfficeId;
+    private String toOfficeId;
     private boolean hasArrivedAtOffice = false;
     private boolean isItemOwnerPaid = false;
 

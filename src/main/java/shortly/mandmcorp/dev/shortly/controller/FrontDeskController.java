@@ -25,11 +25,10 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.request.AddAddressRequest;
-import shortly.mandmcorp.dev.shortly.dto.request.PickedUpRequest;
-import shortly.mandmcorp.dev.shortly.model.ParcelSystemLog;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.PickedUpRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
@@ -39,6 +38,7 @@ import shortly.mandmcorp.dev.shortly.model.Address;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.DriverReconcilation;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
+import shortly.mandmcorp.dev.shortly.model.ParcelSystemLog;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.service.office.OfficeServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
@@ -357,6 +357,56 @@ public class FrontDeskController {
             return riderService.payDriverAssignments(assignmentIds);
         }
 
-        
+        @GetMapping("/parcels/online/in-transit")
+        @Operation(summary = "Get online parcels in transit", description = "Returns paginated online parcels (typeofParcel=ONLINE) that are on their way to the logged-in user's office (hasArrivedAtOffice=false).")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Online parcels in transit retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        @TrackUserAction(action = "VIEW_ONLINE_PARCELS_IN_TRANSIT", description = "Front desk viewed online parcels in transit to their office")
+        public Page<Parcel> getOnlineParcelsInTransit(Pageable pageable) {
+            return parcelService.getOnlineParcelsInTransit(pageable);
+        }
+
+        @GetMapping("/parcels/online/arrived")
+        @Operation(summary = "Get online parcels arrived", description = "Returns paginated online parcels (typeofParcel=ONLINE) that have arrived at the logged-in user's office (hasArrivedAtOffice=true).")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Online parcels arrived retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        @TrackUserAction(action = "VIEW_ONLINE_PARCELS_ARRIVED", description = "Front desk viewed online parcels arrived at their office")
+        public Page<Parcel> getOnlineParcelsArrived(Pageable pageable) {
+            return parcelService.getOnlineParcelsArrived(pageable);
+        }
+
+        @GetMapping("/parcels/online/outgoing")
+        @Operation(summary = "Get outgoing online parcels", description = "Returns paginated online parcels dispatched from the logged-in user's office that have not yet arrived at their destination (hasArrivedAtOffice=false).")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Outgoing online parcels retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        @TrackUserAction(action = "VIEW_ONLINE_PARCELS_OUTGOING", description = "Front desk viewed outgoing online parcels from their office")
+        public Page<Parcel> getOnlineParcelsOutgoing(Pageable pageable) {
+            return parcelService.getOnlineParcelsOutgoing(pageable);
+        }
+
+        @PutMapping("/parcels/online/{parcelId}/arrived")
+        @Operation(summary = "Mark online parcel as arrived", description = "Sets hasArrivedAtOffice=true on an online parcel when it arrives at the destination office.")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Parcel marked as arrived successfully"),
+            @ApiResponse(responseCode = "404", description = "Parcel not found"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        @TrackUserAction(action = "MARK_ONLINE_PARCEL_ARRIVED", description = "Front desk marked an online parcel as arrived at the office")
+        public Parcel markParcelAsArrived(@PathVariable String parcelId,
+                @RequestParam String shelfName) {
+            return parcelService.markParcelAsArrived(parcelId, shelfName);
+        }
+
+
     }
 

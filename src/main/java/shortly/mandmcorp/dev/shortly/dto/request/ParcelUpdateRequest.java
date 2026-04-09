@@ -43,6 +43,12 @@ public class ParcelUpdateRequest {
     // For online
     private Double ItemCost;
     private Boolean isItemOwnerPaid;
+    private String fromOfficeId;
+    private String toOfficeId;
+    private Boolean hasArrivedAtOffice;
+
+    // Rider
+    private String riderId;
 
     // For pickup
     private String pickupAddress;
