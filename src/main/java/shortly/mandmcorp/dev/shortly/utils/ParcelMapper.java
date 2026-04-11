@@ -41,7 +41,7 @@ public class ParcelMapper {
         parcel.setHomeDelivery(request.isHomeDelivery());
         parcel.setHasCalled(request.isHasCalled());
         parcel.setPickedUp(request.isPickedUp());
-
+        parcel.setItemCost(request.getItemCost());
         // Payment and shelf info
         parcel.setPaymentMethod(request.getPaymentMethod());
         parcel.setShelfName(request.getShelfName());
