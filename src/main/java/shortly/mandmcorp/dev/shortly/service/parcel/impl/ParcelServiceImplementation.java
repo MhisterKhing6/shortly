@@ -5,6 +5,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -48,11 +49,9 @@ import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelSystemLogRepository;
 import shortly.mandmcorp.dev.shortly.repository.ShelfRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Qualifier;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
-import shortly.mandmcorp.dev.shortly.utils.DriverIDFormatter;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
 
@@ -80,7 +79,6 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
       
 
         Parcel parcel = parcelMapper.toEntity(parcelRequest);
-
         if (parcelRequest.getOfficeId() != null) {
             Office office = officeRepository.findById(parcelRequest.getOfficeId())
                     .orElseThrow(() -> new EntityNotFound("Office not found"));
