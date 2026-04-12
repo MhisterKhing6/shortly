@@ -53,7 +53,7 @@ public class ParcelRequest {
     private ParcelTypes typeofParcel;
     private boolean parcelTransfer; // For transfer
     // For online
-    private double ItemCost;
+    private double itemCost;
     private boolean isItemOwnerPaid = false;
     private String fromOfficeId;
     private String toOfficeId;

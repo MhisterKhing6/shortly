@@ -77,11 +77,11 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
     public Parcel addParcel(ParcelRequest parcelRequest) {
       
-
         Parcel parcel = parcelMapper.toEntity(parcelRequest);
         if ((parcelRequest.getOfficeId() != null) && (!parcelRequest.isParcelTransfer())) {
             Office office = officeRepository.findById(parcelRequest.getOfficeId())
                     .orElseThrow(() -> new EntityNotFound("Office not found"));
+            log.info("Office found 1: {}", office.getName());
             parcel.setOfficeId(office.getId());
         } else {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -91,6 +91,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
                     ? user.getOfficeIds().get(0)
                     : null;
                 if ((userOfficeId != null) && (!parcelRequest.isParcelTransfer())) {
+                    log.info("User office found 2: {}", userOfficeId);
                     parcel.setOfficeId(userOfficeId);
                 }
             }
@@ -102,10 +103,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     if(parcelRequest.getShelfNumber() != null) {
         Shelf shelf = shelfRepository.findById(parcelRequest.getShelfNumber())
                 .orElseThrow(() -> new EntityNotFound("Shelf not found"));
-
-        if( !shelf.getOffice().getId().equals(parcel.getOfficeId())) {
-            throw new WrongCredentialsException("Shelf does not belong to the specified office");
-        } 
+        
         parcel.setShelfName(shelf.getName());
         parcel.setShelfId(shelf.getId());
     }

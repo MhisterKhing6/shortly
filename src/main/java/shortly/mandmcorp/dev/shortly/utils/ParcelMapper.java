@@ -72,6 +72,7 @@ public class ParcelMapper {
         parcel.setDeliveryContactName(request.getDeliveryContactName());
         parcel.setDeliveryContactPhoneNumber(request.getDeliveryContactPhoneNumber());
         parcel.setSpecialInstructions(request.getSpecialInstructions());
+        parcel.setParcelTransfer(request.isParcelTransfer());
 
         return parcel;
     }
