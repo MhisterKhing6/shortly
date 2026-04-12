@@ -357,16 +357,29 @@ public class FrontDeskController {
             return riderService.payDriverAssignments(assignmentIds);
         }
 
-        @GetMapping("/parcels/online/in-transit")
-        @Operation(summary = "Get online parcels in transit", description = "Returns paginated online parcels (typeofParcel=ONLINE) that are on their way to the logged-in user's office (hasArrivedAtOffice=false).")
+        @DeleteMapping("/parcel/{parcelId}")
+        @Operation(summary = "Delete a parcel", description = "Deletes a parcel by its ID")
         @SecurityRequirement(name = "Bearer Authentication")
         @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Online parcels in transit retrieved successfully"),
+            @ApiResponse(responseCode = "200", description = "Parcel deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Parcel not found"),
             @ApiResponse(responseCode = "401", description = "User not authenticated")
         })
-        @TrackUserAction(action = "VIEW_ONLINE_PARCELS_IN_TRANSIT", description = "Front desk viewed online parcels in transit to their office")
-        public Page<Parcel> getOnlineParcelsInTransit(Pageable pageable) {
-            return parcelService.getOnlineParcelsInTransit(pageable);
+        @TrackUserAction(action = "DELETE_PARCEL", description = "Front desk deleted a parcel")
+        public void deleteParcel(@PathVariable String parcelId) {
+            parcelService.deleteParcel(parcelId);
+        }
+
+        @GetMapping("/parcels/transfer/in-transit")
+        @Operation(summary = "Get transfer parcels in transit", description = "Returns paginated transfer parcels (parcelTransfer=true) that are on their way to the logged-in user's office (hasArrivedAtOffice=false).")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Transfer parcels in transit retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        @TrackUserAction(action = "VIEW_TRANSFER_PARCELS_IN_TRANSIT", description = "Front desk viewed transfer parcels in transit to their office")
+        public Page<Parcel> getTransferParcelsInTransit(Pageable pageable) {
+            return parcelService.getTransferParcelsInTransit(pageable);
         }
 
         @GetMapping("/parcels/online/arrived")
@@ -381,30 +394,30 @@ public class FrontDeskController {
             return parcelService.getOnlineParcelsArrived(pageable);
         }
 
-        @GetMapping("/parcels/online/outgoing")
-        @Operation(summary = "Get outgoing online parcels", description = "Returns paginated online parcels dispatched from the logged-in user's office that have not yet arrived at their destination (hasArrivedAtOffice=false).")
+        @GetMapping("/parcels/transfer/outgoing")
+        @Operation(summary = "Get outgoing transfer parcels", description = "Returns paginated transfer parcels (parcelTransfer=true) dispatched from the logged-in user's office that have not yet arrived at their destination (hasArrivedAtOffice=false).")
         @SecurityRequirement(name = "Bearer Authentication")
         @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Outgoing online parcels retrieved successfully"),
+            @ApiResponse(responseCode = "200", description = "Outgoing transfer parcels retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "User not authenticated")
         })
-        @TrackUserAction(action = "VIEW_ONLINE_PARCELS_OUTGOING", description = "Front desk viewed outgoing online parcels from their office")
-        public Page<Parcel> getOnlineParcelsOutgoing(Pageable pageable) {
-            return parcelService.getOnlineParcelsOutgoing(pageable);
+        @TrackUserAction(action = "VIEW_TRANSFER_PARCELS_OUTGOING", description = "Front desk viewed outgoing transfer parcels from their office")
+        public Page<Parcel> getTransferOutgoing(Pageable pageable) {
+            return parcelService.getTransferOutgoing(pageable);
         }
 
-        @PutMapping("/parcels/online/{parcelId}/arrived")
-        @Operation(summary = "Mark online parcel as arrived", description = "Sets hasArrivedAtOffice=true on an online parcel when it arrives at the destination office.")
+        @PutMapping("/parcels/transfer/{parcelId}/arrived")
+        @Operation(summary = "Mark transfer parcel as arrived", description = "Sets hasArrivedAtOffice=true on a transfer parcel, sets officeId to the logged-in user's office, and resolves shelf name from the given shelfId.")
         @SecurityRequirement(name = "Bearer Authentication")
         @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Parcel marked as arrived successfully"),
-            @ApiResponse(responseCode = "404", description = "Parcel not found"),
+            @ApiResponse(responseCode = "404", description = "Parcel or shelf not found"),
             @ApiResponse(responseCode = "401", description = "User not authenticated")
         })
-        @TrackUserAction(action = "MARK_ONLINE_PARCEL_ARRIVED", description = "Front desk marked an online parcel as arrived at the office")
+        @TrackUserAction(action = "MARK_TRANSFER_PARCEL_ARRIVED", description = "Front desk marked a transfer parcel as arrived at the office")
         public Parcel markParcelAsArrived(@PathVariable String parcelId,
-                @RequestParam String shelfName) {
-            return parcelService.markParcelAsArrived(parcelId, shelfName);
+                @RequestParam(required = true) String shelfId) {
+            return parcelService.markParcelAsArrived(parcelId, shelfId);
         }
 
 

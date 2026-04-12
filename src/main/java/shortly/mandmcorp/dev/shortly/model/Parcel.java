@@ -67,7 +67,8 @@ public class Parcel {
     private String toOfficeId;
     private boolean hasArrivedAtOffice = false;
     private boolean isItemOwnerPaid = false;
-
+    //for transfer
+    private boolean parcelTransfer = false;
     //For pickup
     private String pickupAddress;
     private String pickupContactName;

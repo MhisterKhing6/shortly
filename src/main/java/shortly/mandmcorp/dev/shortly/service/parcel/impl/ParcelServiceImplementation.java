@@ -79,7 +79,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
       
 
         Parcel parcel = parcelMapper.toEntity(parcelRequest);
-        if (parcelRequest.getOfficeId() != null) {
+        if ((parcelRequest.getOfficeId() != null) && (!parcelRequest.isParcelTransfer())) {
             Office office = officeRepository.findById(parcelRequest.getOfficeId())
                     .orElseThrow(() -> new EntityNotFound("Office not found"));
             parcel.setOfficeId(office.getId());
@@ -613,7 +613,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
-    public Page<Parcel> getOnlineParcelsInTransit(Pageable pageable) {
+    public Page<Parcel> getTransferParcelsInTransit(Pageable pageable) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
             throw new WrongCredentialsException("User not authenticated");
@@ -622,7 +622,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                 ? user.getOfficeIds().get(0) : null;
 
         List<Criteria> criteria = new ArrayList<>();
-        criteria.add(Criteria.where("typeofParcel").is(ParcelTypes.ONLINE));
+        criteria.add(Criteria.where("parcelTransfer").is(true));
         criteria.add(Criteria.where("toOfficeId").is(officeId));
         criteria.add(Criteria.where("hasArrivedAtOffice").is(false));
 
@@ -666,7 +666,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
-    public Page<Parcel> getOnlineParcelsOutgoing(Pageable pageable) {
+    public Page<Parcel> getTransferOutgoing(Pageable pageable) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
             throw new WrongCredentialsException("User not authenticated");
@@ -675,7 +675,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                 ? user.getOfficeIds().get(0) : null;
 
         List<Criteria> criteria = new ArrayList<>();
-        criteria.add(Criteria.where("typeofParcel").is(ParcelTypes.ONLINE));
+        criteria.add(Criteria.where("parcelTransfer").is(true));
         criteria.add(Criteria.where("fromOfficeId").is(officeId));
         criteria.add(Criteria.where("hasArrivedAtOffice").is(false));
 
@@ -692,11 +692,31 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
-    public Parcel markParcelAsArrived(String parcelId, String shelfName) {
+    public void deleteParcel(String parcelId) {
         Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+        parcelRepository.delete(parcel);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public Parcel markParcelAsArrived(String parcelId, String shelfId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                ? user.getOfficeIds().get(0) : null;
+
+        Parcel parcel = parcelRepository.findById(parcelId)
+                .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+        Shelf shelf = shelfRepository.findById(shelfId)
+                .orElseThrow(() -> new EntityNotFound("Shelf not found"));
+
         parcel.setHasArrivedAtOffice(true);
-        parcel.setShelfName(shelfName);
+        parcel.setShelfId(shelfId);
+        parcel.setShelfName(shelf.getName());
+        parcel.setOfficeId(officeId);
         return parcelRepository.save(parcel);
     }
 

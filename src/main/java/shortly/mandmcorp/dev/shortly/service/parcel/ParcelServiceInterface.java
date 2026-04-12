@@ -106,7 +106,7 @@ public interface ParcelServiceInterface {
      * Returns paginated online parcels (typeofParcel=ONLINE) in transit to the logged-in user's office
      * (to.officeId == user's officeId, hasArrivedAtOffice=false).
      */
-    Page<Parcel> getOnlineParcelsInTransit(Pageable pageable);
+    Page<Parcel> getTransferParcelsInTransit(Pageable pageable);
 
     /**
      * Returns paginated online parcels (typeofParcel=ONLINE) that have arrived at the logged-in user's office
@@ -118,10 +118,18 @@ public interface ParcelServiceInterface {
      * Returns paginated online parcels (typeofParcel=ONLINE) dispatched from the logged-in user's office
      * that have not yet arrived at the destination (from.officeId == user's officeId, hasArrivedAtOffice=false).
      */
-    Page<Parcel> getOnlineParcelsOutgoing(Pageable pageable);
+    Page<Parcel> getTransferOutgoing(Pageable pageable);
 
     /**
-     * Marks an online parcel as arrived at the destination office (hasArrivedAtOffice=true).
+     * Marks a transfer parcel as arrived at the destination office (hasArrivedAtOffice=true).
+     * Sets officeId to the logged-in user's officeId, shelfId, and resolves shelfName from the shelf record.
      */
-    Parcel markParcelAsArrived(String parcelId, String shelfName);
+    Parcel markParcelAsArrived(String parcelId, String shelfId);
+
+    /**
+     * Deletes a parcel by its ID.
+     *
+     * @param parcelId the ID of the parcel to delete
+     */
+    void deleteParcel(String parcelId);
 }
