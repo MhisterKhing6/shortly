@@ -51,7 +51,7 @@ public class ParcelRequest {
     private String shelfId;
 
     private ParcelTypes typeofParcel;
-    private boolean parcelTransfer = false; // For transfer
+    private boolean parcelTransfer; // For transfer
     // For online
     private double ItemCost;
     private boolean isItemOwnerPaid = false;
