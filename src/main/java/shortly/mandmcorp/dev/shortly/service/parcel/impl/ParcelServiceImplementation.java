@@ -90,7 +90,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
                 String userOfficeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
                     ? user.getOfficeIds().get(0)
                     : null;
-                if (userOfficeId != null) {
+                if ((userOfficeId != null) && (!parcelRequest.isParcelTransfer())) {
                     parcel.setOfficeId(userOfficeId);
                 }
             }
