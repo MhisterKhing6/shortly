@@ -134,7 +134,6 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
                     OfficeInfo to = new OfficeInfo();
                     to.setOfficeId(toOffice.getId());
                     to.setOfficeName(toOffice.getName());
-                    parcel.setOfficeId(parcelRequest.getToOfficeId());
                     parcel.setTo(to);
                 }
             }
