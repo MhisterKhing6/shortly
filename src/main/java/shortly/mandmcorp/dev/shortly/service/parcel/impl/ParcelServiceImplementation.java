@@ -118,7 +118,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             parcel.setRiderInfo(riderInfo);
         }
 
-            if(parcelRequest.getTypeofParcel() == ParcelTypes.ONLINE) {
+            if(parcelRequest.isParcelTransfer()) {
                 if(parcelRequest.getFromOfficeId() != null) {
                     Office fromOffice = officeRepository.findById(parcelRequest.getFromOfficeId())
                             .orElseThrow(() -> new EntityNotFound("From office not found"));
@@ -606,7 +606,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
             List<Parcel> parcels = mongoTemplate.find(query, Parcel.class);
 
             return new PageImpl<>(parcels, pageable, total);
-        };
+        }
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
