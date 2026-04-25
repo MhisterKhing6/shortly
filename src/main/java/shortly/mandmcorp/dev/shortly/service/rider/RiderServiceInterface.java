@@ -222,4 +222,12 @@ public interface RiderServiceInterface {
      */
     Page<shortly.mandmcorp.dev.shortly.model.FuelRequest> getFuelRequests(Pageable pageable);
 
+    /**
+     * Returns paginated fuel requests for the logged-in rider, sorted by createdAt descending.
+     *
+     * @param pageable pagination parameters
+     * @return Page of FuelRequest belonging to the authenticated rider
+     */
+    Page<shortly.mandmcorp.dev.shortly.model.FuelRequest> getRiderFuelRequests(Pageable pageable);
+
 }

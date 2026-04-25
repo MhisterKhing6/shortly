@@ -113,6 +113,17 @@ public class RiderController {
         return riderService.getRiderReconciliations(pageable);
     }
 
+    @GetMapping("/fuel-requests")
+    @Operation(summary = "Get rider fuel requests", description = "Returns paginated fuel requests for the logged-in rider sorted by createdAt descending")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Fuel requests retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated")
+    })
+    public Page<FuelRequest> getRiderFuelRequests(Pageable pageable) {
+        return riderService.getRiderFuelRequests(pageable);
+    }
+
     @PostMapping("/fuel-request")
     @Operation(summary = "Create fuel request", description = "Create a fuel request for the authenticated rider")
     @SecurityRequirement(name = "Bearer Authentication")

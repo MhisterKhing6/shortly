@@ -1358,6 +1358,20 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     }
 
     @Override
+    @PreAuthorize("hasRole('RIDER')")
+    public Page<FuelRequest> getRiderFuelRequests(Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        Pageable sorted = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(), pageable.getPageSize(),
+                org.springframework.data.domain.Sort.by(
+                        org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        return fuelRequestRepository.findByRiderInfo_RiderId(user.getUserId(), sorted);
+    }
+
+    @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
     public FuelRequestStatsResponse getFuelRequestStats() {
         long total = fuelRequestRepository.count();

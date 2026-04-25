@@ -9,4 +9,5 @@ import shortly.mandmcorp.dev.shortly.model.FuelRequest;
 public interface FuelRequestRepository extends MongoRepository<FuelRequest, String> {
     long countByStatus(FuelRequestStatus status);
     Page<FuelRequest> findByStatus(FuelRequestStatus status, Pageable pageable);
+    Page<FuelRequest> findByRiderInfo_RiderId(String riderId, Pageable pageable);
 }
