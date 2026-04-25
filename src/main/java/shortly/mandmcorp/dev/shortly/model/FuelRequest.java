@@ -29,6 +29,8 @@ public class FuelRequest {
 
     private String notes;
 
+    private String tank;
+
     private Double amount;
 
     private String fuleStationPhoneNumber;

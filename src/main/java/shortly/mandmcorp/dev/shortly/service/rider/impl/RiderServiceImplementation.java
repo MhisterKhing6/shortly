@@ -1343,6 +1343,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         fuelRequest.setFuleStationPhoneNumber(request.getFuelStationNumber());
         fuelRequest.setAttendantPhoneNumber(request.getAttendantNumber());
         fuelRequest.setNotes(request.getNotes());
+        fuelRequest.setTank(request.getTank());
         String notifyFuelRequestMessage = NotificationUtil.generateFuelRequest(riderInfo.getRiderName(), office.getName());
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyFuelRequestMessage)
                 .to("+233504040228").build();
@@ -1378,6 +1379,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         if (request.getNotes() != null) fuelRequest.setNotes(request.getNotes());
         if (request.getAmount() != null) fuelRequest.setAmount(request.getAmount());
         if (request.getStatus() != null) fuelRequest.setStatus(request.getStatus());
+        if (request.getTank() != null) fuelRequest.setTank(request.getTank());
 
         return fuelRequestRepository.save(fuelRequest);
     }

@@ -16,4 +16,6 @@ public class FuelRequestDto {
     private String attendantNumber;
 
     private String notes;
+
+    private String tank;
 }

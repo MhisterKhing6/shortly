@@ -9,6 +9,7 @@ public class FuelRequestUpdateDto {
     private String fuelStationNumber;
     private String attendantNumber;
     private String notes;
+    private String tank;
     private Double amount;
     private FuelRequestStatus status;
 }
