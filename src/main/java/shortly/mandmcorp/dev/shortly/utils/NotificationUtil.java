@@ -44,4 +44,10 @@ public class NotificationUtil {
                 + " / " + riderPhoneNumber
                 + ". with verification code " + vCode;
             }
+
+    public static String generateFuelRequest(String riderName, String stationName) {
+        return "Hello  Sir a fuel request has been received from " + riderName
+                + " at " + stationName;
+                
+            }
 }

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,7 +22,9 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.FuelRequestDto;
 import shortly.mandmcorp.dev.shortly.dto.request.RiderStatusUpdateRequest;
+import shortly.mandmcorp.dev.shortly.model.FuelRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
@@ -108,6 +111,18 @@ public class RiderController {
     @TrackUserAction(action = "VIEW_RIDER_RECONCILIATIONS", description = "Rider viewed their reconciliations")
     public Page<Reconcilations> getRiderReconciliations(@PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return riderService.getRiderReconciliations(pageable);
+    }
+
+    @PostMapping("/fuel-request")
+    @Operation(summary = "Create fuel request", description = "Create a fuel request for the authenticated rider")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Fuel request created successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated")
+    })
+    @TrackUserAction(action = "CREATE_FUEL_REQUEST", description = "Rider created a fuel request")
+    public FuelRequest createFuelRequest(@RequestBody @Valid FuelRequestDto request) {
+        return riderService.createFuelRequest(request);
     }
 
     @PutMapping("/assignments/update")

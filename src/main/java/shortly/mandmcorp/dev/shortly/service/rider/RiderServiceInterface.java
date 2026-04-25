@@ -191,4 +191,35 @@ public interface RiderServiceInterface {
      */
     Page<shortly.mandmcorp.dev.shortly.model.DriverAssignment> getUnpaidDriverAssignments(String driverPhoneNumber, Pageable pageable);
 
+    /**
+     * Creates a fuel request for the authenticated rider.
+     * Sets riderInfo and officeId from the logged-in user.
+     *
+     * @param request fuel request details
+     * @return the saved FuelRequest
+     */
+    shortly.mandmcorp.dev.shortly.model.FuelRequest createFuelRequest(shortly.mandmcorp.dev.shortly.dto.request.FuelRequestDto request);
+
+    /**
+     * Partially updates a fuel request. Only non-null fields in the request are applied.
+     *
+     * @param fuelRequestId the ID of the fuel request to update
+     * @param request       fields to update (any field may be null to skip it)
+     * @return the updated FuelRequest
+     */
+    shortly.mandmcorp.dev.shortly.model.FuelRequest updateFuelRequest(String fuelRequestId, shortly.mandmcorp.dev.shortly.dto.request.FuelRequestUpdateDto request);
+
+    /**
+     * Returns fuel request statistics: total, approved, pending, and rejected counts.
+     */
+    shortly.mandmcorp.dev.shortly.dto.response.FuelRequestStatsResponse getFuelRequestStats();
+
+    /**
+     * Returns all fuel requests paginated.
+     *
+     * @param pageable pagination parameters
+     * @return Page of FuelRequest
+     */
+    Page<shortly.mandmcorp.dev.shortly.model.FuelRequest> getFuelRequests(Pageable pageable);
+
 }

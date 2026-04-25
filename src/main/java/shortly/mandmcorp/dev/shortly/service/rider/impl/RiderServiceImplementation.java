@@ -21,31 +21,38 @@ import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryStatusUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.FuelRequestDto;
+import shortly.mandmcorp.dev.shortly.dto.request.FuelRequestUpdateDto;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.FuelRequestStatsResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
+import shortly.mandmcorp.dev.shortly.enums.FuelRequestStatus;
 import shortly.mandmcorp.dev.shortly.enums.UserRole;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
+import shortly.mandmcorp.dev.shortly.model.DriverAssignment;
 import shortly.mandmcorp.dev.shortly.model.DriverReconcilation;
+import shortly.mandmcorp.dev.shortly.model.FuelRequest;
+import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.ParcelInfo;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.model.RiderInfo;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository;
-import shortly.mandmcorp.dev.shortly.model.DriverAssignment;
 import shortly.mandmcorp.dev.shortly.repository.DriverAssignmentRepository;
 import shortly.mandmcorp.dev.shortly.repository.DriverReconcilationRepository;
+import shortly.mandmcorp.dev.shortly.repository.FuelRequestRepository;
+import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.ParcelRepository;
 import shortly.mandmcorp.dev.shortly.repository.ReconcilationRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
-import shortly.mandmcorp.dev.shortly.utils.DriverIDFormatter;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.OtpUtil;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
@@ -73,11 +80,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     private final ReconcilationRepository reconcilationRepository;
     private final DriverReconcilationRepository driverReconcilationRepository;
     private final DriverAssignmentRepository driverAssignmentRepository;
+    private final FuelRequestRepository fuelRequestRepository;
+    private final OfficeRepository officeRepository;
 
     public RiderServiceImplementation(DeliveryAssignmentsRepository deliveryAssignmentsRepository, UserRepository userRepository, ParcelRepository parcelRepository,
         @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate,
         DeliveryAssignmentsRepository deliveryRepo, ReconcilationRepository reconcilationRepository, DriverReconcilationRepository drivRecon,
-        DriverAssignmentRepository driverAssignmentRepository) {
+        DriverAssignmentRepository driverAssignmentRepository, FuelRequestRepository fuelRequestRepository, OfficeRepository officeRepository ) {
         this.deliveryAssignmentsRepository = deliveryAssignmentsRepository;
         this.userRepository = userRepository;
         this.parcelRepository = parcelRepository;
@@ -88,6 +97,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         this.reconcilationRepository = reconcilationRepository;
         this.driverReconcilationRepository = drivRecon;
         this.driverAssignmentRepository = driverAssignmentRepository;
+        this.fuelRequestRepository = fuelRequestRepository;
+        this.officeRepository = officeRepository;
     }
 
     /**
@@ -1305,6 +1316,70 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         driverAssignmentRepository.saveAll(assignments);
 
         return new UserResponse("Driver assignments marked as paid successfully", String.valueOf(assignments.size()));
+    }
+
+    @Override
+    @PreAuthorize("hasRole('RIDER')")
+    public FuelRequest createFuelRequest(FuelRequestDto request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                ? user.getOfficeIds().get(0) : null;
+        Office office = officeRepository.findById(officeId)
+                .orElseThrow(() -> new EntityNotFound("Office not found for user"));
+        RiderInfo riderInfo = RiderInfo.builder()
+                .riderId(user.getUserId())
+                .riderName(user.getName())
+                .stationName(office.getName())
+                .riderPhoneNumber(user.getPhoneNumber())
+                .build();
+
+        FuelRequest fuelRequest = new FuelRequest();
+        fuelRequest.setRiderInfo(riderInfo);
+        fuelRequest.setOfficeId(officeId);
+        fuelRequest.setStation(request.getStation());
+        fuelRequest.setFuleStationPhoneNumber(request.getFuelStationNumber());
+        fuelRequest.setAttendantPhoneNumber(request.getAttendantNumber());
+        fuelRequest.setNotes(request.getNotes());
+        String notifyFuelRequestMessage = NotificationUtil.generateFuelRequest(riderInfo.getRiderName(), office.getName());
+        NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyFuelRequestMessage)
+                .to("+233504040228").build();
+            notification.send(notify);
+        return fuelRequestRepository.save(fuelRequest);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public Page<FuelRequest> getFuelRequests(Pageable pageable) {
+        return fuelRequestRepository.findAll(pageable);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public FuelRequestStatsResponse getFuelRequestStats() {
+        long total = fuelRequestRepository.count();
+        long approved = fuelRequestRepository.countByStatus(FuelRequestStatus.APPROVED);
+        long pending = fuelRequestRepository.countByStatus(FuelRequestStatus.PENDING);
+        long rejected = fuelRequestRepository.countByStatus(FuelRequestStatus.REJECTED);
+        return new FuelRequestStatsResponse(total, approved, pending, rejected);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public FuelRequest updateFuelRequest(String fuelRequestId, FuelRequestUpdateDto request) {
+        FuelRequest fuelRequest = fuelRequestRepository.findById(fuelRequestId)
+                .orElseThrow(() -> new EntityNotFound("Fuel request not found"));
+
+        if (request.getStation() != null) fuelRequest.setStation(request.getStation());
+        if (request.getFuelStationNumber() != null) fuelRequest.setFuleStationPhoneNumber(request.getFuelStationNumber());
+        if (request.getAttendantNumber() != null) fuelRequest.setAttendantPhoneNumber(request.getAttendantNumber());
+        if (request.getNotes() != null) fuelRequest.setNotes(request.getNotes());
+        if (request.getAmount() != null) fuelRequest.setAmount(request.getAmount());
+        if (request.getStatus() != null) fuelRequest.setStatus(request.getStatus());
+
+        return fuelRequestRepository.save(fuelRequest);
     }
 
 }

@@ -26,6 +26,9 @@ import lombok.AllArgsConstructor;
 import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.request.AddAddressRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.FuelRequestUpdateDto;
+import shortly.mandmcorp.dev.shortly.dto.response.FuelRequestStatsResponse;
+import shortly.mandmcorp.dev.shortly.model.FuelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.PickedUpRequest;
@@ -355,6 +358,42 @@ public class FrontDeskController {
         @TrackUserAction(action = "PAY_DRIVER_ASSIGNMENTS", description = "Front desk marked driver assignments as paid")
         public UserResponse payDriverAssignments(@RequestBody List<String> assignmentIds) {
             return riderService.payDriverAssignments(assignmentIds);
+        }
+
+        @GetMapping("/fuel-requests")
+        @Operation(summary = "Get fuel requests", description = "Returns paginated fuel requests, optionally filtered by status")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Fuel requests retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        public Page<FuelRequest> getFuelRequests(Pageable pageable) {
+            return riderService.getFuelRequests(pageable);
+        }
+
+        @GetMapping("/fuel-request/stats")
+        @Operation(summary = "Get fuel request statistics", description = "Returns total, approved, pending, and rejected fuel request counts")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        public FuelRequestStatsResponse getFuelRequestStats() {
+            return riderService.getFuelRequestStats();
+        }
+
+        @PutMapping("/fuel-request/{fuelRequestId}")
+        @Operation(summary = "Update a fuel request", description = "Partially updates a fuel request — only fields provided in the request body are applied")
+        @SecurityRequirement(name = "Bearer Authentication")
+        @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Fuel request updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Fuel request not found"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated")
+        })
+        @TrackUserAction(action = "UPDATE_FUEL_REQUEST", description = "Front desk updated a fuel request")
+        public FuelRequest updateFuelRequest(@PathVariable String fuelRequestId,
+                @RequestBody FuelRequestUpdateDto request) {
+            return riderService.updateFuelRequest(fuelRequestId, request);
         }
 
         @DeleteMapping("/parcel/{parcelId}")

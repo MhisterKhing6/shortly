@@ -13,4 +13,5 @@ public class RiderInfo {
     private String riderId;
     private String riderName;
     private String riderPhoneNumber;
+    private String stationName;
 }
