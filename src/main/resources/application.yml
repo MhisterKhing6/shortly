@@ -32,3 +32,10 @@ jwt:
 springdoc:
   dev-url: https://backend.mandmservicescorp.org/shortly
 
+jimi:
+  appKey: ${JIMI_APP_KEY}
+  appSecret: ${JIMI_APP_SECRET}
+  baseUrl: ${JIMI_BASE_URL:https://open.tracksolidpro.com/route/rest}
+  userId: ${JIMI_USER_ID}
+  userPasswordMd5: ${JIMI_USER_PASSWORD_MD5}
+

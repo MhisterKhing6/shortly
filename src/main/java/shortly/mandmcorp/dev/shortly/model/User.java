@@ -55,6 +55,8 @@ public class User implements UserDetails {
     @NotNull
     private UserRole role;
 
+    private String deviceImei;
+
     @CreatedDate
     private Long createdAt;
 

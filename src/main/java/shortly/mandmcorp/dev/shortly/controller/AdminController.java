@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import shortly.mandmcorp.dev.shortly.dto.request.AssignDeviceRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.LocationRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.LocationUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.OfficeRequest;
@@ -27,8 +28,17 @@ import shortly.mandmcorp.dev.shortly.dto.request.ShelfRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.LocationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.OfficeResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.DashboardStatsResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.RiderLocationResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.RiderTrackResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
+import shortly.mandmcorp.dev.shortly.service.dashboard.AdminDashboardService;
+import shortly.mandmcorp.dev.shortly.service.dashboard.RevenueDashboardService;
+import shortly.mandmcorp.dev.shortly.dto.response.RevenueDashboardResponse;
+import shortly.mandmcorp.dev.shortly.service.dashboard.RiderPerformanceDashboardService;
+import shortly.mandmcorp.dev.shortly.dto.response.RiderPerformanceDashboardResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.service.tracking.RiderTrackingService;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.model.User;
@@ -51,6 +61,10 @@ public class AdminController {
     private final OfficeServiceInterface officeService;
     private final ParcelServiceInterface parcelService;
     private final RiderServiceInterface riderService;
+    private final RiderTrackingService riderTrackingService;
+    private final AdminDashboardService adminDashboardService;
+    private final RevenueDashboardService revenueDashboardService;
+    private final RiderPerformanceDashboardService riderPerformanceDashboardService;
 
     @PostMapping("/register")
     @Operation(summary = "Register a new user", description = "Admin endpoint to register a new user")
@@ -245,6 +259,98 @@ public class AdminController {
             @RequestParam(required = false) String parcelId,
             Pageable pageable) {
         return parcelService.getParcelSystemLogs(officeId, parcelId, pageable);
+    }
+
+    @GetMapping("/dashboard")
+    @Operation(summary = "Get dashboard statistics", description = "Returns overview cards, revenue breakdown, daily trends, parcel pipeline, station snapshot, and top riders. Date params are epoch milliseconds. Defaults to the last 30 days when omitted.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "Insufficient privileges")
+    })
+    @TrackUserAction(action = "VIEW_DASHBOARD_STATS", description = "Admin/Manager viewed dashboard statistics")
+    public DashboardStatsResponse getDashboardStats(
+            @RequestParam(required = false) String officeId,
+            @RequestParam(required = false) Long startDate,
+            @RequestParam(required = false) Long endDate) {
+        return adminDashboardService.getStats(officeId, startDate, endDate);
+    }
+
+    @GetMapping("/rider-performance-dashboard")
+    @Operation(summary = "Get rider performance dashboard", description = "Returns daily and monthly station earnings trend, and a rider leaderboard with deliveries, failed, revenue, outstanding, rating and avg time. Date params are epoch milliseconds. Defaults to the last 30 days when omitted.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Rider performance statistics retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "Insufficient privileges")
+    })
+    @TrackUserAction(action = "VIEW_RIDER_PERFORMANCE_DASHBOARD", description = "Admin/Manager viewed rider performance dashboard")
+    public RiderPerformanceDashboardResponse getRiderPerformanceDashboard(
+            @RequestParam(required = false) String officeId,
+            @RequestParam(required = false) Long startDate,
+            @RequestParam(required = false) Long endDate) {
+        return riderPerformanceDashboardService.getStats(officeId, startDate, endDate);
+    }
+
+    @GetMapping("/revenue-dashboard")
+    @Operation(summary = "Get revenue analytics dashboard", description = "Returns KPI cards, daily revenue/collected/outstanding trend, revenue by station, payment method trend, revenue by type (POD vs Non-POD), payment method totals, and revenue by day of week. Date params are epoch milliseconds. Defaults to the last 30 days when omitted.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Revenue statistics retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "403", description = "Insufficient privileges")
+    })
+    @TrackUserAction(action = "VIEW_REVENUE_DASHBOARD", description = "Admin/Manager viewed revenue analytics dashboard")
+    public RevenueDashboardResponse getRevenueDashboard(
+            @RequestParam(required = false) String officeId,
+            @RequestParam(required = false) Long startDate,
+            @RequestParam(required = false) Long endDate) {
+        return revenueDashboardService.getRevenueStats(officeId, startDate, endDate);
+    }
+
+    @GetMapping("/riders/location")
+    @Operation(summary = "Get rider current location", description = "Returns the current GPS location of a rider identified by phone number")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Location retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "Rider not found"),
+        @ApiResponse(responseCode = "422", description = "Rider has no GPS device assigned"),
+        @ApiResponse(responseCode = "502", description = "Tracking API error")
+    })
+    @TrackUserAction(action = "VIEW_RIDER_LOCATION", description = "Admin/Manager viewed rider GPS location")
+    public RiderLocationResponse getRiderLocation(@RequestParam String phoneNumber) {
+        return riderTrackingService.getRiderLocationByPhone(phoneNumber);
+    }
+
+    @GetMapping("/riders/track")
+    @Operation(summary = "Get rider track history", description = "Returns GPS track points for a rider between a start and end time. Times must be in UTC format: yyyy-MM-dd HH:mm:ss. Max range is 2 days within the last 3 months.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Track history retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "Rider not found"),
+        @ApiResponse(responseCode = "422", description = "Rider has no GPS device assigned"),
+        @ApiResponse(responseCode = "502", description = "Tracking API error")
+    })
+    @TrackUserAction(action = "VIEW_RIDER_TRACK", description = "Admin/Manager viewed rider GPS track history")
+    public RiderTrackResponse getRiderTrack(
+            @RequestParam String phoneNumber,
+            @RequestParam String beginTime,
+            @RequestParam String endTime) {
+        return riderTrackingService.getRiderTrack(phoneNumber, beginTime, endTime);
+    }
+
+    @PutMapping("/riders/device")
+    @Operation(summary = "Assign GPS device to rider", description = "Assigns or updates the GPS device IMEI for a rider identified by phone number")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Device assigned successfully"),
+        @ApiResponse(responseCode = "404", description = "Rider not found"),
+        @ApiResponse(responseCode = "400", description = "User is not a rider")
+    })
+    @TrackUserAction(action = "ASSIGN_RIDER_DEVICE", description = "Admin/Manager assigned GPS device to rider")
+    public String assignRiderDevice(@RequestParam String phoneNumber, @RequestBody @Valid AssignDeviceRequest request) {
+        return riderTrackingService.assignDeviceImei(phoneNumber, request.getDeviceImei());
     }
 
     @GetMapping("/reconciliations/by-date")
