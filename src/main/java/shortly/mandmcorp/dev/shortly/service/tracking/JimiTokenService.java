@@ -17,6 +17,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.config.JimiConfig;
@@ -27,7 +28,6 @@ import shortly.mandmcorp.dev.shortly.repository.JimiAccessTokenRepository;
 @Slf4j
 public class JimiTokenService {
 
-    private static final String EXPIRES_IN_KEY = "expires_in";
     private static final long DEFAULT_EXPIRES_IN = 7200L;
     private static final long TOKEN_REFRESH_BUFFER_SECONDS = 300;
     private static final DateTimeFormatter TIMESTAMP_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -35,6 +35,7 @@ public class JimiTokenService {
     private final JimiConfig jimiConfig;
     private final WebClient webClient;
     private final JimiAccessTokenRepository tokenRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public JimiTokenService(JimiConfig jimiConfig, WebClient webClient, JimiAccessTokenRepository tokenRepository) {
         this.jimiConfig = jimiConfig;
@@ -68,26 +69,48 @@ public class JimiTokenService {
         params.put("format", "json");
         params.put("user_id", jimiConfig.getUserId());
         params.put("user_pwd_md5", jimiConfig.getUserPasswordMd5());
-        params.put(EXPIRES_IN_KEY, String.valueOf(DEFAULT_EXPIRES_IN));
+        params.put("expires_in", String.valueOf(DEFAULT_EXPIRES_IN));
 
         String sign = computeSign(params);
         params.put("sign", sign);
 
-        JsonNode response = webClient.post()
+        byte[] responseBytes = webClient.post()
                 .uri(jimiConfig.getBaseUrl())
                 .bodyValue(buildFormBody(params))
                 .header("Content-Type", "application/x-www-form-urlencoded")
-                .retrieve()
-                .bodyToMono(JsonNode.class)
+                .exchangeToMono(response -> response.bodyToMono(byte[].class))
                 .block();
 
-        if (response == null || !response.has("result")) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "JIMI token response is invalid");
+        if (responseBytes == null || responseBytes.length == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "JIMI token response is empty");
+        }
+
+        JsonNode response;
+        try {
+            response = objectMapper.readTree(new String(responseBytes, StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            log.error("Failed to parse JIMI token response: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "JIMI token response is not valid JSON");
+        }
+
+        if (!response.has("result")) {
+            log.warn("JIMI token response (no result): {}", response);
+            int code = response.has("code") ? response.get("code").asInt() : -1;
+            String msg = response.has("message") ? response.get("message").asText()
+                    : response.has("msg") ? response.get("msg").asText() : "unknown error";
+            log.warn("JIMI token error: code={}, msg={}", code, msg);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "JIMI token error: " + msg);
         }
 
         JsonNode result = response.get("result");
-        String token = result.get("access_token").asText();
-        long expiresIn = result.has(EXPIRES_IN_KEY) ? result.get(EXPIRES_IN_KEY).asLong() : DEFAULT_EXPIRES_IN;
+
+        if (!result.has("accessToken")) {
+            log.warn("JIMI token result missing accessToken: {}", result);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "JIMI token result missing accessToken");
+        }
+
+        String token = result.get("accessToken").asText();
+        long expiresIn = result.has("expiresIn") ? result.get("expiresIn").asLong() : DEFAULT_EXPIRES_IN;
         long expiresAt = Instant.now().getEpochSecond() + expiresIn - TOKEN_REFRESH_BUFFER_SECONDS;
 
         tokenRepository.save(JimiAccessToken.builder()

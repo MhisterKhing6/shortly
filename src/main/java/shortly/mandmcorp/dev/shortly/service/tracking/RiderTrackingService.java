@@ -1,12 +1,12 @@
 package shortly.mandmcorp.dev.shortly.service.tracking;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -27,8 +27,14 @@ public class RiderTrackingService {
         this.jimiApiService = jimiApiService;
     }
 
+    // A leading '+' in a query param is decoded as ' ' by URL parsers; restore it.
+    private String normalizePhone(String phone) {
+        if (phone == null) return null;
+        return phone.startsWith(" ") ? "+" + phone.trim() : phone.trim();
+    }
+
     public RiderLocationResponse getRiderLocationByPhone(String phoneNumber) {
-        User rider = userRepository.findByPhoneNumber(phoneNumber);
+        User rider = userRepository.findByPhoneNumber(normalizePhone(phoneNumber));
 
         if (rider == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rider not found with phone number: " + phoneNumber);
@@ -72,10 +78,11 @@ public class RiderTrackingService {
     }
 
     public RiderTrackResponse getRiderTrack(String phoneNumber, String beginTime, String endTime) {
-        User rider = userRepository.findByPhoneNumber(phoneNumber);
+        String riderPhoneNumber = normalizePhone(phoneNumber);
+        User rider = userRepository.findByPhoneNumber(riderPhoneNumber);
 
         if (rider == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rider not found with phone number: " + phoneNumber);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rider not found with phone number: " + riderPhoneNumber);
         }
 
         if (rider.getRole() != UserRole.RIDER) {

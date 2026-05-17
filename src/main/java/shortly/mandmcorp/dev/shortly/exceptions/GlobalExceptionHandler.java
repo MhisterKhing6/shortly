@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import io.jsonwebtoken.ExpiredJwtException;
@@ -85,8 +86,18 @@ public class GlobalExceptionHandler {
                 .message("Endpoint not found: " + ex.getRequestURL())
                 .data(null)
                 .build();
-                
+
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .message(ex.getReason())
+                .data(null)
+                .build();
+
+        return ResponseEntity.status(ex.getStatusCode()).body(errorResponse);
     }
 
 }  

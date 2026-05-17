@@ -1,5 +1,6 @@
 package shortly.mandmcorp.dev.shortly.service.tracking;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -10,6 +11,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.config.JimiConfig;
@@ -23,6 +25,7 @@ public class JimiApiService {
     private final JimiConfig jimiConfig;
     private final WebClient webClient;
     private final JimiTokenService tokenService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public JimiApiService(JimiConfig jimiConfig, WebClient webClient, JimiTokenService tokenService) {
         this.jimiConfig = jimiConfig;
@@ -49,6 +52,8 @@ public class JimiApiService {
         params.put("imei", imei);
         params.put("begin_time", beginTime);
         params.put("end_time", endTime);
+        params.put("page_index", "1");
+        params.put("page_size", "1000");
 
         return callJimi(params);
     }
@@ -71,26 +76,41 @@ public class JimiApiService {
 
         String body = buildFormBody(params);
 
-        JsonNode response = webClient.post()
-                .uri(jimiConfig.getBaseUrl())
-                .bodyValue(body)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .retrieve()
-                .bodyToMono(JsonNode.class)
-                .block();
+        try {
+            byte[] responseBytes = webClient.post()
+                    .uri(jimiConfig.getBaseUrl())
+                    .bodyValue(body)
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .exchangeToMono(response -> response.bodyToMono(byte[].class))
+                    .block();
 
-        if (response == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "No response from JIMI API");
+            if (responseBytes == null || responseBytes.length == 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "No response from JIMI API");
+            }
+
+            String rawResponse = new String(responseBytes, StandardCharsets.UTF_8);
+
+            if (rawResponse.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "No response from JIMI API");
+            }
+
+            JsonNode response = objectMapper.readTree(rawResponse);
+
+            int code = response.has("code") ? response.get("code").asInt() : -1;
+            if (code != 0) {
+                String msg = response.has("message") ? response.get("message").asText()
+                        : response.has("msg") ? response.get("msg").asText() : "unknown error";
+                log.warn("JIMI API error: code={}, msg={}", code, msg);
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "JIMI API error: " + msg);
+            }
+
+            return response.get("result");
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("JIMI API call failed: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "GPS tracking service is unavailable");
         }
-
-        int code = response.has("code") ? response.get("code").asInt() : -1;
-        if (code != 0) {
-            String msg = response.has("msg") ? response.get("msg").asText() : "unknown error";
-            log.warn("JIMI API error: code={}, msg={}", code, msg);
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "JIMI API error: " + msg);
-        }
-
-        return response.get("result");
     }
 
     static RiderLocationResponse.RiderLocationResponseBuilder parseLocationNode(JsonNode node) {

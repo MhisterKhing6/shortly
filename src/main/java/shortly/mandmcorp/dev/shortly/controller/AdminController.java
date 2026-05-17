@@ -349,8 +349,8 @@ public class AdminController {
         @ApiResponse(responseCode = "400", description = "User is not a rider")
     })
     @TrackUserAction(action = "ASSIGN_RIDER_DEVICE", description = "Admin/Manager assigned GPS device to rider")
-    public String assignRiderDevice(@RequestParam String phoneNumber, @RequestBody @Valid AssignDeviceRequest request) {
-        return riderTrackingService.assignDeviceImei(phoneNumber, request.getDeviceImei());
+    public String assignRiderDevice(@RequestBody @Valid AssignDeviceRequest request) {
+        return riderTrackingService.assignDeviceImei(request.getPhoneNumber(), request.getDeviceImei());
     }
 
     @GetMapping("/reconciliations/by-date")
