@@ -6,7 +6,11 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,12 +38,8 @@ import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.RiderStatusModel;
 import shortly.mandmcorp.dev.shortly.model.User;
-import shortly.mandmcorp.dev.shortly.model.VerificationToken;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import shortly.mandmcorp.dev.shortly.model.UserAction;
+import shortly.mandmcorp.dev.shortly.model.VerificationToken;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.RiderStatusRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserActionRepository;
@@ -95,7 +95,7 @@ public class UserService implements UserServiceInterface {
     }   
 
     /**
-     * Registers a new user with auto-generated password.
+     * Registers ca new user with auto-generated password.
      * Sends login credentials via SMS.
      * 
      * @param userRequestDetails user registration details
