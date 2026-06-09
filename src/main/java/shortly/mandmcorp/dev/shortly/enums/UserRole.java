@@ -5,6 +5,7 @@ public enum UserRole {
     RIDER,
     FRONTDESK,
     MANAGER,
-    CALLCENTER
+    CALLCENTER,
+    VENDOR
 
 }

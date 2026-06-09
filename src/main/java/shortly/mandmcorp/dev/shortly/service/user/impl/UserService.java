@@ -15,7 +15,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.config.FrontEndServerConfig;
@@ -111,22 +113,25 @@ public class UserService implements UserServiceInterface {
             throw new EntityAlreadyExist("User already registered");
         }
 
-        // Validate all office IDs exist
-       
-        Office office = officeRepository.findById(userRequestDetails.getOfficeId())
-                .orElseThrow(() -> new EntityNotFound("Office not found: " + userRequestDetails.getOfficeId()));
-        List<String> officeIds = List.of(userRequestDetails.getOfficeId());
-
         String password = OtpUtil.generateUserPassword();
         userRequestDetails.setPassword(password);
         User newUser = userMapper.toEntity(userRequestDetails);
-        newUser.setOfficeIds(officeIds);
 
-        if(userRequestDetails.getRole() == UserRole.MANAGER) {
-            userRepository.save(newUser);
+        if (userRequestDetails.getRole() != UserRole.VENDOR) {
+            if (userRequestDetails.getOfficeId() == null || userRequestDetails.getOfficeId().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "officeId is required for role " + userRequestDetails.getRole().name());
+            }
+            Office office = officeRepository.findById(userRequestDetails.getOfficeId())
+                    .orElseThrow(() -> new EntityNotFound("Office not found: " + userRequestDetails.getOfficeId()));
+            newUser.setOfficeIds(List.of(userRequestDetails.getOfficeId()));
+
+            if (userRequestDetails.getRole() == UserRole.MANAGER) {
+                userRepository.save(newUser);
                 office.setManager(newUser);
                 officeRepository.save(office);
-            
+            } else {
+                userRepository.save(newUser);
+            }
         } else {
             userRepository.save(newUser);
         }

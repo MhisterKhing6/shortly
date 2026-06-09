@@ -74,7 +74,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final NotificationInterface notification;
 
     @Override
-    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN', 'VENDOR')")
     public Parcel addParcel(ParcelRequest parcelRequest) {
       
         Parcel parcel = parcelMapper.toEntity(parcelRequest);
@@ -571,7 +571,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     @Override
     //hasrole frontedesk, manager, admin
-    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER')")    
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN', 'VENDOR')")    
     public Page<Parcel> getOnlineParcelsThatareMeantToBePayed(Pageable pageable) {
             Query query = new Query();
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -609,7 +609,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         }
 
     @Override
-    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN', 'VENDOR')")
     public Page<Parcel> getTransferParcelsInTransit(Pageable pageable) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
@@ -635,7 +635,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN', 'VENDOR')")
     public Page<Parcel> getOnlineParcelsArrived(Pageable pageable) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
@@ -662,7 +662,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
 
     @Override
-    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+@PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN', 'VENDOR')")
     public Page<Parcel> getTransferOutgoing(Pageable pageable) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof User user)) {
@@ -688,7 +688,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN', 'VENDOR')")
     public void deleteParcel(String parcelId) {
         Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found"));
@@ -718,6 +718,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     }
 
     @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN', 'VENDOR')")
     public Page<Parcel> getHomeDeliveryParcels(Pageable pageable) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
