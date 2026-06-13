@@ -25,10 +25,11 @@ import shortly.mandmcorp.dev.shortly.dto.request.FuelRequestDto;
 import shortly.mandmcorp.dev.shortly.dto.request.FuelRequestUpdateDto;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryAssignmentResponse;
-import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.FuelRequestStatsResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
 import shortly.mandmcorp.dev.shortly.enums.FuelRequestStatus;
+import shortly.mandmcorp.dev.shortly.enums.ParcelStatus;
 import shortly.mandmcorp.dev.shortly.enums.UserRole;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
@@ -386,6 +387,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
                         parcel.setDelivered(true);
                         parcel.setPaymentMethod(statusRequest.getPayementMethod());
+                        parcel.setParcelStatus(ParcelStatus.DELIVERD);
                         selectedParcel.setDelivered(true);
                         selectedParcel.setPaymentMethod(statusRequest.getPayementMethod());
 
@@ -501,9 +503,10 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
                         parcel.setDelivered(true);
                         parcel.setPaymentMethod(statusRequest.getPayementMethod());
+                        parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.DELIVERD);
                         selectedParcel.setDelivered(true);
                         selectedParcel.setPaymentMethod(statusRequest.getPayementMethod());
-                        
+
                         parcelRepository.save(parcel);
 
                         String message = NotificationUtil.generateParcelStatusUpdateMsg(parcel.getParcelId(), "DELIVERED");
@@ -1162,6 +1165,9 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     // Sync changes to the main Parcel table
                     if (updatedParcelInfo.isDelivered() != existingParcelInfo.isDelivered()) {
                         parcel.setDelivered(updatedParcelInfo.isDelivered());
+                        if (updatedParcelInfo.isDelivered()) {
+                            parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.DELIVERD);
+                        }
                     }
 
                     if (updatedParcelInfo.isReturned() != existingParcelInfo.isReturned()) {

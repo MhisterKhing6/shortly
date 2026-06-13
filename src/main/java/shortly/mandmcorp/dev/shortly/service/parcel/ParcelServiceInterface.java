@@ -1,14 +1,26 @@
 package shortly.mandmcorp.dev.shortly.service.parcel;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.ParcelReceivedRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.VendorParcelRequest;
+import shortly.mandmcorp.dev.shortly.dto.response.VendorDashboardResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.VendorEarningsResponse;
+import shortly.mandmcorp.dev.shortly.enums.ParcelStatus;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 
 public interface ParcelServiceInterface {
     Parcel addParcel(ParcelRequest parcelRequest);
+    Parcel addVendorParcel(VendorParcelRequest request);
+    List<Parcel> markParcelsAsReceived(ParcelReceivedRequest request);
+    VendorDashboardResponse getVendorDashboard(String search, ParcelStatus status);
+    VendorEarningsResponse getVendorEarnings();
+    Page<Parcel> getVendorParcels(String search, ParcelStatus status, String toOfficeId, Pageable pageable);
     Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest);
     Page<Parcel> searchParcels(Boolean isPOD, Boolean isDelivered, Boolean isParcelAssigned,
                                       String officeId, String driverId, Boolean hasCalled, Pageable pageable, boolean isFrontDesk);

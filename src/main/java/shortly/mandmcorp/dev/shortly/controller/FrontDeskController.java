@@ -27,12 +27,12 @@ import shortly.mandmcorp.dev.shortly.annotation.TrackUserAction;
 import shortly.mandmcorp.dev.shortly.dto.request.AddAddressRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.DeliveryAssignmentRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.FuelRequestUpdateDto;
-import shortly.mandmcorp.dev.shortly.dto.response.FuelRequestStatsResponse;
-import shortly.mandmcorp.dev.shortly.model.FuelRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.ParcelReceivedRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.PickedUpRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
+import shortly.mandmcorp.dev.shortly.dto.response.FuelRequestStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
 import shortly.mandmcorp.dev.shortly.enums.DeliveryStatus;
@@ -40,6 +40,7 @@ import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
 import shortly.mandmcorp.dev.shortly.model.Address;
 import shortly.mandmcorp.dev.shortly.model.DeliveryAssignments;
 import shortly.mandmcorp.dev.shortly.model.DriverReconcilation;
+import shortly.mandmcorp.dev.shortly.model.FuelRequest;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.ParcelSystemLog;
 import shortly.mandmcorp.dev.shortly.model.User;
@@ -71,6 +72,18 @@ public class FrontDeskController {
     @TrackUserAction(action = "ADD_PARCEL", description = "Front desk added a new parcel")
     public Parcel addParcel(@RequestBody @Valid ParcelRequest parcelRequest) {
         return parcelService.addParcel(parcelRequest);
+    }
+
+    @PostMapping("/parcels/received")
+    @Operation(summary = "Mark parcels as received", description = "Marks a list of parcels as received and sets their office to the logged-in user's office")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Parcels marked as received"),
+        @ApiResponse(responseCode = "404", description = "One or more parcel IDs not found")
+    })
+    @TrackUserAction(action = "MARK_PARCELS_RECEIVED", description = "Front desk marked parcels as received")
+    public List<Parcel> markParcelsAsReceived(@RequestBody @Valid ParcelReceivedRequest request) {
+        return parcelService.markParcelsAsReceived(request);
     }
 
     @PutMapping("/parcel/{id}")

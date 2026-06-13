@@ -12,20 +12,27 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.dto.request.CallCenterUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.ParcelReceivedRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.PickedUpRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.VendorParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.CallCenterStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.CallerStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.VendorDashboardResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.VendorParcelItem;
+import shortly.mandmcorp.dev.shortly.dto.response.VendorStationGroup;
 import shortly.mandmcorp.dev.shortly.enums.CallCenterCallOutCome;
 import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
@@ -74,10 +81,275 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final NotificationInterface notification;
 
     @Override
+    @PreAuthorize("hasRole('VENDOR')")
+    public VendorDashboardResponse getVendorDashboard(String search, shortly.mandmcorp.dev.shortly.enums.ParcelStatus status) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User vendor = (User) auth.getPrincipal();
+        String vendorPhone = vendor.getPhoneNumber();
+
+        // Status summary — always over ALL vendor parcels, unaffected by search/filter
+        Query allQuery = new Query(Criteria.where("vendorId").is(vendorPhone));
+        List<Parcel> allParcels = mongoTemplate.find(allQuery, Parcel.class);
+        java.util.Map<String, Long> statusSummary = new java.util.LinkedHashMap<>();
+        for (shortly.mandmcorp.dev.shortly.enums.ParcelStatus s : shortly.mandmcorp.dev.shortly.enums.ParcelStatus.values()) {
+            statusSummary.put(s.name(), 0L);
+        }
+        allParcels.forEach(p -> {
+            if (p.getParcelStatus() != null) {
+                statusSummary.merge(p.getParcelStatus().name(), 1L, Long::sum);
+            }
+        });
+
+        // Filtered query for the grouped list
+        List<Criteria> criteria = new ArrayList<>();
+        criteria.add(Criteria.where("vendorId").is(vendorPhone));
+
+        if (status != null) {
+            criteria.add(Criteria.where("parcelStatus").is(status));
+        }
+
+        if (search != null && !search.isBlank()) {
+            criteria.add(new Criteria().orOperator(
+                Criteria.where("_id").is(search),
+                Criteria.where("receiverName").regex(search, "i"),
+                Criteria.where("recieverPhoneNumber").regex(search, "i")
+            ));
+        }
+
+        Query filteredQuery = new Query(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+        filteredQuery.with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        List<Parcel> filtered = mongoTemplate.find(filteredQuery, Parcel.class);
+
+        // Group by destination office name
+        java.util.Map<String, List<Parcel>> grouped = new java.util.LinkedHashMap<>();
+        for (Parcel p : filtered) {
+            String key = (p.getTo() != null && p.getTo().getOfficeName() != null)
+                ? p.getTo().getOfficeName() : "Unknown";
+            grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(p);
+        }
+
+        List<VendorStationGroup> stations = new ArrayList<>();
+        for (java.util.Map.Entry<String, List<Parcel>> entry : grouped.entrySet()) {
+            List<VendorParcelItem> items = new ArrayList<>();
+            double totalAmount = 0;
+            int podCount = 0;
+            for (Parcel p : entry.getValue()) {
+                items.add(VendorParcelItem.builder()
+                    .parcelId(p.getParcelId())
+                    .receiverName(p.getReceiverName())
+                    .recieverPhoneNumber(p.getRecieverPhoneNumber())
+                    .parcelDescription(p.getParcelDescription())
+                    .deliveryFee(p.getVendorDeliveryFee())
+                    .itemCost(p.getItemCost())
+                    .parcelStatus(p.getParcelStatus())
+                    .isPOD(p.isPOD())
+                    .createdAt(p.getCreatedAt())
+                    .build());
+                totalAmount += p.getVendorDeliveryFee();
+                if (p.isPOD()) podCount++;
+            }
+            String officeId = entry.getValue().get(0).getTo() != null
+                ? entry.getValue().get(0).getTo().getOfficeId() : null;
+            stations.add(VendorStationGroup.builder()
+                .officeId(officeId)
+                .officeName(entry.getKey())
+                .parcelCount(entry.getValue().size())
+                .podCount(podCount)
+                .totalAmount(totalAmount)
+                .parcels(items)
+                .build());
+        }
+
+        return VendorDashboardResponse.builder()
+            .statusSummary(statusSummary)
+            .totalParcels(filtered.size())
+            .totalStations(stations.size())
+            .stations(stations)
+            .build();
+    }
+
+    @Override
+    @PreAuthorize("hasRole('VENDOR')")
+    public Parcel addVendorParcel(VendorParcelRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User vendor = (User) auth.getPrincipal();
+
+        Office destinationOffice = officeRepository.findById(request.getDestinationStationId())
+                .orElseThrow(() -> new EntityNotFound("'" + request.getDestinationStationId() + "' is not a valid destination station ID"));
+
+        if (request.isPOD() && request.getDeliveryFee() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Delivery fee is required when POD is selected");
+        }
+
+        OfficeInfo toOfficeInfo = new OfficeInfo();
+        toOfficeInfo.setOfficeId(destinationOffice.getId());
+        toOfficeInfo.setOfficeName(destinationOffice.getName());
+
+        Parcel parcel = new Parcel();
+        parcel.setReceiverName(request.getReceiverName());
+        parcel.setRecieverPhoneNumber(request.getRecieverPhoneNumber());
+        parcel.setAlternativePhoneNumber(request.getRecieverAlternativePhoneNumber());
+        parcel.setReceiverAddress(request.getReceiverAddress());
+        parcel.setParcelDescription(request.getParcelDescription());
+        parcel.setParcelWeight(request.getParcelWeight());
+        parcel.setNumberOfItems(request.getNumberOfItems());
+        parcel.setItemQuantity(request.getItemQuantity());
+        parcel.setVendorDeliveryFee(request.getDeliveryFee());
+        parcel.setItemCost(request.getItemCost());
+        parcel.setPOD(request.isPOD());
+        parcel.setVendorName(vendor.getName());
+        parcel.setVendorId(vendor.getPhoneNumber());
+        parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.PENDING);
+        parcel.setTypeofParcel(ParcelTypes.TRANSFER);
+        parcel.setParcelTransfer(true);
+        parcel.setToOfficeId(destinationOffice.getId());
+        parcel.setTo(toOfficeInfo);
+
+        return parcelRepository.save(parcel);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('VENDOR')")
+    public shortly.mandmcorp.dev.shortly.dto.response.VendorEarningsResponse getVendorEarnings() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User vendor = (User) auth.getPrincipal();
+        String phone = vendor.getPhoneNumber();
+
+        Query query = new Query(Criteria.where("vendorId").is(phone));
+        List<Parcel> allParcels = mongoTemplate.find(query, Parcel.class);
+
+        double amountReady = 0;
+        double pendingPayout = 0;
+        int failedCount = 0;
+        List<shortly.mandmcorp.dev.shortly.dto.response.VendorCollectedParcel> collectedParcels = new ArrayList<>();
+        java.util.Map<String, shortly.mandmcorp.dev.shortly.dto.response.VendorStationEarnings> stationMap = new java.util.LinkedHashMap<>();
+
+        for (Parcel p : allParcels) {
+            shortly.mandmcorp.dev.shortly.enums.ParcelStatus ps = p.getParcelStatus();
+            boolean isFailed = ps == shortly.mandmcorp.dev.shortly.enums.ParcelStatus.FAILED
+                    || ps == shortly.mandmcorp.dev.shortly.enums.ParcelStatus.REVERSED;
+
+            if (isFailed) {
+                failedCount++;
+                continue;
+            }
+
+            double parcelAmount = p.getVendorDeliveryFee() + p.getItemCost();
+            String stationId = p.getTo() != null ? p.getTo().getOfficeId() : "unknown";
+            String stationName = p.getTo() != null ? p.getTo().getOfficeName() : "Unknown";
+
+            shortly.mandmcorp.dev.shortly.dto.response.VendorStationEarnings station =
+                stationMap.computeIfAbsent(stationId, k ->
+                    shortly.mandmcorp.dev.shortly.dto.response.VendorStationEarnings.builder()
+                        .officeId(stationId)
+                        .officeName(stationName)
+                        .parcelCount(0).deliveredCount(0).collectedAmount(0).totalAmount(0)
+                        .build());
+
+            station.setParcelCount(station.getParcelCount() + 1);
+            station.setTotalAmount(station.getTotalAmount() + parcelAmount);
+
+            if (p.isDelivered() && p.isVendorPayed()) {
+                amountReady += parcelAmount;
+                station.setCollectedAmount(station.getCollectedAmount() + parcelAmount);
+                station.setDeliveredCount(station.getDeliveredCount() + 1);
+            } else  {
+                pendingPayout += parcelAmount;
+                if(p.isDelivered()) {
+                    station.setDeliveredCount(station.getDeliveredCount() + 1);
+                }
+                collectedParcels.add(
+                    shortly.mandmcorp.dev.shortly.dto.response.VendorCollectedParcel.builder()
+                        .parcelId(p.getParcelId())
+                        .receiverName(p.getReceiverName())
+                        .stationName(stationName)
+                        .itemCost(p.getItemCost())
+                        .deliveryFee(p.getVendorDeliveryFee())
+                        .total(parcelAmount)
+                        .createdAt(p.getCreatedAt())
+                        .build());
+            }
+            // not yet delivered — parcelCount and totalAmount already updated above, deliveredCount stays 0
+        }
+
+        double totalEarnable = amountReady + pendingPayout;
+        double collectionRate = totalEarnable > 0
+            ? Math.round((amountReady / totalEarnable) * 10000.0) / 100.0
+            : 0;
+
+        return shortly.mandmcorp.dev.shortly.dto.response.VendorEarningsResponse.builder()
+            .totalEarnable(totalEarnable)
+            .amountReady(amountReady)
+            .pendingPayout(pendingPayout)
+            .failedDeliveriesCount(failedCount)
+            .collectionRate(collectionRate)
+            .earningsByStation(new ArrayList<>(stationMap.values()))
+            .collectedParcels(collectedParcels)
+            .build();
+    }
+
+    @Override
+    @PreAuthorize("hasRole('VENDOR')")
+    public Page<Parcel> getVendorParcels(String search, shortly.mandmcorp.dev.shortly.enums.ParcelStatus status, String toOfficeId, Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User vendor = (User) auth.getPrincipal();
+        String phone = vendor.getPhoneNumber();
+
+        List<Criteria> criteria = new ArrayList<>();
+        criteria.add(Criteria.where("vendorId").is(phone));
+
+        if (status != null) {
+            criteria.add(Criteria.where("parcelStatus").is(status));
+        }
+
+        if (toOfficeId != null && !toOfficeId.isBlank()) {
+            criteria.add(Criteria.where("toOfficeId").is(toOfficeId));
+        }
+
+        if (search != null && !search.isBlank()) {
+            criteria.add(new Criteria().orOperator(
+                Criteria.where("_id").is(search),
+                Criteria.where("receiverName").regex(search, "i"),
+                Criteria.where("recieverPhoneNumber").regex(search, "i")
+            ));
+        }
+
+        Query query = new Query(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
+        long total = mongoTemplate.count(query, Parcel.class);
+
+        query.with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        query.skip((long) pageable.getPageNumber() * pageable.getPageSize());
+        query.limit(pageable.getPageSize());
+
+        List<Parcel> parcels = mongoTemplate.find(query, Parcel.class);
+        return new PageImpl<>(parcels, pageable, total);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public List<Parcel> markParcelsAsReceived(ParcelReceivedRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) auth.getPrincipal();
+        String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
+                ? user.getOfficeIds().get(0) : null;
+
+        List<Parcel> updated = new ArrayList<>();
+        for (String parcelId : request.getParcelIds()) {
+            Parcel parcel = parcelRepository.findById(parcelId)
+                    .orElseThrow(() -> new EntityNotFound("Parcel not found: " + parcelId));
+            parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.RECEIVED);
+            parcel.setOfficeId(officeId);
+            updated.add(parcelRepository.save(parcel));
+        }
+        return updated;
+    }
+
+    @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN', 'VENDOR')")
     public Parcel addParcel(ParcelRequest parcelRequest) {
       
         Parcel parcel = parcelMapper.toEntity(parcelRequest);
+        parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.RECEIVED);
         if ((parcelRequest.getOfficeId() != null) && (!parcelRequest.isParcelTransfer())) {
             Office office = officeRepository.findById(parcelRequest.getOfficeId())
                     .orElseThrow(() -> new EntityNotFound("Office not found"));
