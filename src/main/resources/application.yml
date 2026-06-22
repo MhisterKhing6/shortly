@@ -32,6 +32,13 @@ jwt:
 springdoc:
   dev-url: https://backend.mandmservicescorp.org/shortly
 
+aws:
+  accessKey: ${AWS_ACCESS_KEY:not-configured}
+  secretKey: ${AWS_SECRET_KEY:not-configured}
+  s3:
+    bucket: ${AWS_S3_BUCKET:mnm-parcel-images}
+    region: ${AWS_S3_REGION:eu-north-1}
+
 jimi:
   appKey: ${JIMI_APP_KEY}
   appSecret: ${JIMI_APP_SECRET}

@@ -70,4 +70,6 @@ public class ParcelRequest {
     private String riderId;
     //for calllcenter
     private boolean hasCallCenterSpokenToClient = false;
+
+    private java.util.List<String> images;
 }

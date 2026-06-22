@@ -82,6 +82,8 @@ public class Parcel {
     private double pickUpCost;
     private ParcelStatus parcelStatus = ParcelStatus.RECEIVED;
     
+    private java.util.List<String> imageUrls;
+
     //vendor
     private String vendorName;
     @Indexed

@@ -59,6 +59,7 @@ import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
+import shortly.mandmcorp.dev.shortly.service.storage.S3Service;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
 
@@ -79,6 +80,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final DriverAssignmentRepository driverAssignmentRepository;
     @Qualifier("smsNotification")
     private final NotificationInterface notification;
+    private final S3Service s3Service;
 
     @Override
     @PreAuthorize("hasRole('VENDOR')")
@@ -204,6 +206,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         parcel.setParcelTransfer(true);
         parcel.setToOfficeId(destinationOffice.getId());
         parcel.setTo(toOfficeInfo);
+        parcel.setImageUrls(s3Service.uploadImages(request.getImages()));
 
         return parcelRepository.save(parcel);
     }
@@ -409,6 +412,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
                     parcel.setTo(to);
                 }
             }
+
+        parcel.setImageUrls(s3Service.uploadImages(parcelRequest.getImages()));
 
         // Save the parcel first so it gets its generated ID before building ParcelInfo
         Parcel savedParcel = parcelRepository.save(parcel);

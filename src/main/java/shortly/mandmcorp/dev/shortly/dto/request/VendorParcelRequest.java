@@ -32,4 +32,6 @@ public class VendorParcelRequest {
     private int itemQuantity;
 
     private boolean isPOD = false;
+
+    private java.util.List<String> images;
 }
