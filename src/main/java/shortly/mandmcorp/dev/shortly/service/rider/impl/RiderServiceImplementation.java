@@ -275,6 +275,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 .deliveryContactName(parcel.getDeliveryContactName())
                 .deliveryContactPhoneNumber(parcel.getDeliveryContactPhoneNumber())
                 .specialInstructions(parcel.getSpecialInstructions())
+                .imageUrls(parcel.getImageUrls())
                 .build();
             newParcels.add(parcelInfo);
             assignment.setInboundCost(assignment.getInboundCost() + parcel.getInboundCost());

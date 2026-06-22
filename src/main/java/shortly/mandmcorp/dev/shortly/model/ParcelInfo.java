@@ -1,5 +1,7 @@
 package shortly.mandmcorp.dev.shortly.model;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,6 +27,8 @@ public class ParcelInfo {
     private String paymentMethod;
     private double inboundCost;
     private double deliveryCost;
+
+    private List<String> imageUrls;
 
     private boolean isPOD;
     private boolean isFragile;
