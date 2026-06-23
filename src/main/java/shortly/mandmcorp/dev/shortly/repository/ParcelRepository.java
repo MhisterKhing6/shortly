@@ -33,4 +33,6 @@ List<Parcel> findByDriverPhoneNumberAndIsPOD(
 
 List<Parcel> findByRecieverPhoneNumberAndIsDeliveredFalse(String recieverPhoneNumber);
 
+boolean existsByBarCode(String barCode);
+
 }

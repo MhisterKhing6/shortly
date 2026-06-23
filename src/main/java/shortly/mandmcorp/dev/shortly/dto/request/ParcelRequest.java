@@ -18,7 +18,10 @@ public class ParcelRequest {
     private String alternativePhoneNumber;
 
     private String parcelDescription;
-    
+
+    /** Optional user-supplied barcode. Used only if non-blank and unique; otherwise auto-generated. */
+    private String barCode;
+
     private String driverName;
 
 

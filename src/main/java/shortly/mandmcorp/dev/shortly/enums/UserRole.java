@@ -6,6 +6,7 @@ public enum UserRole {
     FRONTDESK,
     MANAGER,
     CALLCENTER,
-    VENDOR
+    VENDOR,
+    CUSTOMER
 
 }

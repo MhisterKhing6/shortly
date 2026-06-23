@@ -18,6 +18,9 @@ public class VendorParcelRequest {
 
     private String parcelDescription;
 
+    /** Optional vendor-supplied barcode. Used only if non-blank and unique; otherwise auto-generated. */
+    private String barCode;
+
     private double parcelWeight;
 
     private int numberOfItems;

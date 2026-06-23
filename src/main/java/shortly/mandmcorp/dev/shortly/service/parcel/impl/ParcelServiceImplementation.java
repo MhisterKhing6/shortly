@@ -81,6 +81,28 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     @Qualifier("smsNotification")
     private final NotificationInterface notification;
     private final S3Service s3Service;
+    private final shortly.mandmcorp.dev.shortly.utils.BarcodeGenerator barcodeGenerator;
+
+    /**
+     * Resolves the barcode for a new parcel: honors a non-blank user-supplied value
+     * (rejecting it with a 400 if it already exists); otherwise generates a unique one.
+     * The generator is sequence-backed, so the uniqueness loop is just a safety net.
+     */
+    private String resolveBarCode(String requested) {
+        if (requested != null && !requested.isBlank()) {
+            String trimmed = requested.trim();
+            if (parcelRepository.existsByBarCode(trimmed)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Barcode '" + trimmed + "' already exists. Please use a different barcode or leave it blank to auto-generate one.");
+            }
+            return trimmed;
+        }
+        String code;
+        do {
+            code = barcodeGenerator.generate();
+        } while (parcelRepository.existsByBarCode(code));
+        return code;
+    }
 
     @Override
     @PreAuthorize("hasRole('VENDOR')")
@@ -207,6 +229,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         parcel.setToOfficeId(destinationOffice.getId());
         parcel.setTo(toOfficeInfo);
         parcel.setImageUrls(s3Service.uploadImages(request.getImages()));
+        parcel.setBarCode(resolveBarCode(request.getBarCode()));
 
         return parcelRepository.save(parcel);
     }
@@ -414,6 +437,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             }
 
         parcel.setImageUrls(s3Service.uploadImages(parcelRequest.getImages()));
+        parcel.setBarCode(resolveBarCode(parcelRequest.getBarCode()));
 
         // Save the parcel first so it gets its generated ID before building ParcelInfo
         Parcel savedParcel = parcelRepository.save(parcel);

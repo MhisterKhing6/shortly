@@ -24,6 +24,15 @@ import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
 public class Parcel {
     @Id
     private String parcelId;
+
+    /**
+     * Human-friendly unique identifier encoded into the parcel barcode,
+     * e.g. {@code PARCEL-2026-000123}. Either supplied by the user (if unique)
+     * or auto-generated. Sparse so historical parcels without a barcode remain valid.
+     */
+    @Indexed(unique = true, sparse = true)
+    private String barCode;
+
     private String parcelDescription;
     private boolean isPOD;
     private boolean isDelivered;
