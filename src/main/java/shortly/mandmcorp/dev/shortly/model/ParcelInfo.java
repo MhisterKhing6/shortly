@@ -21,6 +21,7 @@ public class ParcelInfo {
     private String senderName;
     private String senderPhoneNumber;
     private double parcelAmount;
+    private double parcelWeight;
     private boolean payed;
     private boolean returned;
     private boolean delivered;

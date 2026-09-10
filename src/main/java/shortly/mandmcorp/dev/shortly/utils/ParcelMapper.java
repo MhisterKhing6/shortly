@@ -27,6 +27,7 @@ public class ParcelMapper {
         parcel.setRecieverPhoneNumber(request.getRecieverPhoneNumber());
         parcel.setAlternativePhoneNumber(request.getAlternativePhoneNumber());
         parcel.setParcelDescription(request.getParcelDescription());
+        parcel.setParcelWeight(request.getParcelWeight());
         parcel.setPOD(request.isPOD());
         parcel.setDelivered(request.isDelivered());
         parcel.setParcelAssigned(request.isParcelAssigned());
