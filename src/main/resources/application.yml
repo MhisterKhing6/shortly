@@ -14,27 +14,16 @@ spring:
     mapper:
       accept-case-insensitive-enums: true
 
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:465}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          ssl:
-            enable: true
-            trust: ${MAIL_HOST:smtp.gmail.com}
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
-
 app:
   frontend-base-url: ${FRONTEND_HOST:http://localhost:3000}
   email-verification-path: ${EMAIL_VERIFICATION_PATH:/verify-email}
   mail-from: ${MAIL_FROM:no-reply@shortly.com}
   email-verification-expiry-ms: ${EMAIL_VERIFICATION_EXPIRY_MS:86400000}
+
+mailtrap:
+  api-url: ${MAILTRAP_API_URL:https://send.api.mailtrap.io/api/send}
+  token: ${MAILTRAP_API_TOKEN}
+  from-name: ${MAILTRAP_FROM_NAME:Shortly}
 
 
 
@@ -55,12 +44,12 @@ jwt:
 springdoc:
   dev-url: https://backend.mandmservicescorp.org/shortly
 
-aws:
-  accessKey: ${AWS_ACCESS_KEY:not-configured}
-  secretKey: ${AWS_SECRET_KEY:not-configured}
-  s3:
-    bucket: ${AWS_S3_BUCKET:mnm-parcel-images}
-    region: ${AWS_S3_REGION:eu-north-1}
+r2:
+  account-id: ${R2_ACCOUNT_ID}
+  access-key-id: ${R2_ACCESS_KEY_ID}
+  secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  bucket: ${R2_BUCKET:mnm-parcel-images}
+  public-base-url: ${R2_PUBLIC_BASE_URL}
 
 jimi:
   appKey: ${JIMI_APP_KEY}

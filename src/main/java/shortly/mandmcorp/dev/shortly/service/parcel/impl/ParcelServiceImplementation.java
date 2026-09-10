@@ -59,7 +59,7 @@ import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
-import shortly.mandmcorp.dev.shortly.service.storage.S3Service;
+import shortly.mandmcorp.dev.shortly.service.storage.R2Service;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
 
@@ -80,7 +80,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final DriverAssignmentRepository driverAssignmentRepository;
     @Qualifier("smsNotification")
     private final NotificationInterface notification;
-    private final S3Service s3Service;
+    private final R2Service r2Service;
     private final shortly.mandmcorp.dev.shortly.utils.BarcodeGenerator barcodeGenerator;
 
     /**
@@ -256,7 +256,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         parcel.setParcelTransfer(true);
         parcel.setToOfficeId(destinationOffice.getId());
         parcel.setTo(toOfficeInfo);
-        parcel.setImageUrls(s3Service.uploadImages(request.getImages()));
+        parcel.setImageUrls(r2Service.uploadImages(request.getImages()));
         parcel.setBarCode(resolveBarCode(request.getBarCode()));
 
         return parcelRepository.save(parcel);
@@ -468,7 +468,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
                 }
             }
 
-        parcel.setImageUrls(s3Service.uploadImages(parcelRequest.getImages()));
+        parcel.setImageUrls(r2Service.uploadImages(parcelRequest.getImages()));
         parcel.setBarCode(resolveBarCode(parcelRequest.getBarCode()));
 
         // Scope the parcel to the logged-in user's company.

@@ -1,63 +1,74 @@
 package shortly.mandmcorp.dev.shortly.service.email.impl;
 
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
-import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import shortly.mandmcorp.dev.shortly.service.email.EmailServiceInterface;
 
+/** Sends transactional email via the Mailtrap Sending API (REST), not SMTP. */
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class EmailServiceImplementation implements EmailServiceInterface {
 
-    private final JavaMailSender mailSender;
+    private final WebClient webClient;
+
+    @Value("${mailtrap.api-url}")
+    private String mailtrapApiUrl;
+
+    @Value("${mailtrap.token}")
+    private String mailtrapToken;
+
+    @Value("${mailtrap.from-name}")
+    private String mailFromName;
 
     @Value("${app.mail-from}")
     private String mailFrom;
 
+    public EmailServiceImplementation(WebClient webClient) {
+        this.webClient = webClient;
+    }
+
     @Override
     @Async("taskExecutor")
     public void sendCompanyVerificationEmail(String toEmail, String recipientName, String companyName, String verificationLink) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(mailFrom);
-            helper.setTo(toEmail);
-            helper.setSubject("Verify your email to activate " + companyName);
-            helper.setText(buildHtml(recipientName, companyName, verificationLink), true);
-
-            mailSender.send(message);
-            log.info("Verification email sent to {}", toEmail);
-        } catch (Exception e) {
-            // Runs on a background thread — log and swallow so it never breaks the request flow.
-            log.error("Failed to send verification email to {}: {}", toEmail, e.getMessage());
-        }
+        send(toEmail, "Verify your email to activate " + companyName, buildHtml(recipientName, companyName, verificationLink));
     }
 
     @Override
     @Async("taskExecutor")
     public void sendUserCredentialsEmail(String toEmail, String recipientName, String phoneNumber, String password, String role) {
+        send(toEmail, "Your account login details", buildCredentialsHtml(recipientName, phoneNumber, password, role));
+    }
+
+    private void send(String toEmail, String subject, String html) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            Map<String, Object> body = Map.of(
+                    "from", Map.of("email", mailFrom, "name", mailFromName),
+                    "to", List.of(Map.of("email", toEmail)),
+                    "subject", subject,
+                    "html", html
+            );
 
-            helper.setFrom(mailFrom);
-            helper.setTo(toEmail);
-            helper.setSubject("Your account login details");
-            helper.setText(buildCredentialsHtml(recipientName, phoneNumber, password, role), true);
+            webClient.post()
+                    .uri(mailtrapApiUrl)
+                    .header("Authorization", "Bearer " + mailtrapToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .block();
 
-            mailSender.send(message);
-            log.info("Credentials email sent to {}", toEmail);
+            log.info("Email sent to {} via Mailtrap", toEmail);
         } catch (Exception e) {
             // Runs on a background thread — log and swallow so it never breaks the request flow.
-            log.error("Failed to send credentials email to {}: {}", toEmail, e.getMessage());
+            log.error("Failed to send email to {} via Mailtrap: {}", toEmail, e.getMessage());
         }
     }
 

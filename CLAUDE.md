@@ -11,8 +11,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Security**: JWT-based authentication (jjwt 0.11.5)
 - **API Documentation**: SpringDoc OpenAPI 2.7.0
 - **SMS Notifications**: MNotify API
-- **File Storage**: AWS S3 (SDK v2, `software.amazon.awssdk:s3`) for parcel images, uploaded as base64 at parcel creation
+- **File Storage**: Cloudflare R2 (S3-compatible, accessed via the AWS SDK v2 `software.amazon.awssdk:s3` client with an endpoint override — not AWS S3) for parcel images, uploaded as base64 at parcel creation
 - **GPS Tracking**: Jimi IoT / TrackSolid Pro API (`JimiApiService`) for rider device location/track lookups, called via `WebClient`
+- **Email**: Mailtrap Sending API (REST, via `WebClient` — not SMTP) for company-verification and new-user-credentials emails, sent from `EmailServiceImplementation`
 - **Libraries**: Lombok, Spring WebFlux, AspectJ, BCrypt
 
 ## Build and Development Commands
@@ -33,9 +34,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `JWT_REFRESH_KEY`: Secret key for JWT refresh tokens (note: typo in application.yml as `JWT_REFERESH_KEY`)
 - `JWT_EXPIRATIONTIME`: JWT expiration time in milliseconds
 - `FRONTEND_HOST`: Frontend server URL for CORS
-- `AWS_S3_BUCKET`: S3 bucket for parcel images (default `mnm-parcel-images`)
-- `AWS_S3_REGION`: S3 region (default `eu-north-1`)
+- `R2_ACCOUNT_ID`: Cloudflare account ID (used to build the R2 S3-compatible endpoint)
+- `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`: R2 API token credentials (not AWS IAM keys)
+- `R2_BUCKET`: R2 bucket for parcel images (default `mnm-parcel-images`)
+- `R2_PUBLIC_BASE_URL`: Public base URL for serving uploaded images — an `r2.dev` subdomain or a custom domain bound to the bucket (R2 buckets aren't publicly readable by default)
 - `JIMI_APP_KEY`, `JIMI_APP_SECRET`, `JIMI_USER_ID`, `JIMI_USER_PASSWORD_MD5`: Jimi/TrackSolid GPS API credentials (`JIMI_BASE_URL` has a default)
+- `MAILTRAP_API_TOKEN`: Mailtrap Sending API token (`MAILTRAP_API_URL`, `MAILTRAP_FROM_NAME` have defaults)
+- `MAIL_FROM`: sender email address for outbound mail (default `no-reply@shortly.com`)
 
 ### Server configuration
 - Base context path: `/shortly` — all endpoints are prefixed with it
@@ -55,7 +60,7 @@ Parcel and delivery management system for a courier service. Standard Spring Boo
 - **Call center**: Follows up on delivered parcels — updates `callOutCome` (REACHED/UNREACHABLE) and `hasCallCenterSpokenToClient`. Role `CALLCENTER` shares read/update access to these endpoints alongside `ADMIN`/`MANAGER` (see `ParcelServiceImplementation`'s call-center methods)
 - **UserAction**: AOP-based audit log. Every controller method annotated with `@TrackUserAction` auto-saves a `UserAction` document (userId, userName, userEmail, officeId, action, description) via `UserActionAspect`.
 - **Embedded snapshot pattern**: lightweight value objects (`OfficeInfo`, `ParcelInfo`, `RiderInfo`) are copied onto parent documents at the moment of the relevant transition (assignment, reconciliation) rather than referenced live — avoids joins but means the snapshot can drift from the source document if the source changes later.
-- **Parcel images**: `ParcelRequest.images`/`VendorParcelRequest.images` (base64 strings) are uploaded to S3 via `S3Service.uploadImages(...)` during parcel creation in `ParcelServiceImplementation`, and the resulting URLs are stored on `Parcel.imageUrls`, then copied into `ParcelInfo.imageUrls` at rider-assignment time.
+- **Parcel images**: `ParcelRequest.images`/`VendorParcelRequest.images` (base64 strings) are uploaded to Cloudflare R2 via `R2Service.uploadImages(...)` during parcel creation in `ParcelServiceImplementation`, and the resulting URLs (built from `r2.public-base-url` + object key) are stored on `Parcel.imageUrls`, then copied into `ParcelInfo.imageUrls` at rider-assignment time.
 - **Barcode**: `Parcel.barCode` is unique+sparse; `BarcodeGenerator` auto-generates `PARCEL-<year>-<seq>` codes from an atomic per-year counter (`model/Counter.java`) unless the caller supplies their own unique value. No barcode/QR scanning endpoint exists yet — despite the "barcode and qr code" commit title, no QR functionality was actually added.
 - **Vendor ("partner") flow**: `VENDOR` users register/track their own parcels without an `officeId` (identified by phone number instead, stored as `Parcel.vendorId`) via `VendorController` (`/api-vendor`), gated with `@PreAuthorize("hasRole('VENDOR')")` on the service methods.
 - **Fuel requests**: Riders submit fuel requests (`POST /api-rider/fuel-request`); front desk/manager approve or reject with an amount (`PUT /api-frontdesk/fuel-request/{id}`). Model has a typo'd field `fuleStationPhoneNumber`.
@@ -122,7 +127,8 @@ String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()
 - **`RateLimitFilter`** — entire class body is commented out; the bucket4j dependency was removed. Do not re-add `bucket4j_jdk17-core` — it uses `java.lang.foreign.Linker` which is a preview API in Java 21 and breaks Lombok annotation processing
 - **IDE auto-import risk**: IDEs may auto-import `java.lang.foreign.Linker` — if the build fails with `java.lang.foreign.Linker is a preview API`, check `ParcelServiceImplementation.java` line 3 for a stray import
 - **Lombok `annotationProcessorPaths`** in `pom.xml` requires `<version>${lombok.version}</version>` explicitly, otherwise `maven-compiler-plugin 3.14.x` cannot resolve Lombok and all `@Data`/`@Builder` methods are missing at compile time
-- **`aws.accessKey`/`aws.secretKey`** in `application.yml` are dead config — `S3Config` uses `DefaultCredentialsProvider` (not static keys), so these env vars have no effect despite still being defined
+- **R2 credentials are R2 API tokens, not AWS keys** — `R2Config` uses `StaticCredentialsProvider` with `r2.access-key-id`/`r2.secret-access-key`; don't try to wire AWS IAM/`DefaultCredentialsProvider` here, R2 doesn't support it
+- **`r2.public-base-url` must be set** for uploaded image URLs to actually resolve — R2 buckets aren't publicly readable by default the way S3 buckets can be; without a bound `r2.dev` subdomain or custom domain, `Parcel.imageUrls` will contain URLs that 401/404
 - **`FuelRequest.fuleStationPhoneNumber`** typo — do not rename, mirrors the pattern of other known field-name typos in this codebase
 
 ## Lombok Usage
