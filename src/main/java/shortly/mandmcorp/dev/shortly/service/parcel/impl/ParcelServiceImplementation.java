@@ -468,6 +468,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             parcelInfo.setDeliveryCost(savedParcel.getDeliveryCost());
             parcelInfo.setStorageCost(savedParcel.getStorageCost());
             parcelInfo.setPickUpCost(savedParcel.getPickUpCost());
+            parcelInfo.setParcelWeight(savedParcel.getParcelWeight());
             parcelInfo.setPickedUp(savedParcel.isPickedUp());
             parcelInfo.setHomeDelivery(savedParcel.isHomeDelivery());
             parcelInfo.setPOD(savedParcel.isPOD());
@@ -1338,6 +1339,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         parcelInfo.setDeliveryCost(savedParcel.getDeliveryCost());
         parcelInfo.setStorageCost(savedParcel.getStorageCost());
         parcelInfo.setPickUpCost(savedParcel.getPickUpCost());
+        parcelInfo.setParcelWeight(savedParcel.getParcelWeight());
         parcelInfo.setDelivered(savedParcel.isDelivered());
         parcelInfo.setHomeDelivery(savedParcel.isHomeDelivery());
         parcelInfo.setPOD(savedParcel.isPOD());

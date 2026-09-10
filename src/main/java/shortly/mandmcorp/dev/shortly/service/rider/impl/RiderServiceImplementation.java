@@ -254,6 +254,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 .isFragile(parcel.isFragile())
                 .storageCost(parcel.getStorageCost())
                 .pickUpCost(parcel.getPickUpCost())
+                .parcelWeight(parcel.getParcelWeight())
                 .pickedUp(parcel.isPickedUp())
                 .homeDelivery(parcel.isHomeDelivery())
                 .vehicleNumber(parcel.getVehicleNumber())

@@ -11,6 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Security**: JWT-based authentication (jjwt 0.11.5)
 - **API Documentation**: SpringDoc OpenAPI 2.7.0
 - **SMS Notifications**: MNotify API
+- **File Storage**: AWS S3 (SDK v2, `software.amazon.awssdk:s3`) for parcel images, uploaded as base64 at parcel creation
+- **GPS Tracking**: Jimi IoT / TrackSolid Pro API (`JimiApiService`) for rider device location/track lookups, called via `WebClient`
 - **Libraries**: Lombok, Spring WebFlux, AspectJ, BCrypt
 
 ## Build and Development Commands
@@ -31,6 +33,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `JWT_REFRESH_KEY`: Secret key for JWT refresh tokens (note: typo in application.yml as `JWT_REFERESH_KEY`)
 - `JWT_EXPIRATIONTIME`: JWT expiration time in milliseconds
 - `FRONTEND_HOST`: Frontend server URL for CORS
+- `AWS_S3_BUCKET`: S3 bucket for parcel images (default `mnm-parcel-images`)
+- `AWS_S3_REGION`: S3 region (default `eu-north-1`)
+- `JIMI_APP_KEY`, `JIMI_APP_SECRET`, `JIMI_USER_ID`, `JIMI_USER_PASSWORD_MD5`: Jimi/TrackSolid GPS API credentials (`JIMI_BASE_URL` has a default)
 
 ### Server configuration
 - Base context path: `/shortly` — all endpoints are prefixed with it
@@ -43,24 +48,31 @@ Parcel and delivery management system for a courier service. Standard Spring Boo
 
 ### Business Domain
 
-- **User roles**: ADMIN, RIDER, FRONTDESK, MANAGER
-- **Parcel types**: Regular, home delivery, POD (payment on delivery), pickup
-- **Flow**: Parcels registered at front desk → assigned to riders → delivered → reconciled
+- **User roles**: ADMIN, RIDER, FRONTDESK, MANAGER, CALLCENTER, VENDOR, CUSTOMER (`CUSTOMER` is declared but not currently referenced anywhere — unused scaffolding)
+- **Parcel types** (`ParcelTypes` enum): `PARCEL`, `ONLINE`, `PICKUP`, `TRANSFER` (office-to-office transfer, set on vendor parcel creation). Independent boolean flags on `Parcel` further classify a parcel: `isPOD` (payment on delivery), `homeDelivery`
+- **Flow**: Parcels registered at front desk (or by a vendor) → assigned to riders → delivered → reconciled
 - **DriverReconcilation**: Tracks inbound cost per rider across deliveries. Created/updated when a parcel with `inboundCost > 0` is saved. `ParcelInfo` (embedded snapshot) is built **after** `parcelRepository.save()` so the parcel already has its generated ID.
-- **Call center**: Follows up on delivered parcels — updates `callOutCome` (REACHED/UNREACHABLE) and `hasCallCenterSpokenToClient`
+- **Call center**: Follows up on delivered parcels — updates `callOutCome` (REACHED/UNREACHABLE) and `hasCallCenterSpokenToClient`. Role `CALLCENTER` shares read/update access to these endpoints alongside `ADMIN`/`MANAGER` (see `ParcelServiceImplementation`'s call-center methods)
 - **UserAction**: AOP-based audit log. Every controller method annotated with `@TrackUserAction` auto-saves a `UserAction` document (userId, userName, userEmail, officeId, action, description) via `UserActionAspect`.
+- **Embedded snapshot pattern**: lightweight value objects (`OfficeInfo`, `ParcelInfo`, `RiderInfo`) are copied onto parent documents at the moment of the relevant transition (assignment, reconciliation) rather than referenced live — avoids joins but means the snapshot can drift from the source document if the source changes later.
+- **Parcel images**: `ParcelRequest.images`/`VendorParcelRequest.images` (base64 strings) are uploaded to S3 via `S3Service.uploadImages(...)` during parcel creation in `ParcelServiceImplementation`, and the resulting URLs are stored on `Parcel.imageUrls`, then copied into `ParcelInfo.imageUrls` at rider-assignment time.
+- **Barcode**: `Parcel.barCode` is unique+sparse; `BarcodeGenerator` auto-generates `PARCEL-<year>-<seq>` codes from an atomic per-year counter (`model/Counter.java`) unless the caller supplies their own unique value. No barcode/QR scanning endpoint exists yet — despite the "barcode and qr code" commit title, no QR functionality was actually added.
+- **Vendor ("partner") flow**: `VENDOR` users register/track their own parcels without an `officeId` (identified by phone number instead, stored as `Parcel.vendorId`) via `VendorController` (`/api-vendor`), gated with `@PreAuthorize("hasRole('VENDOR')")` on the service methods.
+- **Fuel requests**: Riders submit fuel requests (`POST /api-rider/fuel-request`); front desk/manager approve or reject with an amount (`PUT /api-frontdesk/fuel-request/{id}`). Model has a typo'd field `fuleStationPhoneNumber`.
 
 ### Controllers and their routes
 
 | Controller | Base path | Roles |
 |---|---|---|
 | `UserController` | `/api-user` | Public (login/register) + authenticated |
-| `AdminController` | `/api-admin` | ADMIN, MANAGER |
-| `FrontDeskController` | `/api-frontdesk` | FRONTDESK, MANAGER, ADMIN |
-| `RiderController` | `/api-rider` | RIDER |
+| `AdminController` | `/api-admin` | ADMIN, MANAGER (includes admin/rider-performance dashboards) |
+| `FrontDeskController` | `/api-frontdesk` | FRONTDESK, MANAGER, ADMIN (includes fuel-request approval) |
+| `RiderController` | `/api-rider` | RIDER (includes fuel-request submission) |
 | `OfficeController` | `/api/offices` | Authenticated |
 | `ReceiverController` | `/api-receiver` | Authenticated |
-| `CallCenterController` | `/api-call-center` | ADMIN, MANAGER |
+| `CallCenterController` | `/api-call-center` | ADMIN, MANAGER, CALLCENTER |
+| `VendorController` | `/api-vendor` | VENDOR |
+| `TrackingController` | `/api-tracking` | Public tracking endpoint + role-gated status/assignment updates |
 
 ### Key cross-cutting patterns
 
@@ -78,6 +90,10 @@ String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()
 
 **`UserService`** has a manual constructor (not `@AllArgsConstructor`) — add new dependencies to both the field list and the constructor.
 
+**Registration branches on role**: `UserService.register()` requires and validates `officeId` for every role except `VENDOR` (which has no office affiliation and is tracked by phone number instead); registering a `MANAGER` also sets them as their office's manager.
+
+**Jimi GPS calls** go through `JimiTokenService` first (caches/refreshes an OAuth token in the `jimi_access_tokens` collection, singleton doc id `"jimi-token"`) before `JimiApiService` signs (MD5) and sends the actual location/track request — never call the Jimi REST API without going through the token service.
+
 ### Authentication & Security
 
 - Phone number is the username for authentication
@@ -91,6 +107,7 @@ String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()
 - `offices`, `locations`, `shelves`
 - `reconcilations`, `driver_reconcilations`
 - `rider_status`, `verification_tokens`, `contacts`, `user-actions`
+- `fuel_requests`, `jimi_access_tokens`
 
 ### Indexes
 - **Parcel**: `office_delivered_idx`, `office_homedelivery_idx`, `office_called_idx`, `search_parcels_idx`
@@ -105,6 +122,8 @@ String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()
 - **`RateLimitFilter`** — entire class body is commented out; the bucket4j dependency was removed. Do not re-add `bucket4j_jdk17-core` — it uses `java.lang.foreign.Linker` which is a preview API in Java 21 and breaks Lombok annotation processing
 - **IDE auto-import risk**: IDEs may auto-import `java.lang.foreign.Linker` — if the build fails with `java.lang.foreign.Linker is a preview API`, check `ParcelServiceImplementation.java` line 3 for a stray import
 - **Lombok `annotationProcessorPaths`** in `pom.xml` requires `<version>${lombok.version}</version>` explicitly, otherwise `maven-compiler-plugin 3.14.x` cannot resolve Lombok and all `@Data`/`@Builder` methods are missing at compile time
+- **`aws.accessKey`/`aws.secretKey`** in `application.yml` are dead config — `S3Config` uses `DefaultCredentialsProvider` (not static keys), so these env vars have no effect despite still being defined
+- **`FuelRequest.fuleStationPhoneNumber`** typo — do not rename, mirrors the pattern of other known field-name typos in this codebase
 
 ## Lombok Usage
 

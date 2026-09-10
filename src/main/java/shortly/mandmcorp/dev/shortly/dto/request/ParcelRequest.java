@@ -19,6 +19,8 @@ public class ParcelRequest {
 
     private String parcelDescription;
 
+    private double parcelWeight;
+
     /** Optional user-supplied barcode. Used only if non-blank and unique; otherwise auto-generated. */
     private String barCode;
 
