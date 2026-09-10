@@ -2,7 +2,9 @@ package shortly.mandmcorp.dev.shortly.service.user.impl;
 
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -32,26 +34,31 @@ import shortly.mandmcorp.dev.shortly.dto.request.UserUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.response.UserLoginResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserRegistrationResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.enums.DepartmentRole;
 import shortly.mandmcorp.dev.shortly.enums.UserRole;
 import shortly.mandmcorp.dev.shortly.enums.UserStatusEnum;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityAlreadyExist;
 import shortly.mandmcorp.dev.shortly.exceptions.EntityNotFound;
 import shortly.mandmcorp.dev.shortly.exceptions.WrongCredentialsException;
+import shortly.mandmcorp.dev.shortly.model.Company;
 import shortly.mandmcorp.dev.shortly.model.Office;
 import shortly.mandmcorp.dev.shortly.model.RiderStatusModel;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.model.UserAction;
 import shortly.mandmcorp.dev.shortly.model.VerificationToken;
+import shortly.mandmcorp.dev.shortly.repository.CompanyRepository;
 import shortly.mandmcorp.dev.shortly.repository.OfficeRepository;
 import shortly.mandmcorp.dev.shortly.repository.RiderStatusRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserActionRepository;
 import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.repository.VerificationTokenRepository;
+import shortly.mandmcorp.dev.shortly.service.email.EmailServiceInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
 import shortly.mandmcorp.dev.shortly.service.user.UserServiceInterface;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.OtpUtil;
+import shortly.mandmcorp.dev.shortly.utils.PhoneNumberUtils;
 import shortly.mandmcorp.dev.shortly.utils.UserMapper;
 
 /**
@@ -77,12 +84,15 @@ public class UserService implements UserServiceInterface {
     private final OfficeRepository officeRepository;
     private final UserActionRepository userActionRepository;
     private final MongoTemplate mongoTemplate;
+    private final CompanyRepository companyRepository;
+    private final EmailServiceInterface emailService;
 
 
     public UserService(FrontEndServerConfig frontend, UserRepository userRepository, UserMapper userMapper, @Qualifier("smsNotification") NotificationInterface smsNotification,
     PasswordEncoder passwordEncoder, JWTConfig jwtConfig, VerificationTokenRepository verificationTokenRepository,
     RiderStatusRepository riderStatusRepository, OfficeRepository officeRepository,
-    UserActionRepository userActionRepository, MongoTemplate mongoTemplate) {
+    UserActionRepository userActionRepository, MongoTemplate mongoTemplate, CompanyRepository companyRepository,
+    EmailServiceInterface emailService) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.notification = smsNotification;
@@ -94,7 +104,9 @@ public class UserService implements UserServiceInterface {
         this.officeRepository = officeRepository;
         this.userActionRepository = userActionRepository;
         this.mongoTemplate = mongoTemplate;
-    }   
+        this.companyRepository = companyRepository;
+        this.emailService = emailService;
+    }
 
     /**
      * Registers ca new user with auto-generated password.
@@ -107,28 +119,61 @@ public class UserService implements UserServiceInterface {
     @Override
     @PreAuthorize("hasRole('ADMIN')")
     public UserRegistrationResponse register(UserRegistrationRequest userRequestDetails) {
-        User registeredUser = userRepository.findByPhoneNumber(userRequestDetails.getPhoneNumber());
+        // Only a company admin whose department role is MANAGER may register users.
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User loggedInUser = (User) auth.getPrincipal();
+        if (loggedInUser.getRole() != UserRole.ADMIN || loggedInUser.getDepartmentRole() != DepartmentRole.MANAGER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only a company admin (manager) can register users");
+        }
 
-        if(registeredUser != null) {
-            throw new EntityAlreadyExist("User already registered");
+        if (!PhoneNumberUtils.hasCountryCode(userRequestDetails.getPhoneNumber())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Phone number must begin with a country code (e.g. +233...)");
+        }
+
+        if (userRepository.existsByPhoneNumber(userRequestDetails.getPhoneNumber())) {
+            throw new EntityAlreadyExist("A user with this phone number already exists");
+        }
+
+        if (userRequestDetails.getEmail() != null
+                && userRepository.existsByEmail(userRequestDetails.getEmail())) {
+            throw new EntityAlreadyExist("A user with this email already exists");
         }
 
         String password = OtpUtil.generateUserPassword();
         userRequestDetails.setPassword(password);
         User newUser = userMapper.toEntity(userRequestDetails);
+        // Scope the new user to the creating admin's company.
+        newUser.setCompanyId(loggedInUser.getCompanyId());
 
+        List<String> officeNames = new ArrayList<>();
         if (userRequestDetails.getRole() != UserRole.VENDOR) {
-            if (userRequestDetails.getOfficeId() == null || userRequestDetails.getOfficeId().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "officeId is required for role " + userRequestDetails.getRole().name());
+            List<String> officeIds = userRequestDetails.getOfficeIds();
+            if (officeIds == null || officeIds.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "At least one officeId is required for role " + userRequestDetails.getRole().name());
             }
-            Office office = officeRepository.findById(userRequestDetails.getOfficeId())
-                    .orElseThrow(() -> new EntityNotFound("Office not found: " + userRequestDetails.getOfficeId()));
-            newUser.setOfficeIds(List.of(userRequestDetails.getOfficeId()));
+
+            // Validate every office exists AND belongs to the logged-in admin's company before saving.
+            List<Office> offices = new ArrayList<>();
+            for (String officeId : officeIds) {
+                Office office = officeRepository.findById(officeId)
+                        .orElseThrow(() -> new EntityNotFound("Office not found: " + officeId));
+
+                if (!Objects.equals(office.getCompanyId(), loggedInUser.getCompanyId())) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                            "Office " + officeId + " does not belong to your company");
+                }
+                offices.add(office);
+                officeNames.add(office.getName());
+            }
+            newUser.setOfficeIds(officeIds);
 
             if (userRequestDetails.getRole() == UserRole.MANAGER) {
                 userRepository.save(newUser);
-                office.setManager(newUser);
-                officeRepository.save(office);
+                offices.forEach(office -> office.setManager(newUser));
+                officeRepository.saveAll(offices);
             } else {
                 userRepository.save(newUser);
             }
@@ -144,11 +189,27 @@ public class UserService implements UserServiceInterface {
             riderStatusRepository.save(riderStatus);
         }
 
+        // Send login credentials via SMS
         String message = NotificationUtil.loginCredentials(password, newUser.getPhoneNumber(), newUser.getName(), newUser.getRole().name());
         NotificationRequestTemplate loginCredentails =  NotificationRequestTemplate.builder().body(message).to(newUser.getPhoneNumber()).build();
         notification.send(loginCredentails);
-        return userMapper.toUserRegistrationResponse(newUser);
-    }   
+
+        // Also send login credentials via email (async) if an email is present
+        if (newUser.getEmail() != null && !newUser.getEmail().isBlank()) {
+            emailService.sendUserCredentialsEmail(newUser.getEmail(), newUser.getName(),
+                    newUser.getPhoneNumber(), password, newUser.getRole().name());
+        }
+
+        // Resolve the company name for the response
+        String companyName = null;
+        if (loggedInUser.getCompanyId() != null) {
+            companyName = companyRepository.findById(loggedInUser.getCompanyId())
+                    .map(Company::getCompanyName)
+                    .orElse(null);
+        }
+
+        return userMapper.toUserRegistrationResponse(newUser, companyName, officeNames);
+    }
     
 
     /**
@@ -177,7 +238,23 @@ public class UserService implements UserServiceInterface {
                 .orElseThrow(()-> new EntityNotFound("office not found"));
         }
 
-        return userMapper.toUserLoginResponse(userEntity, token, office);
+        // If the user belongs to a company, the company must be enabled (email verified) to log in.
+        String companyName = null;
+        log.info("Login company-check: user={} companyId={}", userEntity.getPhoneNumber(), userEntity.getCompanyId());
+        if (userEntity.getCompanyId() != null) {
+            Company company = companyRepository.findById(userEntity.getCompanyId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Company not found for this account"));
+
+            log.info("Login company-check: companyId={} enabled={}", company.getId(), company.isEnabled());
+            if (!company.isEnabled()) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Your company is not yet activated. Please verify your company email before logging in.");
+            }
+            companyName = company.getCompanyName();
+        }
+
+        return userMapper.toUserLoginResponse(userEntity, token, office, companyName);
     }
 
     /**
@@ -249,12 +326,22 @@ public class UserService implements UserServiceInterface {
      * @return UserResponse with success message
      * @throws EntityNotFound if user not found
      */
+    /** Rejects (as not-found) if the target user isn't in the logged-in caller's company. */
+    private void assertSameCompanyAsCaller(User target) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String companyId = (auth != null && auth.getPrincipal() instanceof User caller) ? caller.getCompanyId() : null;
+        if (!java.util.Objects.equals(target.getCompanyId(), companyId)) {
+            throw new EntityNotFound("User not found");
+        }
+    }
+
     @Override
     @PreAuthorize("hasRole('ADMIN')")
     public UserResponse deleteUser(String userId) {
         log.error("Attempting to delete user with ID: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFound("User not found"));
+        assertSameCompanyAsCaller(user);
         userRepository.delete(user);
         return new UserResponse("User deleted successfully", user.getPhoneNumber());
     }
@@ -273,6 +360,7 @@ public class UserService implements UserServiceInterface {
     public UserResponse chageUserAvailabiltyStatus(String userId, String status) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFound("User not found"));
+        assertSameCompanyAsCaller(user);
         try {
             UserStatusEnum newStatus = UserStatusEnum.valueOf(status.toUpperCase());
             user.setStatus(newStatus);
@@ -302,10 +390,14 @@ public class UserService implements UserServiceInterface {
     @Override
     @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     public Page<User> getUsers(String officeId, Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User loggedInUser = (User) auth.getPrincipal();
+        String companyId = loggedInUser.getCompanyId();
+
         if (officeId != null && !officeId.isBlank()) {
-            return userRepository.findByOfficeIdsContaining(officeId, pageable);
+            return userRepository.findByCompanyIdAndOfficeIdsContaining(companyId, officeId, pageable);
         }
-        return userRepository.findAll(pageable);
+        return userRepository.findByCompanyId(companyId, pageable);
     }
 
     /**
@@ -419,7 +511,11 @@ public class UserService implements UserServiceInterface {
     @Override
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public Page<UserAction> getUserActions(String userEmail, String officeId, String phoneNumber, Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User loggedInUser = (User) auth.getPrincipal();
+
         Query query = new Query();
+        query.addCriteria(Criteria.where("companyId").is(loggedInUser.getCompanyId()));
 
         if (userEmail != null && !userEmail.isBlank()) {
             query.addCriteria(Criteria.where("userEmai").is(userEmail));

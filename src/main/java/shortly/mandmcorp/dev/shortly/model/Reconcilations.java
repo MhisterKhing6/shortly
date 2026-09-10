@@ -43,14 +43,12 @@ public class Reconcilations {
 
     @Indexed
     private String officeId;
+    @Indexed
+    private String companyId;
     private String riderPhoneNumber;
 
     @Indexed
     private Long createdAt;
     private Long reconciledAt;
-
-
-
-
 }
 

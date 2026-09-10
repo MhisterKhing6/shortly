@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -33,12 +35,22 @@ public class RiderTrackingService {
         return phone.startsWith(" ") ? "+" + phone.trim() : phone.trim();
     }
 
+    /** Rejects (as not-found) if the rider isn't in the logged-in caller's company. */
+    private void assertSameCompany(User rider) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String companyId = (auth != null && auth.getPrincipal() instanceof User caller) ? caller.getCompanyId() : null;
+        if (!java.util.Objects.equals(rider.getCompanyId(), companyId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rider not found");
+        }
+    }
+
     public RiderLocationResponse getRiderLocationByPhone(String phoneNumber) {
         User rider = userRepository.findByPhoneNumber(normalizePhone(phoneNumber));
 
         if (rider == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rider not found with phone number: " + phoneNumber);
         }
+        assertSameCompany(rider);
 
         if (rider.getRole() != UserRole.RIDER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not a rider");
@@ -84,6 +96,7 @@ public class RiderTrackingService {
         if (rider == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rider not found with phone number: " + riderPhoneNumber);
         }
+        assertSameCompany(rider);
 
         if (rider.getRole() != UserRole.RIDER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not a rider");
@@ -114,6 +127,7 @@ public class RiderTrackingService {
         if (rider == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rider not found with phone number: " + phoneNumber);
         }
+        assertSameCompany(rider);
 
         if (rider.getRole() != UserRole.RIDER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not a rider");

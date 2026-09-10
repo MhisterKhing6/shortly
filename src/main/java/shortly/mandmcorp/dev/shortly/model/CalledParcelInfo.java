@@ -17,6 +17,7 @@ public class CalledParcelInfo {
     private String callerPhoneNumber;
     private String notes; // Any additional notes about the call
     private String officeId; // To associate with the office
+    private String companyId;
     @CreatedDate
     private Long createdAt;
 

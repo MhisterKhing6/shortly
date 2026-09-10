@@ -8,25 +8,26 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.Data;
 
 @Data
-@Document(collection = "parcel_system_logs")
-public class ParcelSystemLog {
+@Document(collection = "email_verification_tokens")
+public class EmailVerificationToken {
+
     @Id
     private String id;
 
-    @Indexed
-    private String parcelId;
-    private ParcelInfo parcelInfo;
-    private String pickUpTime;
-    private String whoPickedUpName;
-    private String whoPickedUpTelephoneNumber;
-    private String frontDeskPersonellName;
-    private String frontDeskPersonellPhoneNumber;
-
-    @Indexed
-    private String officeId;
+    @Indexed(unique = true)
+    private String token;
 
     @Indexed
     private String companyId;
+
+    // The admin user created (disabled) at registration; activated when this token is verified.
+    private String userId;
+
+    private String email;
+
+    private Long expiresAt;
+
+    private boolean used = false;
 
     @CreatedDate
     private Long createdAt;

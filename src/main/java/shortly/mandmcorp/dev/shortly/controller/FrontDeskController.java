@@ -109,8 +109,9 @@ public class FrontDeskController {
             @RequestParam(required = false) Boolean isParcelAssigned,
             @RequestParam(required = false) String driverId,
             @RequestParam(required = false) Boolean hasCalled,
+            @RequestParam(required = false) String search,
             Pageable pageable) {
-        return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, null, driverId, hasCalled, pageable, true);
+        return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, null, driverId, hasCalled, search, pageable, true);
     }
 
 

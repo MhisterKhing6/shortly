@@ -72,7 +72,12 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         Office office = officeMapper.toEntity(officeRequest);
         office.setCode(generateOfficeCode());
         office.setLocation(location);
-        
+
+        // Scope the office to the logged-in user's company.
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User loggedInUser = (User) auth.getPrincipal();
+        office.setCompanyId(loggedInUser.getCompanyId());
+
         if(officeRequest.getManagerId() != null) {
             User manager = userRepository.findById(officeRequest.getManagerId()).orElse(null);
             office.setManager(manager);
@@ -99,7 +104,8 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
             location.setName(locationRequest.getName());
             location.setRegion(locationRequest.getRegion());
             location.setCountry(locationRequest.getCountry());
-            
+            location.setCompanyId(loggedInCompanyId());
+
             Location savedLocation = locationRepository.save(location);
             log.info("Location saved successfully with ID: {}", savedLocation.getId());
             
@@ -116,14 +122,28 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         }
     }
     
+    /** Returns the logged-in user's companyId, or null. */
+    private String loggedInCompanyId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return (auth != null && auth.getPrincipal() instanceof User user) ? user.getCompanyId() : null;
+    }
+
+    /** Rejects (as not-found, to avoid leaking cross-tenant existence) if the entity isn't in the caller's company. */
+    private void assertOwnedByCompany(String entityCompanyId, String notFoundMessage) {
+        if (!java.util.Objects.equals(entityCompanyId, loggedInCompanyId())) {
+            throw new EntityNotFound(notFoundMessage);
+        }
+    }
+
     @Override
     @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
     public OfficeResponse updateOffice(String officeId, OfficeUpdateRequest updateRequest) {
         log.info("Updating office with ID: {}", officeId);
-        
+
         Office office = officeRepository.findById(officeId)
             .orElseThrow(() -> new EntityNotFound("Office not found"));
-        
+        assertOwnedByCompany(office.getCompanyId(), "Office not found");
+
         if(updateRequest.getName() != null) office.setName(updateRequest.getName());
         if(updateRequest.getAddress() != null) office.setAddress(updateRequest.getAddress());
         
@@ -152,7 +172,8 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         
         Location location = locationRepository.findById(locationId)
             .orElseThrow(() -> new EntityNotFound("Location not found"));
-        
+        assertOwnedByCompany(location.getCompanyId(), "Location not found");
+
         if(updateRequest.getName() != null) location.setName(updateRequest.getName());
         if(updateRequest.getRegion() != null) location.setRegion(updateRequest.getRegion());
         if(updateRequest.getCountry() != null) location.setCountry(updateRequest.getCountry());
@@ -221,6 +242,7 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
     public UserResponse addShelf(ShelfRequest shelf ) {
         Office office = officeRepository.findById(shelf.getOfficeId())
             .orElseThrow(() -> new EntityNotFound("Office not found"));
+        assertOwnedByCompany(office.getCompanyId(), "Office not found");
         Shelf savedShelf = shelfRepository.findByNameAndOffice(shelf.getName(), office);
         if(savedShelf != null) {
             throw new EntityAlreadyExist("Shelf with the same name already exist");

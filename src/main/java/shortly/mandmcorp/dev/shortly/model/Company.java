@@ -1,44 +1,54 @@
 package shortly.mandmcorp.dev.shortly.model;
 
-
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
 
 @Data
-@Document(collection = "offices")
-public class Office {
+@Document(collection = "companies")
+public class Company {
 
     @Id
     private String id;
 
     @Indexed
-    private String name;
+    private String companyName;
 
     @Indexed
-    private String companyId;
+    private String displayName;
 
-    @Indexed(unique = true)
-    private String code;
+    private String companyLogo;
+
+    private String primaryColor;
+
+    private String secondaryColor;
+
+    private String description;
 
     private String address;
-    
-    private String phoneNumber;
-    
-    @DBRef
-    private Location location;
 
-    @DBRef
-    private User manager;
+    private String managerName;
+
+    private String managerPhoneNumber;
+
+    @Indexed(unique = true)
+    private String email;
+
+    private String phoneNumber;
+
+    private String registrationNumber;
+
+    private boolean emailVerified = false;
+
+    private boolean enabled = false;
 
     @CreatedDate
     private Long createdAt;
-    
+
     @LastModifiedDate
     private Long updatedAt;
 }

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shortly API / CORS test</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 820px; margin: 32px auto; padding: 0 16px; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .muted { color: #6b7280; font-size: 13px; }
+  fieldset { border: 1px solid #d1d5db; border-radius: 8px; margin: 16px 0; padding: 14px 16px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  input[type=text] { width: 100%; padding: 9px 10px; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; }
+  .checks label { display: inline-block; font-weight: 400; margin-right: 18px; }
+  button { padding: 10px 16px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+  #status { margin: 16px 0 8px; padding: 12px 14px; border-radius: 8px; font-weight: 600; display: none; }
+  #status.ok  { display: block; background: #dcfce7; color: #166534; }
+  #status.bad { display: block; background: #fee2e2; color: #991b1b; }
+  #status.warn{ display: block; background: #fef9c3; color: #854d0e; }
+  pre { background: #0b1021; color: #d6e2ff; padding: 14px; border-radius: 8px; overflow: auto; font-size: 12px; line-height: 1.5; max-height: 440px; white-space: pre-wrap; word-break: break-word; }
+  code { background: rgba(127,127,127,.18); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1>Shortly API / CORS test</h1>
+  <p class="muted">Page origin: <code id="origin"></code>. Open <b>DevTools → Console + Network</b> before testing — a CORS block only shows its real reason there.</p>
+
+  <fieldset>
+    <label for="url">Endpoint</label>
+    <input id="url" type="text" value="https://dd3d-74-244-119-216.ngrok-free.app/shortly/api-frontdesk/parcels" />
+    <label for="token" style="margin-top:12px;">Bearer token</label>
+    <input id="token" type="text" value="eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiTUFOQUdFUiIsIm5hbWUiOiJFdmEgQXJ0aHVyIiwiZW1haWwiOiJtZWFsZXhtYWlsdHRAZ21haWwuY29tIiwic3ViIjoiKzIzMzUzNTE5MDM2MSIsImlhdCI6MTc4NDQwNDA3OSwiZXhwIjoxNzg0NjkwNDc5fQ.zwfCG3nSkiSQYoTLRlGsGbLWAy8GtLX11-Htx2EAqfg" />
+    <div class="checks" style="margin-top:12px;">
+      <label><input type="checkbox" id="useToken" checked /> Send token</label>
+      <label><input type="checkbox" id="ngrokHeader" checked /> Send <code>ngrok-skip-browser-warning</code></label>
+      <label><input type="checkbox" id="withCreds" /> credentials: include</label>
+    </div>
+  </fieldset>
+
+  <button id="go">Send request</button>
+
+  <div id="status"></div>
+  <pre id="out">Ready.</pre>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  $("origin").textContent = window.location.origin || "null (file://)";
+
+  function show(kind, msg) { const s = $("status"); s.className = kind; s.textContent = msg; }
+  function body(text) { $("out").textContent = text; }
+
+  async function send() {
+    const url = $("url").value.trim();
+    const headers = {};
+    if ($("useToken").checked) headers["Authorization"] = "Bearer " + $("token").value.trim();
+    if ($("ngrokHeader").checked) headers["ngrok-skip-browser-warning"] = "true";
+    const opts = { method: "GET", headers };
+    if ($("withCreds").checked) opts.credentials = "include";
+
+    show("warn", "Requesting…");
+    body("GET " + url + "\n" + JSON.stringify(headers, null, 2));
+    const t0 = performance.now();
+
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } catch (err) {
+      show("bad", "fetch() failed: " + err.name + " — almost always a CORS block or the server is unreachable.");
+      body("ERROR " + err.name + ": " + err.message +
+        "\n\nCheck the Console for the exact 'Access-Control-Allow-Origin' message.\n" +
+        "Common causes:\n" +
+        "  • CORS: no Access-Control-Allow-Origin header for this origin\n" +
+        "  • Preflight OPTIONS rejected (401/403/redirect)\n" +
+        "  • ngrok tunnel down / URL changed");
+      return;
+    }
+
+    const ms = Math.round(performance.now() - t0);
+    const ct = res.headers.get("content-type") || "(none)";
+    const raw = await res.text();
+    let json = null; try { json = JSON.parse(raw); } catch (_) {}
+
+    if (res.ok && json) {
+      const n = json.content ? json.content.length : (Array.isArray(json) ? json.length : "?");
+      show("ok", "SUCCESS — CORS is not blocking. HTTP " + res.status + " · " + ms + "ms · " + n +
+        " items · total " + (json.totalElements ?? "?"));
+    } else if (ct.includes("text/html") && /ngrok|You are about to visit/i.test(raw)) {
+      show("warn", "ngrok browser-warning page returned (not your API). Keep 'ngrok-skip-browser-warning' ON; if it's on and you still see this, the header was stripped.");
+    } else {
+      show("bad", "HTTP " + res.status + " (" + ct + ") — request reached the server, so CORS passed, but response wasn't the expected JSON.");
+    }
+    body("HTTP " + res.status + " " + res.statusText + " · " + ct + " · " + ms + "ms\n\n" + raw.slice(0, 4000));
+  }
+
+  $("go").addEventListener("click", send);
+</script>
+</body>
+</html>

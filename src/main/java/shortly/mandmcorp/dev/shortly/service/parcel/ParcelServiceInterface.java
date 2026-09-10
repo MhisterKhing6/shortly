@@ -23,7 +23,7 @@ public interface ParcelServiceInterface {
     Page<Parcel> getVendorParcels(String search, ParcelStatus status, String toOfficeId, Pageable pageable);
     Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest);
     Page<Parcel> searchParcels(Boolean isPOD, Boolean isDelivered, Boolean isParcelAssigned,
-                                      String officeId, String driverId, Boolean hasCalled, Pageable pageable, boolean isFrontDesk);
+                                      String officeId, String driverId, Boolean hasCalled, String search, Pageable pageable, boolean isFrontDesk);
     
     /**
      * Gets all parcels for a specific driver with POD and inbound payment filters.

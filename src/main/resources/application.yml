@@ -13,6 +13,28 @@ spring:
     mapper:
       accept-case-insensitive-enums: true
 
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+            trust: ${MAIL_HOST:smtp.gmail.com}
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+app:
+  frontend-base-url: ${FRONTEND_HOST:http://localhost:3000}
+  email-verification-path: ${EMAIL_VERIFICATION_PATH:/verify-email}
+  mail-from: ${MAIL_FROM:no-reply@shortly.com}
+  email-verification-expiry-ms: ${EMAIL_VERIFICATION_EXPIRY_MS:86400000}
+
 
 
 mnotify:

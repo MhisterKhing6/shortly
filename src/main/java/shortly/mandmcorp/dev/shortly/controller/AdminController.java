@@ -195,8 +195,9 @@ public class AdminController {
             @RequestParam(required = false) String officeId,
             @RequestParam(required = false) String driverId,
             @RequestParam(required = false) Boolean hasCalled,
+            @RequestParam(required = false) String search,
             Pageable pageable) {
-        return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, officeId, driverId, hasCalled, pageable, false);
+        return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, officeId, driverId, hasCalled, search, pageable, false);
     }
 
     @GetMapping("/reconciliations")

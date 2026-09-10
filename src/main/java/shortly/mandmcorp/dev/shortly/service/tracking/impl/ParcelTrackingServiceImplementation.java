@@ -52,7 +52,7 @@ public class ParcelTrackingServiceImplementation implements ParcelTrackingServic
             case CUSTOMER, VENDOR -> mapToCustomerResponse(parcel);
             case RIDER -> mapToRiderResponse(parcel);
             case FRONTDESK -> mapToFrontdeskResponse(parcel);
-            case ADMIN, MANAGER, CALLCENTER -> mapToAdminResponse(parcel);
+            case SUPERADMIN, ADMIN, MANAGER, CALLCENTER -> mapToAdminResponse(parcel);
         };
     }
 

@@ -2,6 +2,8 @@ package shortly.mandmcorp.dev.shortly.exceptions;
 
 import java.util.HashMap;
 
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -38,6 +40,26 @@ public class GlobalExceptionHandler {
                 .data(null)
                 .build();
                 
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(IncorrectResultSizeDataAccessException.class)
+    public ResponseEntity<ErrorResponse> handleNonUniqueResult(IncorrectResultSizeDataAccessException ex) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .message("Multiple records were found for a value that should be unique. Please contact support.")
+                .data(null)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(DuplicateKeyException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateKey(DuplicateKeyException ex) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .message("A record with the same unique value already exists")
+                .data(null)
+                .build();
+
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
