@@ -287,7 +287,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
             String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(officeManager.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
             NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
-                .to(parcel.getRecieverPhoneNumber()).build();
+                .to(parcel.getRecieverPhoneNumber()).otp(true).build();
             notification.send(notify);
         }
 
@@ -747,7 +747,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(riderPhone, riderName, assignment.getConfirmationCode(), receiverName, parcelId);
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
-        .to(receiverPhone).build();
+        .to(receiverPhone).otp(true).build();
         notification.send(notify);
         return UserResponse.builder().message("Successful sent").build();
     }

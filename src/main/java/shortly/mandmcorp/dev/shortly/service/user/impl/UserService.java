@@ -279,7 +279,7 @@ public class UserService implements UserServiceInterface {
         verificationTokenRepository.save(token);
         
         String otpMessage = NotificationUtil.generateOtpMessage(otp) ;
-        NotificationRequestTemplate otpRequest = NotificationRequestTemplate.builder().body(otpMessage).to(user.getPhoneNumber()).build();
+        NotificationRequestTemplate otpRequest = NotificationRequestTemplate.builder().body(otpMessage).to(user.getPhoneNumber()).otp(true).build();
         notification.send(otpRequest);
         UserResponse userResponse = new UserResponse("Otp sent kindly check sms", token.getId());
         return userResponse;

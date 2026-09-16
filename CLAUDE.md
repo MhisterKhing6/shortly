@@ -64,6 +64,7 @@ Parcel and delivery management system for a courier service. Standard Spring Boo
 - **Barcode**: `Parcel.barCode` is unique+sparse; `BarcodeGenerator` auto-generates `PARCEL-<year>-<seq>` codes from an atomic per-year counter (`model/Counter.java`) unless the caller supplies their own unique value. No barcode/QR scanning endpoint exists yet — despite the "barcode and qr code" commit title, no QR functionality was actually added.
 - **Vendor ("partner") flow**: `VENDOR` users register/track their own parcels without an `officeId` (identified by phone number instead, stored as `Parcel.vendorId`) via `VendorController` (`/api-vendor`), gated with `@PreAuthorize("hasRole('VENDOR')")` on the service methods.
 - **Fuel requests**: Riders submit fuel requests (`POST /api-rider/fuel-request`); front desk/manager approve or reject with an amount (`PUT /api-frontdesk/fuel-request/{id}`). Model has a typo'd field `fuleStationPhoneNumber`.
+- **Company registration flow**: `CompanyController`/`CompanyServiceImplementation` register a `Company` (collection `companies`) in a disabled state, save an `EmailVerificationToken` (collection `email_verification_tokens`, via `EmailVerificationTokenRepository`), and email a verification link through `EmailServiceImplementation`. Only on `POST /api-company/verify-email` is the company enabled and its ADMIN `User` created. **Do not confuse this with `VerificationToken`/`VerificationTokenRepository`** (collection `verification_tokens`) — that one is unrelated, used by `UserService.requestPasswordReset`/`resetPassword` for SMS-based OTP password resets (5-minute expiry).
 
 ### Controllers and their routes
 
@@ -77,7 +78,8 @@ Parcel and delivery management system for a courier service. Standard Spring Boo
 | `ReceiverController` | `/api-receiver` | Authenticated |
 | `CallCenterController` | `/api-call-center` | ADMIN, MANAGER, CALLCENTER |
 | `VendorController` | `/api-vendor` | VENDOR |
-| `TrackingController` | `/api-tracking` | Public tracking endpoint + role-gated status/assignment updates |
+| `TrackingController` | `/api-tracking` | Public tracking endpoint (`/api-tracking/*/track`) + role-gated status/assignment updates |
+| `CompanyController` | `/api-company` | Public (`register`, `verify-email`, `resend-verification`) |
 
 ### Key cross-cutting patterns
 
@@ -102,7 +104,7 @@ String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()
 ### Authentication & Security
 
 - Phone number is the username for authentication
-- JWT required for all endpoints except `/api-user/**`, `/health/**`, `/swagger-ui/**`, `/v3/api-docs/**`
+- JWT required for all endpoints except `/api-user/**`, `/api-company/register`, `/api-company/verify-email`, `/api-company/resend-verification`, `/health/**`, `/swagger-ui/**`, `/v3/api-docs/**`, `/api-tracking/*/track`
 - Stateless sessions (no server-side session storage)
 
 ## Database
@@ -113,6 +115,7 @@ String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()
 - `reconcilations`, `driver_reconcilations`
 - `rider_status`, `verification_tokens`, `contacts`, `user-actions`
 - `fuel_requests`, `jimi_access_tokens`
+- `companies`, `email_verification_tokens` (company registration flow — distinct from `verification_tokens`, see above)
 
 ### Indexes
 - **Parcel**: `office_delivered_idx`, `office_homedelivery_idx`, `office_called_idx`, `search_parcels_idx`
