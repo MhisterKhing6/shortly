@@ -45,6 +45,11 @@ public class NotificationUtil {
                 + ". with verification code " + vCode;
             }
 
+    public static String generateParcelReceivedAtHubSms(String driverName) {
+        String greeting = (driverName != null && !driverName.isBlank()) ? "Hello " + driverName : "Hello";
+        return greeting + " we have received your parcel at UCC parcel hub Goil. Thank you.";
+    }
+
     public static String generateFuelRequest(String riderName, String stationName) {
         return "Hello  Sir a fuel request has been received from " + riderName
                 + " at " + stationName;

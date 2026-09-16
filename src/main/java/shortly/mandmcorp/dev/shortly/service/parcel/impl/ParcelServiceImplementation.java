@@ -382,6 +382,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         return new PageImpl<>(parcels, pageable, total);
     }
 
+    private static final String UCC_GOIL_HUB_OFFICE_ID = "6a5b69da3bf95afbf713ae2f";
+
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
     public List<Parcel> markParcelsAsReceived(ParcelReceivedRequest request) {
@@ -397,7 +399,16 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             assertSameCompany(parcel);
             parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.RECEIVED);
             parcel.setOfficeId(officeId);
-            updated.add(parcelRepository.save(parcel));
+            Parcel savedParcel = parcelRepository.save(parcel);
+            updated.add(savedParcel);
+
+            if (UCC_GOIL_HUB_OFFICE_ID.equals(officeId) && savedParcel.getDriverPhoneNumber() != null
+                    && !savedParcel.getDriverPhoneNumber().isBlank()) {
+                notification.send(NotificationRequestTemplate.builder()
+                        .to(savedParcel.getDriverPhoneNumber())
+                        .body(NotificationUtil.generateParcelReceivedAtHubSms(savedParcel.getDriverName()))
+                        .build());
+            }
         }
         return updated;
     }
