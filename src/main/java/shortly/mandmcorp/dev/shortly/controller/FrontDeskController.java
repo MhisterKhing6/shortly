@@ -31,7 +31,11 @@ import shortly.mandmcorp.dev.shortly.dto.request.ParcelReceivedRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.ParcelUpdateRequest;
 import shortly.mandmcorp.dev.shortly.dto.request.PickedUpRequest;
-import shortly.mandmcorp.dev.shortly.dto.request.ReconcilationRiderRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.CallCenterUpdateRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.PickupChargeRequest;
+import shortly.mandmcorp.dev.shortly.dto.request.ReconciliationBatchRequest;
+import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
+import io.swagger.v3.oas.annotations.Parameter;
 import shortly.mandmcorp.dev.shortly.dto.response.FuelRequestStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.ReconciliationStatsResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
@@ -168,8 +172,8 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "200", description = "Reconciliation completed successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid reconciliation data")
     })
-    public UserResponse reconcilationRider(@RequestBody @Valid ReconcilationRiderRequest reconcilationRequest) {
-        return riderService.reconcilation(reconcilationRequest);
+    public UserResponse reconcilationRider(@RequestBody ReconciliationBatchRequest reconcilationRequest) {
+        return riderService.reconcileBatch(reconcilationRequest.getItems());
     }
 
     @GetMapping("/rider/{riderId}/assignments")
@@ -181,8 +185,47 @@ public class FrontDeskController {
     })
     public List<DeliveryAssignments> getRiderAssignments(
             @PathVariable String riderId,
-            @RequestParam(defaultValue = "true") boolean payed) {
-        return riderService.getRiderAssignmentsByRiderId(riderId, payed);
+            @Parameter(description = "true (default), false, or all")
+            @RequestParam(defaultValue = "true") String payed,
+            @Parameter(description = "Optional epoch ms; matches assignedAt or completedAt")
+            @RequestParam(required = false) Long from,
+            @Parameter(description = "Optional epoch ms; matches assignedAt or completedAt")
+            @RequestParam(required = false) Long to) {
+        Boolean payedFilter = "all".equalsIgnoreCase(payed) ? null : Boolean.valueOf(payed);
+        return riderService.getRiderAssignmentsByRiderId(riderId, payedFilter, from, to);
+    }
+
+    @PutMapping("/office/pickup-charge")
+    @Operation(summary = "Set own station's pickup charge", description = "MANAGER only. Applies to the caller's office. 400 if enabled without a positive amount.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @TrackUserAction(action = "UPDATE_PICKUP_CHARGE", description = "Manager updated the station pickup charge")
+    public UserResponse updatePickupCharge(@RequestBody PickupChargeRequest request) {
+        UserResponse saved = officeService.updateOwnPickupCharge(request.getPickupChargeEnabled(), request.getPickupChargeAmount());
+        return new UserResponse("Pickup charge saved", saved.getId());
+    }
+
+    @PostMapping("/pickup-request")
+    @Operation(summary = "Create a pickup request", description = "Creates a PICKUP parcel. Without pickUpCost, the station's pickup charge applies when enabled.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @TrackUserAction(action = "ADD_PICKUP_REQUEST", description = "Front desk created a pickup request")
+    public Parcel createPickupRequest(@RequestBody @Valid ParcelRequest request) {
+        request.setTypeofParcel(ParcelTypes.PICKUP);
+        return parcelService.addParcel(request);
+    }
+
+    @PostMapping("/parcels/{parcelId}/follow-up")
+    @Operation(summary = "Record a post-delivery follow-up call", description = "Alias of PUT /api-call-center/parcels/{parcelId}/call-outcome")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @TrackUserAction(action = "PARCEL_FOLLOW_UP", description = "Call center recorded a follow-up")
+    public Parcel followUp(@PathVariable String parcelId, @RequestBody @Valid CallCenterUpdateRequest request) {
+        return parcelService.updateCallCenterOutcome(parcelId, request);
+    }
+
+    @GetMapping("/parcels/delivered")
+    @Operation(summary = "Get delivered parcels", description = "Paged delivered parcels in the user's office")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public Page<Parcel> getDeliveredParcels(Pageable pageable) {
+        return parcelService.searchParcels(null, true, null, null, null, null, pageable, true);
     }
 
     @GetMapping("/driver/{driverId}/parcels")

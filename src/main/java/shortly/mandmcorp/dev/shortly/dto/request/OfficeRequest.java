@@ -11,6 +11,10 @@ public class OfficeRequest {
     private String address;
     private String phoneNumber;
     private String managerId;
+    private Double latitude;
+    private Double longitude;
+    private Boolean pickupChargeEnabled;
+    private Double pickupChargeAmount;
     
     @NotBlank(message = "Location ID is required")
     private String locationId;

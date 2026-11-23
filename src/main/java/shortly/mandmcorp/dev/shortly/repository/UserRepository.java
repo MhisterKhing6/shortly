@@ -17,6 +17,8 @@ public interface  UserRepository extends  MongoRepository  <User,String> {
     User findByUserId(String userId);
     List<User> findByRoleAndOfficeIdsContainingAndAvailability(UserRole role, String officeId, boolean availability);
     List<User> findByRoleAndOfficeIdsContaining(UserRole role, String officeId);
+    List<User> findByRole(UserRole role);
+    boolean existsByOfficeIdsContaining(String officeId);
     Page<User> findByOfficeIdsContaining(String officeId, Pageable pageable);
 
 }

@@ -66,6 +66,8 @@ public interface RiderServiceInterface {
      * @return List of delivery assignments with full parcel details
      */
     List<DeliveryAssignments> getRiderAssignmentsByRiderId(String riderId, boolean payed);
+    List<DeliveryAssignments> getRiderAssignmentsByRiderId(String riderId, Boolean payed, Long from, Long to);
+    UserResponse reconcileBatch(List<ReconcilationRiderRequest> requests);
     
     /**
      * Marks multiple delivery assignments as paid for reconciliation.

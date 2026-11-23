@@ -52,6 +52,8 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
     private final ShelfRepository shelfRepository;
     private final AddressRepository addressRepository;
     private final ParcelRepository parcelRepository;
+    private final shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository deliveryAssignmentsRepository;
+    private final shortly.mandmcorp.dev.shortly.utils.DeliveryLocationValidator locationValidator;
     
     @Override
     @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
@@ -69,7 +71,10 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
                 throw new EntityAlreadyExist("Office with this name already exists in this location");
             });
         
+        locationValidator.validateStation(officeRequest.getLatitude(), officeRequest.getLongitude());
+        validatePickupCharge(officeRequest.getPickupChargeEnabled(), officeRequest.getPickupChargeAmount());
         Office office = officeMapper.toEntity(officeRequest);
+        if (Boolean.FALSE.equals(office.getPickupChargeEnabled())) office.setPickupChargeAmount(null);
         office.setCode(generateOfficeCode());
         office.setLocation(location);
         
@@ -126,6 +131,26 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         
         if(updateRequest.getName() != null) office.setName(updateRequest.getName());
         if(updateRequest.getAddress() != null) office.setAddress(updateRequest.getAddress());
+        if(updateRequest.getPhoneNumber() != null) office.setPhoneNumber(updateRequest.getPhoneNumber());
+
+        if(updateRequest.getCode() != null && !updateRequest.getCode().isBlank()
+                && !updateRequest.getCode().trim().equals(office.getCode())) {
+            String code = updateRequest.getCode().trim();
+            officeRepository.findByCode(code).ifPresent(other -> {
+                throw new EntityAlreadyExist("Office code already in use");
+            });
+            office.setCode(code);
+        }
+
+        if(updateRequest.getLatitude() != null || updateRequest.getLongitude() != null) {
+            locationValidator.validateStation(updateRequest.getLatitude(), updateRequest.getLongitude());
+            office.setLatitude(updateRequest.getLatitude());
+            office.setLongitude(updateRequest.getLongitude());
+        }
+
+        if(updateRequest.getPickupChargeEnabled() != null) {
+            applyPickupCharge(office, updateRequest.getPickupChargeEnabled(), updateRequest.getPickupChargeAmount());
+        }
         
         if(updateRequest.getLocationId() != null) {
             Location location = locationRepository.findById(updateRequest.getLocationId())
@@ -249,6 +274,10 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         Address newAddress = new Address();
         newAddress.setName(request.getName());
         newAddress.setCost(request.getCost());
+        locationValidator.validateDropoff(request.getLatitude(), request.getLongitude());
+        newAddress.setLatitude(request.getLatitude());
+        newAddress.setLongitude(request.getLongitude());
+        newAddress.setLocationName(request.getLocationName());
         newAddress.setOfficeId(frontDesk.getOfficeIds().get(0));
         addressRepository.save(newAddress);
         return newAddress;
@@ -269,6 +298,81 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
     @Override
     public List<Parcel> getParcelsByAddressNumber(String phoneNumber) {
         return parcelRepository.findByRecieverPhoneNumberAndIsDeliveredFalse(phoneNumber);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('MANAGER')")
+    public UserResponse updateOwnPickupCharge(Boolean enabled, Double amount) {
+        User manager = shortly.mandmcorp.dev.shortly.utils.CurrentUser.get();
+        String officeId = shortly.mandmcorp.dev.shortly.utils.CurrentUser.officeId(manager);
+        if (officeId == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.FORBIDDEN, "Manager has no assigned office");
+        }
+        if (enabled == null) {
+            throw badRequest("pickupChargeEnabled is required");
+        }
+        Office office = officeRepository.findById(officeId)
+            .orElseThrow(() -> new EntityNotFound("Office not found"));
+        applyPickupCharge(office, enabled, amount);
+        officeRepository.save(office);
+        return new UserResponse("Pickup charge saved", officeId);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponse deleteOffice(String officeId) {
+        Office office = officeRepository.findById(officeId)
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND, "Office not found"));
+        if (parcelRepository.existsByOfficeId(officeId)) {
+            throw conflict("Station has parcels; it can't be deleted");
+        }
+        if (userRepository.existsByOfficeIdsContaining(officeId)) {
+            throw conflict("Station has users; move or remove them first");
+        }
+        if (deliveryAssignmentsRepository.existsByOfficeIdAndStatusNotIn(officeId, List.of(
+                shortly.mandmcorp.dev.shortly.enums.DeliveryStatus.DELIVERED,
+                shortly.mandmcorp.dev.shortly.enums.DeliveryStatus.RETURNED,
+                shortly.mandmcorp.dev.shortly.enums.DeliveryStatus.COMPLETED,
+                shortly.mandmcorp.dev.shortly.enums.DeliveryStatus.CANCELLED))) {
+            throw conflict("Station has open delivery assignments");
+        }
+        officeRepository.delete(office);
+        return new UserResponse("Office deleted", officeId);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponse deleteLocation(String locationId) {
+        Location location = locationRepository.findById(locationId)
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND, "Location not found"));
+        if (!officeRepository.findByLocation(location).isEmpty()) {
+            throw conflict("Location has stations; delete or move them first");
+        }
+        locationRepository.delete(location);
+        return new UserResponse("Location deleted", locationId);
+    }
+
+    private void applyPickupCharge(Office office, boolean enabled, Double amount) {
+        validatePickupCharge(enabled, amount);
+        office.setPickupChargeEnabled(enabled);
+        office.setPickupChargeAmount(enabled ? amount : null);
+    }
+
+    private void validatePickupCharge(Boolean enabled, Double amount) {
+        if (Boolean.TRUE.equals(enabled) && (amount == null || amount <= 0)) {
+            throw badRequest("pickupChargeAmount must be greater than 0 when the pickup charge is enabled");
+        }
+    }
+
+    private static org.springframework.web.server.ResponseStatusException badRequest(String message) {
+        return new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, message);
+    }
+
+    private static org.springframework.web.server.ResponseStatusException conflict(String message) {
+        return new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, message);
     }
 
     private String generateOfficeCode() {

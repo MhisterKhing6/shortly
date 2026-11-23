@@ -60,6 +60,17 @@ public class DeliveryAssignments {
     private long payedAt;
 
     private String payedTo;
+
+    /** Planned stop order sent with the latest assignment batch of the day. */
+    private RoutePlan routePlan;
+
+    // Reconciliation detail (what the manager recorded per parcel)
+    private Double expectedAmount;
+    private Double varianceAmount;
+    private List<ReconciliationLine> reconciliationLines;
+    private String reconciledById;
+    private String reconciledByName;
+    private Long reconciledAt;
     
     @CreatedDate
     private Long createdAt;

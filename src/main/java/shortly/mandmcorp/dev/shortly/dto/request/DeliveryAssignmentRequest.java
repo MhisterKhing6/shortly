@@ -13,4 +13,7 @@ public class DeliveryAssignmentRequest {
     
     @NotEmpty(message = "Parcel IDs list cannot be empty")
     private List<String> parcelIds;
+
+    /** Optional planned route. parcelIds arrive in planned order. Ignored (but the assignment still happens) if invalid. */
+    private shortly.mandmcorp.dev.shortly.model.RoutePlan routePlan;
 }

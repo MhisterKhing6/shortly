@@ -18,6 +18,24 @@ public class ParcelInfo {
     private String receiverPhoneNumber;
     private String alternativePhoneNumber;
     private String receiverAddress;
+
+    // Delivery location (drop-off pin). All nullable: older parcels, pickup parcels and
+    // intake during a Google Maps outage have none.
+    private Double receiverLatitude;
+    private Double receiverLongitude;
+    private String receiverLocationName;
+    private String receiverPlaceId;
+    private shortly.mandmcorp.dev.shortly.enums.LocationSource receiverLocationSource;
+
+    /** When this parcel was marked DELIVERED or RETURNED (epoch ms). */
+    private Long completedAt;
+
+    // Rider's GPS position at the moment the parcel was marked DELIVERED/RETURNED.
+    private Double markedLatitude;
+    private Double markedLongitude;
+    private String markedGpsTime;
+    /** Distance from the marked position to the drop-off pin; null if either is unknown. */
+    private Double markedDistanceFromDropoffM;
     private String senderName;
     private String senderPhoneNumber;
     private double parcelAmount;

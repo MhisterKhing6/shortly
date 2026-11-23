@@ -58,6 +58,14 @@ public class Parcel {
     private String receiverName;
     private String receiverAddress;
     private String recieverPhoneNumber;
+
+    // Delivery location (drop-off pin). All nullable: older parcels, pickup parcels and
+    // intake during a Google Maps outage have none.
+    private Double receiverLatitude;
+    private Double receiverLongitude;
+    private String receiverLocationName;
+    private String receiverPlaceId;
+    private shortly.mandmcorp.dev.shortly.enums.LocationSource receiverLocationSource;
     private String alternativePhoneNumber;
     private String shelfName;
     private boolean inboudPayed;

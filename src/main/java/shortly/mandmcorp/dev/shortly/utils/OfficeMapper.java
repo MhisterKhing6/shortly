@@ -14,6 +14,10 @@ public class OfficeMapper {
         office.setName(request.getName());
         office.setAddress(request.getAddress());
         office.setPhoneNumber(request.getPhoneNumber());
+        office.setLatitude(request.getLatitude());
+        office.setLongitude(request.getLongitude());
+        office.setPickupChargeEnabled(request.getPickupChargeEnabled());
+        office.setPickupChargeAmount(request.getPickupChargeAmount());
         office.setCreatedAt(System.currentTimeMillis());
         office.setUpdatedAt(System.currentTimeMillis());
         return office;
@@ -28,6 +32,10 @@ public class OfficeMapper {
         response.setPhoneNumber(office.getPhoneNumber());
         response.setCreatedAt(office.getCreatedAt());
         response.setUpdatedAt(office.getUpdatedAt());
+        response.setLatitude(office.getLatitude());
+        response.setLongitude(office.getLongitude());
+        response.setPickupChargeEnabled(office.getPickupChargeEnabled());
+        response.setPickupChargeAmount(office.getPickupChargeAmount());
         if(office.getLocation() != null) {
             response.setLocationName(office.getLocation().getName());
         }

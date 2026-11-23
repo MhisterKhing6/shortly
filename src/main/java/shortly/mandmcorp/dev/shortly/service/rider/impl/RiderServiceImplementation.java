@@ -42,6 +42,7 @@ import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.ParcelInfo;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
 import shortly.mandmcorp.dev.shortly.model.RiderInfo;
+import shortly.mandmcorp.dev.shortly.model.RoutePlan;
 import shortly.mandmcorp.dev.shortly.model.User;
 import shortly.mandmcorp.dev.shortly.repository.DeliveryAssignmentsRepository;
 import shortly.mandmcorp.dev.shortly.repository.DriverAssignmentRepository;
@@ -56,6 +57,9 @@ import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTem
 import shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.OtpUtil;
+import shortly.mandmcorp.dev.shortly.utils.CurrentUser;
+import shortly.mandmcorp.dev.shortly.utils.GeoUtils;
+import shortly.mandmcorp.dev.shortly.utils.ReconciliationValidator;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
 
 
@@ -83,11 +87,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     private final DriverAssignmentRepository driverAssignmentRepository;
     private final FuelRequestRepository fuelRequestRepository;
     private final OfficeRepository officeRepository;
+    private final shortly.mandmcorp.dev.shortly.service.tracking.RiderTrackingService riderTrackingService;
 
     public RiderServiceImplementation(DeliveryAssignmentsRepository deliveryAssignmentsRepository, UserRepository userRepository, ParcelRepository parcelRepository,
         @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate,
         DeliveryAssignmentsRepository deliveryRepo, ReconcilationRepository reconcilationRepository, DriverReconcilationRepository drivRecon,
-        DriverAssignmentRepository driverAssignmentRepository, FuelRequestRepository fuelRequestRepository, OfficeRepository officeRepository ) {
+        DriverAssignmentRepository driverAssignmentRepository, FuelRequestRepository fuelRequestRepository, OfficeRepository officeRepository,
+        shortly.mandmcorp.dev.shortly.service.tracking.RiderTrackingService riderTrackingService) {
         this.deliveryAssignmentsRepository = deliveryAssignmentsRepository;
         this.userRepository = userRepository;
         this.parcelRepository = parcelRepository;
@@ -100,6 +106,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         this.driverAssignmentRepository = driverAssignmentRepository;
         this.fuelRequestRepository = fuelRequestRepository;
         this.officeRepository = officeRepository;
+        this.riderTrackingService = riderTrackingService;
     }
 
     /**
@@ -277,6 +284,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 .deliveryContactPhoneNumber(parcel.getDeliveryContactPhoneNumber())
                 .specialInstructions(parcel.getSpecialInstructions())
                 .imageUrls(parcel.getImageUrls())
+                .receiverLatitude(parcel.getReceiverLatitude())
+                .receiverLongitude(parcel.getReceiverLongitude())
+                .receiverLocationName(parcel.getReceiverLocationName())
+                .receiverPlaceId(parcel.getReceiverPlaceId())
+                .receiverLocationSource(parcel.getReceiverLocationSource())
                 .build();
             newParcels.add(parcelInfo);
             assignment.setInboundCost(assignment.getInboundCost() + parcel.getInboundCost());
@@ -292,6 +304,10 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         existingParcels.addAll(newParcels);
         assignment.setParcels(existingParcels);
+        RoutePlan plan = validRoutePlan(assignmentRequest, newParcels);
+        if (plan != null) {
+            assignment.setRoutePlan(plan);
+        }
         assignment.setUpdatedAt(System.currentTimeMillis());
         assignment.setAmount(assignment.getDeliveryCost() + assignment.getInboundCost());
         deliveryAssignmentsRepository.save(assignment);
@@ -301,6 +317,52 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         notification.send(notify);
         
         return new UserResponse("Parcels assigned successfully", rider.getPhoneNumber());
+    }
+
+    /**
+     * Returns the request's route plan if it passes validation, else null (the assignment still
+     * goes ahead without it). Stops for parcels that were skipped during assignment are dropped.
+     */
+    private RoutePlan validRoutePlan(DeliveryAssignmentRequest request, List<ParcelInfo> assigned) {
+        RoutePlan plan = request.getRoutePlan();
+        if (plan == null) return null;
+        if (!"GOOGLE".equals(plan.getMethod()) && !"ESTIMATE".equals(plan.getMethod())) {
+            log.warn("Ignoring route plan: unknown method {}", plan.getMethod());
+            return null;
+        }
+        if (plan.getStopOrder() == null || !request.getParcelIds().containsAll(plan.getStopOrder())) {
+            log.warn("Ignoring route plan: stopOrder has ids not in parcelIds");
+            return null;
+        }
+        if (plan.getEncodedPath() != null && plan.getEncodedPath().length() > RoutePlan.MAX_ENCODED_PATH_LENGTH) {
+            log.warn("Ignoring route plan: encodedPath is {} chars", plan.getEncodedPath().length());
+            return null;
+        }
+        java.util.Set<String> assignedIds = new java.util.HashSet<>();
+        assigned.forEach(p -> assignedIds.add(p.getParcelId()));
+        plan.setStopOrder(new ArrayList<>(plan.getStopOrder().stream().filter(assignedIds::contains).toList()));
+        if (plan.getPlannedAt() == null) plan.setPlannedAt(System.currentTimeMillis());
+        plan.setStale(false);
+        return plan;
+    }
+
+    /**
+     * Records when a parcel was marked done and where the rider's GPS was at that moment, plus the
+     * distance to the drop-off pin. GPS failures never block the status update.
+     */
+    private void captureMarkedPosition(ParcelInfo info, String riderId) {
+        info.setCompletedAt(System.currentTimeMillis());
+        User rider = userRepository.findById(riderId).orElse(null);
+        riderTrackingService.tryGetLocation(rider).ifPresent(location -> {
+            info.setMarkedLatitude(location.getLat());
+            info.setMarkedLongitude(location.getLng());
+            info.setMarkedGpsTime(location.getGpsTime());
+            if (info.getReceiverLatitude() != null && info.getReceiverLongitude() != null) {
+                info.setMarkedDistanceFromDropoffM((double) Math.round(GeoUtils.haversineM(
+                        location.getLat(), location.getLng(),
+                        info.getReceiverLatitude(), info.getReceiverLongitude())));
+            }
+        });
     }
 
     /**
@@ -392,6 +454,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                         parcel.setParcelStatus(ParcelStatus.DELIVERD);
                         selectedParcel.setDelivered(true);
                         selectedParcel.setPaymentMethod(statusRequest.getPayementMethod());
+                        captureMarkedPosition(selectedParcel, rider.getUserId());
 
                         parcelRepository.save(parcel);
 
@@ -445,6 +508,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     assignment.setInboundCost(assignment.getInboundCost() - parcelToCancel.getInboundCost());
 
                     parcelToCancel.setReturned(true);
+                    captureMarkedPosition(parcelToCancel, rider.getUserId());
 
                     boolean allReturned = assignment.getParcels().stream()
                         .allMatch(ParcelInfo::isReturned);
@@ -508,6 +572,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                         parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.DELIVERD);
                         selectedParcel.setDelivered(true);
                         selectedParcel.setPaymentMethod(statusRequest.getPayementMethod());
+                        selectedParcel.setCompletedAt(System.currentTimeMillis());
 
                         parcelRepository.save(parcel);
 
@@ -549,6 +614,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     assignment.setAmount(assignment.getAmount() - parcelAmount);
 
                     parcelToCancel.setReturned(true);
+                    parcelToCancel.setCompletedAt(System.currentTimeMillis());
 
                     boolean allReturned = assignment.getParcels().stream()
                         .allMatch(ParcelInfo::isReturned);
@@ -628,11 +694,38 @@ public class RiderServiceImplementation implements RiderServiceInterface {
      */
     @Override
     public List<DeliveryAssignments> getRiderAssignmentsByRiderId(String riderId, boolean payed) {
-        if(!userRepository.existsById(riderId)) {
-            throw new EntityNotFound("Rider not found");
+        return getRiderAssignmentsByRiderId(riderId, payed, null, null);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public List<DeliveryAssignments> getRiderAssignmentsByRiderId(String riderId, Boolean payed, Long from, Long to) {
+        User rider = userRepository.findById(riderId)
+            .orElseThrow(() -> new EntityNotFound("Rider not found"));
+        User caller = CurrentUser.get();
+        if (caller.getRole() != UserRole.ADMIN) {
+            String own = CurrentUser.officeId(caller);
+            if (own == null || rider.getOfficeIds() == null || !rider.getOfficeIds().contains(own)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "Rider is not in your office");
+            }
         }
 
-        return deliveryAssignmentsRepository.findByRiderIdAndPayed(riderId, payed);
+        if (from == null && to == null) {
+            return payed == null
+                ? deliveryAssignmentsRepository.findByRiderInfoRiderId(riderId)
+                : deliveryAssignmentsRepository.findByRiderIdAndPayed(riderId, payed);
+        }
+
+        long start = from != null ? from : 0L;
+        long end = to != null ? to : Long.MAX_VALUE;
+        Query query = new Query(Criteria.where("riderInfo.riderId").is(riderId));
+        if (payed != null) query.addCriteria(Criteria.where("payed").is(payed));
+        query.addCriteria(new Criteria().orOperator(
+            Criteria.where("assignedAt").gte(start).lte(end),
+            Criteria.where("completedAt").gte(start).lte(end)));
+        query.with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "assignedAt"));
+        return mongoTemplate.find(query, DeliveryAssignments.class);
     }
 
 
@@ -713,14 +806,44 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(reconcilationRiderRequest.getAssignmentId())
             .orElseThrow(() -> new EntityNotFound("Assignment not found"));
+        ReconciliationValidator.validate(reconcilationRiderRequest, assignment);
 
         assignment.setPayed(true);
         assignment.setPayedAt(reconciledAtTimestamp);
         assignment.setPayedTo(frontDesk.getUserId());
-        double currentPayedAmount = assignment.getAmountPayed() + reconcilationRiderRequest.getPayedAmount();
-        assignment.setAmountPayed(currentPayedAmount);
+        double payedAmount = reconcilationRiderRequest.getPayedAmount() != null ? reconcilationRiderRequest.getPayedAmount() : 0.0;
+        assignment.setAmountPayed(assignment.getAmountPayed() + payedAmount);
+        if (reconcilationRiderRequest.getExpectedAmount() != null) {
+            assignment.setExpectedAmount(reconcilationRiderRequest.getExpectedAmount());
+        }
+        if (reconcilationRiderRequest.getVarianceAmount() != null) {
+            assignment.setVarianceAmount(reconcilationRiderRequest.getVarianceAmount());
+        }
+        if (reconcilationRiderRequest.getLines() != null) {
+            assignment.setReconciliationLines(reconcilationRiderRequest.getLines());
+        }
+        assignment.setReconciledAt(reconciledAtTimestamp);
+        assignment.setReconciledById(frontDesk.getUserId());
+        assignment.setReconciledByName(frontDesk.getName());
         assignment.setUpdatedAt(System.currentTimeMillis());
         deliveryAssignmentsRepository.save(assignment);
+        return new UserResponse("Reconciliation completed successfully", null);
+    }
+
+    @Override
+    @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
+    public UserResponse reconcileBatch(List<ReconcilationRiderRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST, "No reconciliation items");
+        }
+        // Validate everything first so a bad item doesn't leave the batch half-applied.
+        for (ReconcilationRiderRequest request : requests) {
+            DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(request.getAssignmentId())
+                .orElseThrow(() -> new EntityNotFound("Assignment not found: " + request.getAssignmentId()));
+            ReconciliationValidator.validate(request, assignment);
+        }
+        requests.forEach(this::reconcilation);
         return new UserResponse("Reconciliation completed successfully", null);
     }
 
@@ -1234,6 +1357,9 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         assignment.setInboundCost(assignment.getInboundCost() - parcelInfoToRemove.getInboundCost());      
         
         assignment.getParcels().removeIf(parcelInfo -> parcelInfo.getParcelId().equals(parcelId));
+        if (assignment.getRoutePlan() != null && assignment.getRoutePlan().getStopOrder() != null) {
+            assignment.getRoutePlan().getStopOrder().remove(parcelId);
+        }
 
 
         deliveryAssignmentsRepository.save(assignment);

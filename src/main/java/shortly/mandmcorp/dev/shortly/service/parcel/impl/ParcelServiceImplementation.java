@@ -82,6 +82,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final NotificationInterface notification;
     private final S3Service s3Service;
     private final shortly.mandmcorp.dev.shortly.utils.BarcodeGenerator barcodeGenerator;
+    private final shortly.mandmcorp.dev.shortly.utils.DeliveryLocationValidator locationValidator;
 
     /**
      * Resolves the barcode for a new parcel: honors a non-blank user-supplied value
@@ -374,6 +375,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN', 'VENDOR')")
     public Parcel addParcel(ParcelRequest parcelRequest) {
       
+        locationValidator.validateDropoff(parcelRequest.getReceiverLatitude(), parcelRequest.getReceiverLongitude());
         Parcel parcel = parcelMapper.toEntity(parcelRequest);
         parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.RECEIVED);
         if ((parcelRequest.getOfficeId() != null) && (!parcelRequest.isParcelTransfer())) {
@@ -436,6 +438,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
                 }
             }
 
+        applyStationPickupCharge(parcel, parcelRequest);
+
         parcel.setImageUrls(s3Service.uploadImages(parcelRequest.getImages()));
         parcel.setBarCode(resolveBarCode(parcelRequest.getBarCode()));
 
@@ -461,6 +465,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             parcelInfo.setReceiverPhoneNumber(savedParcel.getRecieverPhoneNumber());
             parcelInfo.setAlternativePhoneNumber(savedParcel.getAlternativePhoneNumber());
             parcelInfo.setReceiverAddress(savedParcel.getReceiverAddress());
+            ParcelMapper.copyLocation(savedParcel, parcelInfo);
             parcelInfo.setSenderName(savedParcel.getSenderName());
             parcelInfo.setSenderPhoneNumber(savedParcel.getSenderPhoneNumber());
             parcelInfo.setPaymentMethod(savedParcel.getPaymentMethod());
@@ -701,7 +706,24 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         parcel.setSpecialInstructions(updateRequest.getSpecialInstructions());
     }
 
+    // Delivery location: absent = leave as is, explicit null = clear.
+    boolean locationChanged = false;
+    if (updateRequest.isReceiverLocationProvided()) {
+        locationValidator.validateDropoff(updateRequest.getReceiverLatitude(), updateRequest.getReceiverLongitude());
+        locationChanged = !java.util.Objects.equals(parcel.getReceiverLatitude(), updateRequest.getReceiverLatitude())
+                || !java.util.Objects.equals(parcel.getReceiverLongitude(), updateRequest.getReceiverLongitude());
+        parcel.setReceiverLatitude(updateRequest.getReceiverLatitude());
+        parcel.setReceiverLongitude(updateRequest.getReceiverLongitude());
+        parcel.setReceiverLocationName(updateRequest.getReceiverLocationName());
+        parcel.setReceiverPlaceId(updateRequest.getReceiverPlaceId());
+        parcel.setReceiverLocationSource(updateRequest.getReceiverLocationSource());
+    }
+
     Parcel savedParcel = parcelRepository.save(parcel);
+
+    if (updateRequest.isReceiverLocationProvided()) {
+        syncLocationToOpenAssignments(savedParcel, locationChanged);
+    }
 
     if (savedParcel.getInboundCost() > 0) {
         Query reconcQuery = new Query(Criteria.where("parcels.parcelId").is(parcelId));
@@ -716,6 +738,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                     pi.setReceiverPhoneNumber(savedParcel.getRecieverPhoneNumber());
                     pi.setAlternativePhoneNumber(savedParcel.getAlternativePhoneNumber());
                     pi.setReceiverAddress(savedParcel.getReceiverAddress());
+                    ParcelMapper.copyLocation(savedParcel, pi);
                     pi.setSenderName(savedParcel.getSenderName());
                     pi.setSenderPhoneNumber(savedParcel.getSenderPhoneNumber());
                     pi.setPaymentMethod(savedParcel.getPaymentMethod());
@@ -759,6 +782,47 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     return savedParcel;
 }
 
+
+    /**
+     * Copies a changed drop-off pin onto the parcel's snapshot in any assignment where it is still
+     * pending, so the rider app sees the corrected pin. When the coordinates moved, the assignment's
+     * route plan is marked stale.
+     */
+    private void syncLocationToOpenAssignments(Parcel parcel, boolean coordinatesChanged) {
+        Query query = new Query(Criteria.where("parcels.parcelId").is(parcel.getParcelId()));
+        List<shortly.mandmcorp.dev.shortly.model.DeliveryAssignments> assignments =
+                mongoTemplate.find(query, shortly.mandmcorp.dev.shortly.model.DeliveryAssignments.class);
+        for (shortly.mandmcorp.dev.shortly.model.DeliveryAssignments assignment : assignments) {
+            boolean touched = false;
+            for (ParcelInfo info : assignment.getParcels()) {
+                if (parcel.getParcelId().equals(info.getParcelId()) && !info.isDelivered() && !info.isReturned()) {
+                    ParcelMapper.copyLocation(parcel, info);
+                    touched = true;
+                }
+            }
+            if (!touched) continue;
+            if (coordinatesChanged && assignment.getRoutePlan() != null
+                    && assignment.getRoutePlan().getStopOrder() != null
+                    && assignment.getRoutePlan().getStopOrder().contains(parcel.getParcelId())) {
+                assignment.getRoutePlan().setStale(true);
+            }
+            mongoTemplate.save(assignment);
+        }
+    }
+
+    /**
+     * Pickup requests that don't send pickUpCost fall back to the station's pickup charge when the
+     * station charges for pickups. The amount is kept on the parcel as charged.
+     */
+    private void applyStationPickupCharge(Parcel parcel, ParcelRequest request) {
+        if (request.getTypeofParcel() != ParcelTypes.PICKUP || request.getPickUpCost() != null) return;
+        if (parcel.getOfficeId() == null) return;
+        officeRepository.findById(parcel.getOfficeId()).ifPresent(office -> {
+            if (Boolean.TRUE.equals(office.getPickupChargeEnabled()) && office.getPickupChargeAmount() != null) {
+                parcel.setPickUpCost(office.getPickupChargeAmount());
+            }
+        });
+    }
 
     @Override
     public Page<Parcel> searchParcels(

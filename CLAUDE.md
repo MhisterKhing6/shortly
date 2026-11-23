@@ -92,6 +92,12 @@ String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()
 
 **Registration branches on role**: `UserService.register()` requires and validates `officeId` for every role except `VENDOR` (which has no office affiliation and is tracked by phone number instead); registering a `MANAGER` also sets them as their office's manager.
 
+**Manager office scoping**: `utils/CurrentUser.scopedOfficeId(requested)` forces MANAGER callers to their own office (admins get the requested office, null = all); `CurrentUser.requireRiderInScope(rider)` 403s a manager asking about another office's rider. Used by the dashboards and all rider-tracking endpoints.
+
+**Parcel delivery pin**: `Parcel`/`ParcelInfo` carry `receiverLatitude/Longitude/LocationName/PlaceId/LocationSource` (all nullable). On `PUT /parcel/{id}`, `ParcelUpdateRequest`'s location setters set `receiverLocationProvided` so an absent field means "leave as is" and an explicit null means "clear"; a changed pin is copied onto open assignments and marks their `routePlan.stale`. Validation (incl. Ghana bounds, toggle `shortly.delivery-location.restrict-to-ghana`) is in `DeliveryLocationValidator`.
+
+**Delivery / off-task checks**: rules live in the pure `service/tracking/DeliveryCheckAnalyzer` (unit-tested; thresholds in `TrackingRules`, overridable via `shortly.tracking.*`). They mirror the frontend's `trackUtils.ts` — change both together. `DeliveryCheckService` feeds it from Jimi, assignments, office coordinates and saved route plans. When a rider marks DELIVERED/RETURNED, the GPS position is captured on the `ParcelInfo` (`marked*` fields); GPS failures never block the status update.
+
 **Jimi GPS calls** go through `JimiTokenService` first (caches/refreshes an OAuth token in the `jimi_access_tokens` collection, singleton doc id `"jimi-token"`) before `JimiApiService` signs (MD5) and sends the actual location/track request — never call the Jimi REST API without going through the token service.
 
 ### Authentication & Security

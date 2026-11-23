@@ -1,7 +1,11 @@
 package shortly.mandmcorp.dev.shortly.controller;
 
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,6 +42,9 @@ import shortly.mandmcorp.dev.shortly.dto.response.RevenueDashboardResponse;
 import shortly.mandmcorp.dev.shortly.service.dashboard.RiderPerformanceDashboardService;
 import shortly.mandmcorp.dev.shortly.dto.response.RiderPerformanceDashboardResponse;
 import shortly.mandmcorp.dev.shortly.dto.response.UserResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.DeliveryCheckResponse;
+import shortly.mandmcorp.dev.shortly.dto.response.DeliveryCheckSummaryRow;
+import shortly.mandmcorp.dev.shortly.utils.CurrentUser;
 import shortly.mandmcorp.dev.shortly.service.tracking.RiderTrackingService;
 import shortly.mandmcorp.dev.shortly.model.Parcel;
 import shortly.mandmcorp.dev.shortly.model.Reconcilations;
@@ -65,6 +72,7 @@ public class AdminController {
     private final AdminDashboardService adminDashboardService;
     private final RevenueDashboardService revenueDashboardService;
     private final RiderPerformanceDashboardService riderPerformanceDashboardService;
+    private final shortly.mandmcorp.dev.shortly.service.tracking.DeliveryCheckService deliveryCheckService;
 
     @PostMapping("/register")
     @Operation(summary = "Register a new user", description = "Admin endpoint to register a new user")
@@ -274,7 +282,7 @@ public class AdminController {
             @RequestParam(required = false) String officeId,
             @RequestParam(required = false) Long startDate,
             @RequestParam(required = false) Long endDate) {
-        return adminDashboardService.getStats(officeId, startDate, endDate);
+        return adminDashboardService.getStats(CurrentUser.scopedOfficeId(officeId), startDate, endDate);
     }
 
     @GetMapping("/rider-performance-dashboard")
@@ -290,7 +298,7 @@ public class AdminController {
             @RequestParam(required = false) String officeId,
             @RequestParam(required = false) Long startDate,
             @RequestParam(required = false) Long endDate) {
-        return riderPerformanceDashboardService.getStats(officeId, startDate, endDate);
+        return riderPerformanceDashboardService.getStats(CurrentUser.scopedOfficeId(officeId), startDate, endDate);
     }
 
     @GetMapping("/revenue-dashboard")
@@ -306,10 +314,11 @@ public class AdminController {
             @RequestParam(required = false) String officeId,
             @RequestParam(required = false) Long startDate,
             @RequestParam(required = false) Long endDate) {
-        return revenueDashboardService.getRevenueStats(officeId, startDate, endDate);
+        return revenueDashboardService.getRevenueStats(CurrentUser.scopedOfficeId(officeId), startDate, endDate);
     }
 
     @GetMapping("/riders/location")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(summary = "Get rider current location", description = "Returns the current GPS location of a rider identified by phone number")
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
@@ -324,6 +333,7 @@ public class AdminController {
     }
 
     @GetMapping("/riders/track")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(summary = "Get rider track history", description = "Returns GPS track points for a rider between a start and end time. Times must be in UTC format: yyyy-MM-dd HH:mm:ss. Max range is 2 days within the last 3 months.")
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
@@ -341,6 +351,7 @@ public class AdminController {
     }
 
     @PutMapping("/riders/device")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(summary = "Assign GPS device to rider", description = "Assigns or updates the GPS device IMEI for a rider identified by phone number")
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
@@ -349,8 +360,68 @@ public class AdminController {
         @ApiResponse(responseCode = "400", description = "User is not a rider")
     })
     @TrackUserAction(action = "ASSIGN_RIDER_DEVICE", description = "Admin/Manager assigned GPS device to rider")
-    public String assignRiderDevice(@RequestBody @Valid AssignDeviceRequest request) {
+    public Map<String, String> assignRiderDevice(@RequestBody @Valid AssignDeviceRequest request) {
         return riderTrackingService.assignDeviceImei(request.getPhoneNumber(), request.getDeviceImei());
+    }
+
+    @DeleteMapping("/riders/device")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Remove GPS device from rider", description = "Unlinks the GPS tracker from a rider identified by phone number")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Device removed"),
+        @ApiResponse(responseCode = "404", description = "Rider not found")
+    })
+    @TrackUserAction(action = "REMOVE_RIDER_DEVICE", description = "Admin/Manager removed GPS device from rider")
+    public Map<String, String> removeRiderDevice(@RequestParam String phoneNumber) {
+        return riderTrackingService.removeDevice(phoneNumber);
+    }
+
+    @GetMapping("/riders/locations")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Get all rider locations", description = "Live locations for every rider (managers: their office; admins: officeId or all). Riders without a device are returned with located=false.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public List<RiderLocationResponse> getRiderLocations(@RequestParam(required = false) String officeId) {
+        return riderTrackingService.getRiderLocations(officeId);
+    }
+
+    @GetMapping("/riders/delivery-check")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Delivery and off-task check", description = "Checks each delivery against the rider's GPS track (reached, not reached, marked away) and reports detours and off-task stops. Times are UTC yyyy-MM-dd HH:mm:ss, at most 2 days.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @TrackUserAction(action = "VIEW_DELIVERY_CHECK", description = "Admin/Manager viewed a rider delivery check")
+    public DeliveryCheckResponse getDeliveryCheck(
+            @RequestParam String phoneNumber,
+            @RequestParam String beginTime,
+            @RequestParam String endTime) {
+        return deliveryCheckService.check(phoneNumber, beginTime, endTime);
+    }
+
+    @GetMapping("/riders/delivery-check/summary")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @Operation(summary = "Daily delivery-check summary", description = "One row per rider with a GPS device for the given UTC day (yyyy-MM-dd, default today).")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @TrackUserAction(action = "VIEW_DELIVERY_CHECK_SUMMARY", description = "Admin/Manager viewed the daily delivery-check summary")
+    public List<DeliveryCheckSummaryRow> getDeliveryCheckSummary(
+            @RequestParam(required = false) String officeId,
+            @RequestParam(required = false) String date) {
+        return deliveryCheckService.dailySummary(officeId, date);
+    }
+
+    @DeleteMapping("/office/{id}")
+    @Operation(summary = "Delete a station", description = "Deletes a station. 409 if it has parcels, users or open assignments.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @TrackUserAction(action = "DELETE_OFFICE", description = "Admin deleted an office")
+    public UserResponse deleteOffice(@PathVariable String id) {
+        return officeService.deleteOffice(id);
+    }
+
+    @DeleteMapping("/location/{id}")
+    @Operation(summary = "Delete a location", description = "Deletes a location. 409 if any station is in it.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @TrackUserAction(action = "DELETE_LOCATION", description = "Admin deleted a location")
+    public UserResponse deleteLocation(@PathVariable String id) {
+        return officeService.deleteLocation(id);
     }
 
     @GetMapping("/reconciliations/by-date")

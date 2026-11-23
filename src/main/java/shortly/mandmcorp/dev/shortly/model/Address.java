@@ -14,4 +14,7 @@ public class Address {
     @Indexed
     private String officeId;
     private double cost;
+    private Double latitude;
+    private Double longitude;
+    private String locationName;
 }

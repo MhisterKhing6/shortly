@@ -11,6 +11,10 @@ public class OfficeResponse {
     private String phoneNumber;
     private String locationName;
     private String managerName;
+    private Double latitude;
+    private Double longitude;
+    private Boolean pickupChargeEnabled;
+    private Double pickupChargeAmount;
     private Long createdAt;
     private Long updatedAt;
 }

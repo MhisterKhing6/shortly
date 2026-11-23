@@ -15,6 +15,15 @@ public class ParcelRequest {
     private String receiverAddress;
 
     private String recieverPhoneNumber;
+
+    // Delivery location (sent only for home delivery when a pin was chosen)
+    private Double receiverLatitude;
+    private Double receiverLongitude;
+    @jakarta.validation.constraints.Size(max = 200, message = "receiverLocationName must be at most 200 characters")
+    private String receiverLocationName;
+    @jakarta.validation.constraints.Size(max = 300, message = "receiverPlaceId must be at most 300 characters")
+    private String receiverPlaceId;
+    private shortly.mandmcorp.dev.shortly.enums.LocationSource receiverLocationSource;
     private String alternativePhoneNumber;
 
     private String parcelDescription;
@@ -35,7 +44,8 @@ public class ParcelRequest {
     private double inboundCost;
     private boolean homeDelivery;
 
-    private double pickUpCost;
+    /** Null means "not sent": pickup requests then fall back to the station's pickup charge. */
+    private Double pickUpCost;
     
     private boolean isFragile;
     private double deliveryCost;

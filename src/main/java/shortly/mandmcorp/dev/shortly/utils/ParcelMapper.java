@@ -32,7 +32,12 @@ public class ParcelMapper {
         parcel.setDelivered(request.isDelivered());
         parcel.setParcelAssigned(request.isParcelAssigned());
         parcel.setInboundCost(request.getInboundCost());
-        parcel.setPickUpCost(request.getPickUpCost());
+        parcel.setPickUpCost(request.getPickUpCost() != null ? request.getPickUpCost() : 0.0);
+        parcel.setReceiverLatitude(request.getReceiverLatitude());
+        parcel.setReceiverLongitude(request.getReceiverLongitude());
+        parcel.setReceiverLocationName(request.getReceiverLocationName());
+        parcel.setReceiverPlaceId(request.getReceiverPlaceId());
+        parcel.setReceiverLocationSource(request.getReceiverLocationSource());
         parcel.setFragile(request.isFragile());
         parcel.setDeliveryCost(request.getDeliveryCost());
         parcel.setStorageCost(request.getStorageCost());
@@ -121,6 +126,15 @@ public class ParcelMapper {
             contactRepository.save(driver);
         }
         return driver;
+    }
+
+    /** Copies the drop-off pin from a parcel onto its assignment snapshot. */
+    public static void copyLocation(Parcel parcel, shortly.mandmcorp.dev.shortly.model.ParcelInfo info) {
+        info.setReceiverLatitude(parcel.getReceiverLatitude());
+        info.setReceiverLongitude(parcel.getReceiverLongitude());
+        info.setReceiverLocationName(parcel.getReceiverLocationName());
+        info.setReceiverPlaceId(parcel.getReceiverPlaceId());
+        info.setReceiverLocationSource(parcel.getReceiverLocationSource());
     }
 
     public Office getOfficeById(String officeId) {

@@ -1,7 +1,11 @@
 package shortly.mandmcorp.dev.shortly.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
+import shortly.mandmcorp.dev.shortly.enums.LocationSource;
 import shortly.mandmcorp.dev.shortly.enums.ParcelTypes;
 
 @Data
@@ -61,4 +65,24 @@ public class ParcelUpdateRequest {
     @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Invalid phone number format")
     private String deliveryContactPhoneNumber;
     private String specialInstructions;
+
+    // ---- Delivery location ----
+    // Absent = leave as is; explicit null = clear. Jackson only calls a setter for properties
+    // present in the body, so each setter records that the location was sent.
+    private Double receiverLatitude;
+    private Double receiverLongitude;
+    @Size(max = 200, message = "receiverLocationName must be at most 200 characters")
+    private String receiverLocationName;
+    @Size(max = 300, message = "receiverPlaceId must be at most 300 characters")
+    private String receiverPlaceId;
+    private LocationSource receiverLocationSource;
+
+    @JsonIgnore
+    private boolean receiverLocationProvided;
+
+    public void setReceiverLatitude(Double value) { this.receiverLatitude = value; this.receiverLocationProvided = true; }
+    public void setReceiverLongitude(Double value) { this.receiverLongitude = value; this.receiverLocationProvided = true; }
+    public void setReceiverLocationName(String value) { this.receiverLocationName = value; this.receiverLocationProvided = true; }
+    public void setReceiverPlaceId(String value) { this.receiverPlaceId = value; this.receiverLocationProvided = true; }
+    public void setReceiverLocationSource(LocationSource value) { this.receiverLocationSource = value; this.receiverLocationProvided = true; }
 }

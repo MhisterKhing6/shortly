@@ -49,6 +49,11 @@ public class Reconcilations {
     private Long createdAt;
     private Long reconciledAt;
 
+    private Double varianceAmount;
+    private java.util.List<ReconciliationLine> lines;
+    private String reconciledById;
+    private String reconciledByName;
+
 
 
 

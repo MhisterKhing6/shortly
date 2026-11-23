@@ -29,4 +29,6 @@ public interface DeliveryAssignmentsRepository extends MongoRepository<DeliveryA
 
     List<DeliveryAssignments> findByPayedAndOfficeId(boolean payed, String officeId);
 
+    boolean existsByOfficeIdAndStatusNotIn(String officeId, java.util.Collection<DeliveryStatus> statuses);
+
 }

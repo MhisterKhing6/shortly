@@ -28,6 +28,9 @@ public interface OfficeServiceInterface {
     Address addAddres(AddAddressRequest request);
     List<Address> getAllAddressesByName(String name);
     List<Parcel> getParcelsByAddressNumber(String phoneNumber);
+    UserResponse updateOwnPickupCharge(Boolean enabled, Double amount);
+    UserResponse deleteOffice(String officeId);
+    UserResponse deleteLocation(String locationId);
     
 
 
