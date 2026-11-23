@@ -93,7 +93,10 @@ public class JimiTokenService {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "JIMI token response is not valid JSON");
         }
 
-        if (!response.has("result")) {
+        int responseCode = response.has("code") ? response.get("code").asInt() : 0;
+        if (!response.has("result") || response.get("result").isNull() || responseCode != 0) {
+            // Jimi reports login failures (bad app key/secret, user id or password MD5) as a
+            // non-zero code with result=null; log its code and message rather than just "missing".
             log.warn("JIMI token response (no result): {}", response);
             int code = response.has("code") ? response.get("code").asInt() : -1;
             String msg = response.has("message") ? response.get("message").asText()
