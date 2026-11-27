@@ -18,6 +18,7 @@ public class OfficeMapper {
         office.setLongitude(request.getLongitude());
         office.setPickupChargeEnabled(request.getPickupChargeEnabled());
         office.setPickupChargeAmount(request.getPickupChargeAmount());
+        office.setDriverPayPolicy(request.getDriverPayPolicy());
         office.setCreatedAt(System.currentTimeMillis());
         office.setUpdatedAt(System.currentTimeMillis());
         return office;
@@ -36,6 +37,8 @@ public class OfficeMapper {
         response.setLongitude(office.getLongitude());
         response.setPickupChargeEnabled(office.getPickupChargeEnabled());
         response.setPickupChargeAmount(office.getPickupChargeAmount());
+        response.setDriverPayPolicy(office.getDriverPayPolicy() != null ? office.getDriverPayPolicy()
+                : shortly.mandmcorp.dev.shortly.enums.DriverPayPolicy.ON_COLLECTION);
         if(office.getLocation() != null) {
             response.setLocationName(office.getLocation().getName());
         }

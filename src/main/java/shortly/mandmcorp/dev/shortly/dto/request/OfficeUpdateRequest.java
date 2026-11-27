@@ -15,4 +15,6 @@ public class OfficeUpdateRequest {
     /** When present, pickupChargeAmount is applied with it (null amount when disabled). */
     private Boolean pickupChargeEnabled;
     private Double pickupChargeAmount;
+    /** When driver fees become payable: ON_COLLECTION (default) or ON_ARRIVAL. */
+    private shortly.mandmcorp.dev.shortly.enums.DriverPayPolicy driverPayPolicy;
 }

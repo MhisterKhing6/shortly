@@ -88,12 +88,16 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     private final FuelRequestRepository fuelRequestRepository;
     private final OfficeRepository officeRepository;
     private final shortly.mandmcorp.dev.shortly.service.tracking.RiderTrackingService riderTrackingService;
+    private final shortly.mandmcorp.dev.shortly.service.driverpay.DriverFeeLineService driverFeeLineService;
+    private final shortly.mandmcorp.dev.shortly.service.driverpay.DriverPaymentService driverPaymentService;
 
     public RiderServiceImplementation(DeliveryAssignmentsRepository deliveryAssignmentsRepository, UserRepository userRepository, ParcelRepository parcelRepository,
         @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate,
         DeliveryAssignmentsRepository deliveryRepo, ReconcilationRepository reconcilationRepository, DriverReconcilationRepository drivRecon,
         DriverAssignmentRepository driverAssignmentRepository, FuelRequestRepository fuelRequestRepository, OfficeRepository officeRepository,
-        shortly.mandmcorp.dev.shortly.service.tracking.RiderTrackingService riderTrackingService) {
+        shortly.mandmcorp.dev.shortly.service.tracking.RiderTrackingService riderTrackingService,
+        shortly.mandmcorp.dev.shortly.service.driverpay.DriverFeeLineService driverFeeLineService,
+        shortly.mandmcorp.dev.shortly.service.driverpay.DriverPaymentService driverPaymentService) {
         this.deliveryAssignmentsRepository = deliveryAssignmentsRepository;
         this.userRepository = userRepository;
         this.parcelRepository = parcelRepository;
@@ -107,6 +111,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         this.fuelRequestRepository = fuelRequestRepository;
         this.officeRepository = officeRepository;
         this.riderTrackingService = riderTrackingService;
+        this.driverFeeLineService = driverFeeLineService;
+        this.driverPaymentService = driverPaymentService;
     }
 
     /**
@@ -424,8 +430,9 @@ public class RiderServiceImplementation implements RiderServiceInterface {
            if (parcelEntity.getInboundCost() > 0) {
             DriverAssignment driverAssignment = driverAssignmentRepository.findByParcelId(parcelEntity.getParcelId()).orElse(null);
             if(driverAssignment != null) {
-                driverAssignment.setAmount(driverAssignment.getAmount() + parcelEntity.getInboundCost());
-             
+                // The driver's fee is the parcel's inbound cost, set at intake. (This used to add the
+                // inbound cost again on delivery, doubling the fee for home-delivered parcels.)
+
             driverAssignment.setDelivered(true);
             driverAssignmentRepository.save(driverAssignment);
             NotificationRequestTemplate notify = NotificationRequestTemplate.builder()
@@ -828,6 +835,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         assignment.setReconciledByName(frontDesk.getName());
         assignment.setUpdatedAt(System.currentTimeMillis());
         deliveryAssignmentsRepository.save(assignment);
+        // Customer money for delivered parcels is in: their drivers' fees become payable.
+        if (assignment.getParcels() != null) {
+            assignment.getParcels().stream().filter(ParcelInfo::isDelivered)
+                .forEach(p -> driverFeeLineService.markDelivered(p.getParcelId()));
+        }
         return new UserResponse("Reconciliation completed successfully", null);
     }
 
@@ -1460,15 +1472,10 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             }
         }
 
-        for (DriverAssignment assignment : assignments) {
-            assignment.setPayed(true);
-            assignment.setWhoPayedDriverName(user.getName());
-            assignment.setWhoPayedDriverPhoneNumber(user.getPhoneNumber());
-        }
-
-        driverAssignmentRepository.saveAll(assignments);
-
-        return new UserResponse("Driver assignments marked as paid successfully", String.valueOf(assignments.size()));
+        // Old Driver Tracker: each driver gets a cash payout with no adjustments, so the payment
+        // is recorded and shows in the counter cash-up.
+        int paid = driverPaymentService.legacyPay(assignments, user);
+        return new UserResponse("Driver assignments marked as paid successfully", String.valueOf(paid));
     }
 
     @Override

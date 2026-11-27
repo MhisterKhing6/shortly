@@ -28,7 +28,7 @@ public interface OfficeServiceInterface {
     Address addAddres(AddAddressRequest request);
     List<Address> getAllAddressesByName(String name);
     List<Parcel> getParcelsByAddressNumber(String phoneNumber);
-    UserResponse updateOwnPickupCharge(Boolean enabled, Double amount);
+    UserResponse updateOwnPickupCharge(Boolean enabled, Double amount, shortly.mandmcorp.dev.shortly.enums.DriverPayPolicy driverPayPolicy);
     UserResponse deleteOffice(String officeId);
     UserResponse deleteLocation(String locationId);
     

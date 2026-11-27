@@ -83,6 +83,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final R2Service r2Service;
     private final shortly.mandmcorp.dev.shortly.utils.BarcodeGenerator barcodeGenerator;
     private final shortly.mandmcorp.dev.shortly.utils.DeliveryLocationValidator locationValidator;
+    private final shortly.mandmcorp.dev.shortly.service.counter.CounterService counterService;
+    private final shortly.mandmcorp.dev.shortly.service.driverpay.DriverFeeLineService driverFeeLineService;
 
     /**
      * Resolves the barcode for a new parcel: honors a non-blank user-supplied value
@@ -492,6 +494,19 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         // Save the parcel first so it gets its generated ID before building ParcelInfo
         Parcel savedParcel = parcelRepository.save(parcel);
 
+        // Driver who brought the parcel in: link the driver record and the trip.
+        shortly.mandmcorp.dev.shortly.model.Driver driverRecord = resolveIntakeDriver(parcelRequest, savedParcel);
+        shortly.mandmcorp.dev.shortly.model.DriverTrip trip = null;
+        if (driverRecord != null) {
+            Authentication intakeAuth = SecurityContextHolder.getContext().getAuthentication();
+            User receivedBy = intakeAuth != null && intakeAuth.getPrincipal() instanceof User u ? u : null;
+            trip = driverFeeLineService.attachToTrip(driverRecord, parcelRequest.getTripId(),
+                    savedParcel.getVehicleNumber(), savedParcel.getOfficeId(), receivedBy);
+            savedParcel.setDriverRecordId(driverRecord.getId());
+            savedParcel.setTripId(trip.getId());
+            savedParcel = parcelRepository.save(savedParcel);
+        }
+
         //check to see if there is inbound cost
         if(savedParcel.getInboundCost() > 0) {
             if(savedParcel.getDriverPhoneNumber() == null) {
@@ -550,6 +565,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             driverAssignment.setParcelInfo(parcelInfo);
             driverAssignment.setPayed(false);
             driverAssignment.setAmount(savedParcel.getInboundCost());
+            driverFeeLineService.initLine(driverAssignment, driverRecord, trip);
 
             driverAssignmentRepository.save(driverAssignment);
         }
@@ -830,6 +846,38 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     return savedParcel;
 }
 
+
+    /**
+     * The driver record for a parcel at intake: the given driverId (must be the same company), else
+     * found or created from the typed driver phone number. Never blocks intake on lookup problems
+     * other than an unknown driverId.
+     */
+    private shortly.mandmcorp.dev.shortly.model.Driver resolveIntakeDriver(ParcelRequest request, Parcel parcel) {
+        if (request.getDriverId() != null && !request.getDriverId().isBlank()) {
+            shortly.mandmcorp.dev.shortly.model.Driver d = mongoTemplate.findById(request.getDriverId(),
+                    shortly.mandmcorp.dev.shortly.model.Driver.class);
+            if (d == null || !java.util.Objects.equals(d.getCompanyId(), parcel.getCompanyId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Driver not found");
+            }
+            if (parcel.getDriverName() == null) parcel.setDriverName(d.getName());
+            if (parcel.getDriverPhoneNumber() == null && !d.getPhoneNumbers().isEmpty()) {
+                parcel.setDriverPhoneNumber(d.getPhoneNumbers().get(0));
+            }
+            if (parcel.getOfficeId() != null && !d.getOfficeIds().contains(parcel.getOfficeId())) {
+                d.getOfficeIds().add(parcel.getOfficeId());
+                mongoTemplate.save(d);
+            }
+            return d;
+        }
+        if (parcel.getDriverPhoneNumber() == null || parcel.getDriverPhoneNumber().isBlank()) return null;
+        try {
+            return driverFeeLineService.ensureDriver(parcel.getCompanyId(), parcel.getOfficeId(),
+                    parcel.getDriverName(), parcel.getDriverPhoneNumber(), parcel.getVehicleNumber());
+        } catch (Exception e) {
+            log.warn("Could not link driver for parcel {}: {}", parcel.getParcelId(), e.getMessage());
+            return null;
+        }
+    }
 
     /**
      * Copies a changed drop-off pin onto the parcel's snapshot in any assignment where it is still
@@ -1132,6 +1180,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found"));
         assertSameCompany(parcel);
+        driverFeeLineService.markNotPayable(parcelId);
         parcelRepository.delete(parcel);
     }
 
@@ -1460,11 +1509,17 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                 .orElseThrow(() -> new EntityNotFound("Parcel not found"));
         assertSameCompany(parcel);
 
+        // Counter payment (Part L): validates, 409 if already recorded; null for old clients.
+        shortly.mandmcorp.dev.shortly.model.CounterCollection collection =
+                counterService.recordPickup(parcel, request, user, officeId);
+
         parcel.setPickedUp(true);
         Parcel savedParcel = parcelRepository.save(parcel);
-        if(parcel.getInboundCost() > 0) {
-            DriverAssignment driverAssignment = driverAssignmentRepository.findByParcelId(parcel.getParcelId())
-                    .orElseThrow(() -> new EntityNotFound("Driver assignment not found"));
+        // The customer has paid: the driver's fee becomes payable (ON_COLLECTION).
+        driverFeeLineService.markPickedUp(parcel.getParcelId());
+        DriverAssignment driverAssignment = parcel.getInboundCost() > 0
+                ? driverAssignmentRepository.findByParcelId(parcel.getParcelId()).orElse(null) : null;
+        if(driverAssignment != null) {
             driverAssignment.setDelivered(true);
             driverAssignmentRepository.save(driverAssignment);
             if (parcel.getPickUpCost() > 0 && driverAssignment.getDriverPhoneNumber() != null) {
@@ -1526,6 +1581,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         log.setFrontDeskPersonellPhoneNumber(user.getPhoneNumber());
         log.setOfficeId(officeId);
         log.setCompanyId(savedParcel.getCompanyId());
+        log.setCounterPayment(savedParcel.getCounterPayment());
 
         return parcelSystemLogRepository.save(log);
     }

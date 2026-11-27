@@ -38,6 +38,9 @@ public class Office {
     private Boolean pickupChargeEnabled;
     /** GHC. Positive when enabled, null when disabled. */
     private Double pickupChargeAmount;
+
+    /** When driver fees become payable. null = ON_COLLECTION. */
+    private shortly.mandmcorp.dev.shortly.enums.DriverPayPolicy driverPayPolicy;
     
     @DBRef
     private Location location;

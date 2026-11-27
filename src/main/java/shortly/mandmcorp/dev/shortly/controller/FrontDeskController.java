@@ -201,7 +201,7 @@ public class FrontDeskController {
     @SecurityRequirement(name = "Bearer Authentication")
     @TrackUserAction(action = "UPDATE_PICKUP_CHARGE", description = "Manager updated the station pickup charge")
     public UserResponse updatePickupCharge(@RequestBody PickupChargeRequest request) {
-        UserResponse saved = officeService.updateOwnPickupCharge(request.getPickupChargeEnabled(), request.getPickupChargeAmount());
+        UserResponse saved = officeService.updateOwnPickupCharge(request.getPickupChargeEnabled(), request.getPickupChargeAmount(), request.getDriverPayPolicy());
         return new UserResponse("Pickup charge saved", saved.getId());
     }
 

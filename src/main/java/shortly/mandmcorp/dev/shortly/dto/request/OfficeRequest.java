@@ -18,4 +18,6 @@ public class OfficeRequest {
     
     @NotBlank(message = "Location ID is required")
     private String locationId;
+    /** When driver fees become payable: ON_COLLECTION (default) or ON_ARRIVAL. */
+    private shortly.mandmcorp.dev.shortly.enums.DriverPayPolicy driverPayPolicy;
 }

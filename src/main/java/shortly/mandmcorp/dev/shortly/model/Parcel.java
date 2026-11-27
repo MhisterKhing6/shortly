@@ -101,6 +101,16 @@ public class Parcel {
     private String specialInstructions;
     private double pickUpCost;
     private ParcelStatus parcelStatus = ParcelStatus.RECEIVED;
+
+    /** Counter payment recorded when the customer collected the parcel at the station. */
+    private CounterPayment counterPayment;
+    /** POD item value was collected at the counter (owed on to the sender/vendor until itemOwnerPaid). */
+    private boolean podCollected;
+    private Long podCollectedAt;
+
+    // Driver who brought the parcel in (driver payments)
+    private String driverRecordId;
+    private String tripId;
     
     private java.util.List<String> imageUrls;
 

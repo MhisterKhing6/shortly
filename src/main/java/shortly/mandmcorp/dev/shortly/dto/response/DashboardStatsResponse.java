@@ -21,6 +21,8 @@ public class DashboardStatsResponse {
     private double collected;
     private double outstanding;
     private double driverPaymentsOwed;
+    /** Counter pickup money in the period (separate from the delivery figures above). */
+    private CounterDashboardTotals counter;
 
     private List<DailyRevenueTrend> revenueVsCollected;
     private List<DailyDeliveryTrend> deliveredVsFailed;

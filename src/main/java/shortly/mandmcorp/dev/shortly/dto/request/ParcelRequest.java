@@ -87,4 +87,9 @@ public class ParcelRequest {
     private boolean hasCallCenterSpokenToClient = false;
 
     private java.util.List<String> images;
+
+    /** Saved driver record (driver payments). When absent, the driver is found or created from driverPhoneNumber. */
+    private String driverId;
+    /** Trip opened with POST /driver-trips. When absent, the driver's open trip for this vehicle and day is used. */
+    private String tripId;
 }

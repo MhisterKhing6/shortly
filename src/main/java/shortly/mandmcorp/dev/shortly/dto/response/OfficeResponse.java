@@ -17,4 +17,6 @@ public class OfficeResponse {
     private Double pickupChargeAmount;
     private Long createdAt;
     private Long updatedAt;
+    /** When driver fees become payable: ON_COLLECTION (default) or ON_ARRIVAL. */
+    private shortly.mandmcorp.dev.shortly.enums.DriverPayPolicy driverPayPolicy;
 }

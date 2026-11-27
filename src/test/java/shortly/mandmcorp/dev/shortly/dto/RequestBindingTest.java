@@ -26,6 +26,21 @@ class RequestBindingTest {
         ReconciliationBatchRequest many = mapper.readValue(
                 "[{\"assignmentId\":\"a1\"},{\"assignmentId\":\"a2\"}]", ReconciliationBatchRequest.class);
         assertEquals(2, many.getItems().size());
+
+        ReconciliationBatchRequest wrapped = mapper.readValue(
+                "{\"items\":[{\"assignmentId\":\"a1\",\"payedAmount\":30,\"expectedAmount\":40,\"varianceAmount\":-10},{\"assignmentId\":\"a2\"}]}",
+                ReconciliationBatchRequest.class);
+        assertEquals(2, wrapped.getItems().size());
+        assertEquals("a1", wrapped.getItems().get(0).getAssignmentId());
+        assertEquals(-10.0, wrapped.getItems().get(0).getVarianceAmount());
+    }
+
+    @Test
+    void userRegistrationAcceptsASingleOfficeId() {
+        var one = mapper.readValue("{\"officeId\":\"off-1\"}", shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest.class);
+        assertEquals(java.util.List.of("off-1"), one.getOfficeIds());
+        var many = mapper.readValue("{\"officeIds\":[\"a\",\"b\"],\"officeId\":\"c\"}", shortly.mandmcorp.dev.shortly.dto.request.UserRegistrationRequest.class);
+        assertEquals(java.util.List.of("a", "b"), many.getOfficeIds());
     }
 
     @Test

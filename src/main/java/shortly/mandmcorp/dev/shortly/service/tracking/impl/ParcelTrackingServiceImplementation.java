@@ -34,6 +34,7 @@ public class ParcelTrackingServiceImplementation implements ParcelTrackingServic
 
     private final ParcelRepository parcelRepository;
     private final UserRepository userRepository;
+    private final shortly.mandmcorp.dev.shortly.service.driverpay.DriverFeeLineService driverFeeLineService;
 
     @Override
     public PublicTrackingResponse getPublicTracking(String parcelId) {
@@ -68,6 +69,11 @@ public class ParcelTrackingServiceImplementation implements ParcelTrackingServic
 
         if (request.getNotes() != null) {
             parcel.setNotes(request.getNotes());
+        }
+
+        // Returned to sender: the driver's fee is no longer payable.
+        if (request.getParcelStatus() == ParcelStatus.REVERSED) {
+            driverFeeLineService.markNotPayable(parcelId);
         }
 
         return parcelRepository.save(parcel);

@@ -105,6 +105,10 @@ String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()
 
 **Delivery / off-task checks**: rules live in the pure `service/tracking/DeliveryCheckAnalyzer` (unit-tested; thresholds in `TrackingRules`, overridable via `shortly.tracking.*`). They mirror the frontend's `trackUtils.ts` — change both together. `DeliveryCheckService` feeds it from Jimi, assignments, office coordinates and saved route plans. When a rider marks DELIVERED/RETURNED, the GPS position is captured on the `ParcelInfo` (`marked*` fields); GPS failures never block the status update.
 
+**Counter pickups and cash-up (Part L)**: `POST /parcel/picked-up` with `amountPaid` records a `CounterCollection` (one per parcel, 409 on repeat) via `CounterService.recordPickup`. The server recomputes amount due with `CounterPickupRules` (inbound + storage + pickup fee + POD item value; delivery cost isn't charged) and rejects a sent `amountDue` more than GHC 0.01 off. Days are station-local (`BusinessDay`, Africa/Accra). Once a day's `CounterCashup` exists it's never edited: later counter money and driver cash go to the next open day, and corrections are appended as adjustments. Expected cash = counter cash − driver cash payouts − driver cash advances.
+
+**Driver payments (Part M)**: `DriverAssignment` is the driver *fee line*. `state` (WAITING → READY → PAID, or ON_HOLD / NOT_PAYABLE) replaces `payed`, which is kept equal to `state == PAID` for old clients. Lifecycle hooks live in `DriverFeeLineService`: READY on counter pickup or rider reconciliation (or at intake when the station's `driverPayPolicy` is ON_ARRIVAL), and NOT_PAYABLE on parcel delete or status REVERSED. Payouts (`DriverPaymentService`) claim lines with a conditional update rather than a transaction (no Mongo transaction manager is configured), and roll back the claim on failure. Drivers are matched by phone normalised with `PhoneNumberUtils.normalizeGhana`. `Parcel.driverRecordId` links to `Driver`; the older `Parcel.driverId` is unrelated. Run `POST /api-admin/driver-payments/migrate` once after deploying, so legacy fee lines get a driver and a state.
+
 **Jimi GPS calls** go through `JimiTokenService` first (caches/refreshes an OAuth token in the `jimi_access_tokens` collection, singleton doc id `"jimi-token"`) before `JimiApiService` signs (MD5) and sends the actual location/track request — never call the Jimi REST API without going through the token service.
 
 ### Authentication & Security
@@ -121,6 +125,7 @@ String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()
 - `reconcilations`, `driver_reconcilations`
 - `rider_status`, `verification_tokens`, `contacts`, `user-actions`
 - `fuel_requests`, `jimi_access_tokens`
+- `counter_collections`, `counter_cashups`, `drivers`, `driver_trips`, `driver_payouts`, `driver_adjustments`, `driverAssignment` (fee lines), `counters` (sequences: barcodes, payout receipt numbers)
 - `companies`, `email_verification_tokens` (company registration flow — distinct from `verification_tokens`, see above)
 
 ### Indexes

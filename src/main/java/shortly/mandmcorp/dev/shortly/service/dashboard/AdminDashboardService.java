@@ -46,6 +46,7 @@ public class AdminDashboardService {
     private final MongoTemplate mongoTemplate;
     private final UserRepository userRepository;
     private final OfficeRepository officeRepository;
+    private final shortly.mandmcorp.dev.shortly.service.counter.CounterService counterService;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public DashboardStatsResponse getStats(String officeId, Long startDate, Long endDate) {
@@ -94,6 +95,7 @@ public class AdminDashboardService {
                 .parcelPipeline(buildPipeline(officeId, start, end))
                 .stationSnapshot(buildStationSnapshot(officeId, start, end))
                 .topRiders(buildTopRiders(officeId, start, end))
+                .counter(counterService.dashboardTotals(officeId, start, end))
                 .build();
     }
 

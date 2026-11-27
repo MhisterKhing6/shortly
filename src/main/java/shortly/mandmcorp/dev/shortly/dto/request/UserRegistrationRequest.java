@@ -28,4 +28,14 @@ public class UserRegistrationRequest {
     private DepartmentRole departmentRole;
 
     private List<String> officeIds;
+
+    /** Single office (newer clients). Used when officeIds is empty. */
+    private String officeId;
+
+    public List<String> getOfficeIds() {
+        if ((officeIds == null || officeIds.isEmpty()) && officeId != null && !officeId.isBlank()) {
+            return new java.util.ArrayList<>(List.of(officeId.trim()));
+        }
+        return officeIds;
+    }
 }

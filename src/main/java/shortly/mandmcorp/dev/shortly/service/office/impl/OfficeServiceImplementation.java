@@ -171,6 +171,9 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         if(updateRequest.getPickupChargeEnabled() != null) {
             applyPickupCharge(office, updateRequest.getPickupChargeEnabled(), updateRequest.getPickupChargeAmount());
         }
+        if(updateRequest.getDriverPayPolicy() != null) {
+            office.setDriverPayPolicy(updateRequest.getDriverPayPolicy());
+        }
         
         if(updateRequest.getLocationId() != null) {
             Location location = locationRepository.findById(updateRequest.getLocationId())
@@ -324,19 +327,21 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
 
     @Override
     @PreAuthorize("hasRole('MANAGER')")
-    public UserResponse updateOwnPickupCharge(Boolean enabled, Double amount) {
+    public UserResponse updateOwnPickupCharge(Boolean enabled, Double amount,
+            shortly.mandmcorp.dev.shortly.enums.DriverPayPolicy driverPayPolicy) {
         User manager = shortly.mandmcorp.dev.shortly.utils.CurrentUser.get();
         String officeId = shortly.mandmcorp.dev.shortly.utils.CurrentUser.officeId(manager);
         if (officeId == null) {
             throw new org.springframework.web.server.ResponseStatusException(
                 org.springframework.http.HttpStatus.FORBIDDEN, "Manager has no assigned office");
         }
-        if (enabled == null) {
+        if (enabled == null && driverPayPolicy == null) {
             throw badRequest("pickupChargeEnabled is required");
         }
         Office office = officeRepository.findById(officeId)
             .orElseThrow(() -> new EntityNotFound("Office not found"));
-        applyPickupCharge(office, enabled, amount);
+        if (enabled != null) applyPickupCharge(office, enabled, amount);
+        if (driverPayPolicy != null) office.setDriverPayPolicy(driverPayPolicy);
         officeRepository.save(office);
         return new UserResponse("Pickup charge saved", officeId);
     }

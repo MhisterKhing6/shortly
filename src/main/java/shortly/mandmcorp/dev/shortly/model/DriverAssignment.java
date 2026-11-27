@@ -26,6 +26,26 @@ public class DriverAssignment {
 
     private boolean isDelivered;
 
+    // ---- Driver fee line (driver payments) ----
+    @Indexed
+    private String driverId;
+    @Indexed
+    private String tripId;
+    /** Replaces payed; payed is kept equal to (state == PAID) for old clients. */
+    @Indexed
+    private shortly.mandmcorp.dev.shortly.enums.DriverFeeState state;
+    private Long readyAt;
+    /** e.g. "PICKED_UP 11:05" or "DELIVERED 12:40". */
+    private String readyReason;
+    private String holdReason;
+    private String heldBy;
+    private Long heldAt;
+    /** State to return to when a hold is released. */
+    private shortly.mandmcorp.dev.shortly.enums.DriverFeeState stateBeforeHold;
+    @Indexed
+    private String payoutId;
+    private Long paidAt;
+
     private String whoPayedDriverPhoneNumber;
     private String whoPayedDriverName;
 

@@ -19,6 +19,8 @@ public class RevenueDashboardResponse {
     private double collectionRate;
     private double avgPerParcel;
     private double driverPayments;
+    /** Counter pickup money in the period (separate from the delivery figures above). */
+    private CounterDashboardTotals counter;
 
     private List<DailyRevenueTrend> revenueVsCollectedTrend;
     private List<StationRevenue> revenueByStation;

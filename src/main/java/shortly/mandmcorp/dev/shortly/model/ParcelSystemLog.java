@@ -30,4 +30,7 @@ public class ParcelSystemLog {
 
     @CreatedDate
     private Long createdAt;
+
+    /** Counter payment taken at pickup, if recorded. */
+    private CounterPayment counterPayment;
 }

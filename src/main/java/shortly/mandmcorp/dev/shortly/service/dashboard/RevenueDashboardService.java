@@ -38,6 +38,7 @@ public class RevenueDashboardService {
 
     private final MongoTemplate mongoTemplate;
     private final OfficeRepository officeRepository;
+    private final shortly.mandmcorp.dev.shortly.service.counter.CounterService counterService;
 
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public RevenueDashboardResponse getRevenueStats(String officeId, Long startDate, Long endDate) {
@@ -65,6 +66,7 @@ public class RevenueDashboardService {
                 .revenueByType(buildRevenueByType(officeId, start, end))
                 .paymentMethods(buildPaymentMethodTotals(officeId, start, end))
                 .revenueByDayOfWeek(buildRevenueByDayOfWeek(officeId, start, end))
+                .counter(counterService.dashboardTotals(officeId, start, end))
                 .build();
     }
 
