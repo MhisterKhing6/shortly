@@ -1,7 +1,10 @@
 package shortly.mandmcorp.dev.shortly.dto.response;
 
+import java.util.List;
+
 import lombok.Builder;
 import lombok.Data;
+import shortly.mandmcorp.dev.shortly.enums.DepartmentRole;
 import shortly.mandmcorp.dev.shortly.enums.UserRole;
 
 @Data
@@ -12,4 +15,7 @@ public class UserRegistrationResponse {
     private String email;
     private String userId;
     private UserRole role;
+    private DepartmentRole departmentRole;
+    private String companyName;
+    private List<String> officeNames;
 }

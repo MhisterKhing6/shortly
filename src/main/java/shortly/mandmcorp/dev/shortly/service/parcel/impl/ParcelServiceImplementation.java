@@ -59,7 +59,7 @@ import shortly.mandmcorp.dev.shortly.repository.UserRepository;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationInterface;
 import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTemplate;
 import shortly.mandmcorp.dev.shortly.service.parcel.ParcelServiceInterface;
-import shortly.mandmcorp.dev.shortly.service.storage.S3Service;
+import shortly.mandmcorp.dev.shortly.service.storage.R2Service;
 import shortly.mandmcorp.dev.shortly.utils.NotificationUtil;
 import shortly.mandmcorp.dev.shortly.utils.ParcelMapper;
 
@@ -80,7 +80,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final DriverAssignmentRepository driverAssignmentRepository;
     @Qualifier("smsNotification")
     private final NotificationInterface notification;
-    private final S3Service s3Service;
+    private final R2Service r2Service;
     private final shortly.mandmcorp.dev.shortly.utils.BarcodeGenerator barcodeGenerator;
     private final shortly.mandmcorp.dev.shortly.utils.DeliveryLocationValidator locationValidator;
 
@@ -105,6 +105,30 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         return code;
     }
 
+    /**
+     * Returns the logged-in user's companyId, or null if not available.
+     * Every parcel query is scoped to this so companies never see each other's parcels.
+     */
+    private String loggedInCompanyId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User user) {
+            return user.getCompanyId();
+        }
+        return null;
+    }
+
+    /** Criteria that restricts a parcel query to the logged-in user's company. */
+    private Criteria companyScope() {
+        return Criteria.where("companyId").is(loggedInCompanyId());
+    }
+
+    /** Guards a single-parcel operation so a user can only act on their own company's parcels. */
+    private void assertSameCompany(Parcel parcel) {
+        if (!java.util.Objects.equals(parcel.getCompanyId(), loggedInCompanyId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Parcel does not belong to your company");
+        }
+    }
+
     @Override
     @PreAuthorize("hasRole('VENDOR')")
     public VendorDashboardResponse getVendorDashboard(String search, shortly.mandmcorp.dev.shortly.enums.ParcelStatus status) {
@@ -113,7 +137,9 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         String vendorPhone = vendor.getPhoneNumber();
 
         // Status summary — always over ALL vendor parcels, unaffected by search/filter
-        Query allQuery = new Query(Criteria.where("vendorId").is(vendorPhone));
+        Query allQuery = new Query(new Criteria().andOperator(
+                companyScope(),
+                Criteria.where("vendorId").is(vendorPhone)));
         List<Parcel> allParcels = mongoTemplate.find(allQuery, Parcel.class);
         java.util.Map<String, Long> statusSummary = new java.util.LinkedHashMap<>();
         for (shortly.mandmcorp.dev.shortly.enums.ParcelStatus s : shortly.mandmcorp.dev.shortly.enums.ParcelStatus.values()) {
@@ -127,6 +153,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
 
         // Filtered query for the grouped list
         List<Criteria> criteria = new ArrayList<>();
+        criteria.add(companyScope());
         criteria.add(Criteria.where("vendorId").is(vendorPhone));
 
         if (status != null) {
@@ -224,12 +251,13 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         parcel.setPOD(request.isPOD());
         parcel.setVendorName(vendor.getName());
         parcel.setVendorId(vendor.getPhoneNumber());
+        parcel.setCompanyId(vendor.getCompanyId());
         parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.PENDING);
         parcel.setTypeofParcel(ParcelTypes.TRANSFER);
         parcel.setParcelTransfer(true);
         parcel.setToOfficeId(destinationOffice.getId());
         parcel.setTo(toOfficeInfo);
-        parcel.setImageUrls(s3Service.uploadImages(request.getImages()));
+        parcel.setImageUrls(r2Service.uploadImages(request.getImages()));
         parcel.setBarCode(resolveBarCode(request.getBarCode()));
 
         return parcelRepository.save(parcel);
@@ -242,7 +270,9 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         User vendor = (User) auth.getPrincipal();
         String phone = vendor.getPhoneNumber();
 
-        Query query = new Query(Criteria.where("vendorId").is(phone));
+        Query query = new Query(new Criteria().andOperator(
+                companyScope(),
+                Criteria.where("vendorId").is(phone)));
         List<Parcel> allParcels = mongoTemplate.find(query, Parcel.class);
 
         double amountReady = 0;
@@ -323,6 +353,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         String phone = vendor.getPhoneNumber();
 
         List<Criteria> criteria = new ArrayList<>();
+        criteria.add(companyScope());
         criteria.add(Criteria.where("vendorId").is(phone));
 
         if (status != null) {
@@ -352,6 +383,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         return new PageImpl<>(parcels, pageable, total);
     }
 
+    private static final String UCC_GOIL_HUB_OFFICE_ID = "6a5b69da3bf95afbf713ae2f";
+
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
     public List<Parcel> markParcelsAsReceived(ParcelReceivedRequest request) {
@@ -364,9 +397,19 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         for (String parcelId : request.getParcelIds()) {
             Parcel parcel = parcelRepository.findById(parcelId)
                     .orElseThrow(() -> new EntityNotFound("Parcel not found: " + parcelId));
+            assertSameCompany(parcel);
             parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.RECEIVED);
             parcel.setOfficeId(officeId);
-            updated.add(parcelRepository.save(parcel));
+            Parcel savedParcel = parcelRepository.save(parcel);
+            updated.add(savedParcel);
+
+            if (UCC_GOIL_HUB_OFFICE_ID.equals(officeId) && savedParcel.getDriverPhoneNumber() != null
+                    && !savedParcel.getDriverPhoneNumber().isBlank()) {
+                notification.send(NotificationRequestTemplate.builder()
+                        .to(savedParcel.getDriverPhoneNumber())
+                        .body(NotificationUtil.generateParcelReceivedAtHubSms(savedParcel.getDriverName()))
+                        .build());
+            }
         }
         return updated;
     }
@@ -440,8 +483,11 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
 
         applyStationPickupCharge(parcel, parcelRequest);
 
-        parcel.setImageUrls(s3Service.uploadImages(parcelRequest.getImages()));
+        parcel.setImageUrls(r2Service.uploadImages(parcelRequest.getImages()));
         parcel.setBarCode(resolveBarCode(parcelRequest.getBarCode()));
+
+        // Scope the parcel to the logged-in user's company.
+        parcel.setCompanyId(loggedInCompanyId());
 
         // Save the parcel first so it gets its generated ID before building ParcelInfo
         Parcel savedParcel = parcelRepository.save(parcel);
@@ -498,6 +544,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             DriverAssignment driverAssignment = new DriverAssignment();
             driverAssignment.setParcelId(savedParcel.getParcelId());
             driverAssignment.setOfficeId(savedParcel.getOfficeId());
+            driverAssignment.setCompanyId(savedParcel.getCompanyId());
             driverAssignment.setDriverName(savedParcel.getDriverName());
             driverAssignment.setDriverPhoneNumber(savedParcel.getDriverPhoneNumber());
             driverAssignment.setParcelInfo(parcelInfo);
@@ -515,6 +562,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     Parcel parcel = parcelRepository.findById(parcelId)
             .orElseThrow(() -> new WrongCredentialsException("Parcel not found"));
+    assertSameCompany(parcel);
 
     if (updateRequest.getDriverPhoneNumber() != null) {
         parcel.setDriverPhoneNumber(updateRequest.getDriverPhoneNumber());
@@ -832,6 +880,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         String officeId,
         String driverPhoneNumber,
         Boolean hasCalled,
+        String search,
         Pageable pageable,
         boolean isFrontDesk) {
 
@@ -846,6 +895,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     }
     Query query = new Query();
     List<Criteria> criteria = new ArrayList<>();
+    criteria.add(companyScope());
 
     if (isPOD != null) {
         criteria.add(Criteria.where("isPOD").is(isPOD));
@@ -875,6 +925,25 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
     if (driverPhoneNumber != null) {
         criteria.add(Criteria.where("driverPhoneNumber").is(driverPhoneNumber));
+    }
+
+    // Single free-text search: case-insensitive "contains" across the common parcel fields.
+    if (search != null && !search.isBlank()) {
+        String term = java.util.regex.Pattern.quote(search.trim());
+        criteria.add(new Criteria().orOperator(
+            // Parcel ID: exact id, plus a contains match for string ids
+            Criteria.where("_id").is(search.trim()),
+            Criteria.where("_id").regex(term, "i"),
+            Criteria.where("senderName").regex(term, "i"),
+            Criteria.where("senderPhoneNumber").regex(term, "i"),
+            Criteria.where("receiverName").regex(term, "i"),
+            Criteria.where("recieverPhoneNumber").regex(term, "i"),
+            Criteria.where("alternativePhoneNumber").regex(term, "i"),
+            Criteria.where("receiverAddress").regex(term, "i"),
+            Criteria.where("driverName").regex(term, "i"),
+            Criteria.where("parcelDescription").regex(term, "i"),
+            Criteria.where("barCode").regex(term, "i")
+        ));
     }
 
     // Apply criteria if any
@@ -946,6 +1015,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
             }  
             List<Criteria> criteria = new ArrayList<>();
 
+            criteria.add(companyScope());
             criteria.add(Criteria.where("isItemOwnerPaid").is(false));
             criteria.add(Criteria.where("typeofParcel").is(ParcelTypes.ONLINE));
             criteria.add(Criteria.where("isDelivered").is(true));
@@ -985,6 +1055,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                 ? user.getOfficeIds().get(0) : null;
 
         List<Criteria> criteria = new ArrayList<>();
+        criteria.add(companyScope());
         criteria.add(Criteria.where("parcelTransfer").is(true));
         criteria.add(Criteria.where("toOfficeId").is(officeId));
         criteria.add(Criteria.where("hasArrivedAtOffice").is(false));
@@ -1011,6 +1082,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                 ? user.getOfficeIds().get(0) : null;
 
         List<Criteria> criteria = new ArrayList<>();
+        criteria.add(companyScope());
         criteria.add(Criteria.where("typeofParcel").is(ParcelTypes.ONLINE));
         criteria.add(Criteria.where("toOfficeId").is(officeId));
         criteria.add(Criteria.where("hasArrivedAtOffice").is(true));
@@ -1038,6 +1110,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                 ? user.getOfficeIds().get(0) : null;
 
         List<Criteria> criteria = new ArrayList<>();
+        criteria.add(companyScope());
         criteria.add(Criteria.where("parcelTransfer").is(true));
         criteria.add(Criteria.where("fromOfficeId").is(officeId));
         criteria.add(Criteria.where("hasArrivedAtOffice").is(false));
@@ -1058,6 +1131,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     public void deleteParcel(String parcelId) {
         Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+        assertSameCompany(parcel);
         parcelRepository.delete(parcel);
     }
 
@@ -1073,6 +1147,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
         Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+        assertSameCompany(parcel);
         Shelf shelf = shelfRepository.findById(shelfId)
                 .orElseThrow(() -> new EntityNotFound("Shelf not found"));
 
@@ -1104,6 +1179,8 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
         Query query = new Query();
         List<Criteria> criteria = new ArrayList<>();
+
+        criteria.add(companyScope());
 
         criteria.add(Criteria.where("homeDelivery").is(true));
 
@@ -1157,6 +1234,8 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         Query query = new Query();
         List<Criteria> criteria = new ArrayList<>();
 
+        criteria.add(companyScope());
+
         criteria.add(new Criteria().orOperator(
                 Criteria.where("hasCallCenterSpokenToClient").is(false),
                 Criteria.where("hasCallCenterSpokenToClient").isNull()
@@ -1197,6 +1276,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         );
 
         List<Criteria> criteria = new ArrayList<>();
+        criteria.add(companyScope());
         criteria.add(notCalled);
         if (officeId != null && !officeId.isBlank()) {
             criteria.add(Criteria.where("officeId").is(officeId));
@@ -1227,6 +1307,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
         Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+        assertSameCompany(parcel);
 
         parcel.setCallOutCome(request.getCallOutCome());
         parcel.setCallCenterRemark(request.getRemark());
@@ -1263,6 +1344,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         long endOfYesterday = yesterday.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1;
 
         Criteria deliveredYesterday = new Criteria().andOperator(
+                companyScope(),
                 Criteria.where("isDelivered").is(true),
                 Criteria.where("updatedAt").gte(startOfYesterday).lte(endOfYesterday)
         );
@@ -1270,18 +1352,21 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         long totalDeliveredYesterday = mongoTemplate.count(new Query(deliveredYesterday), Parcel.class);
 
         long reached = mongoTemplate.count(new Query(new Criteria().andOperator(
+                companyScope(),
                 Criteria.where("isDelivered").is(true),
                 Criteria.where("updatedAt").gte(startOfYesterday).lte(endOfYesterday),
                 Criteria.where("callOutCome").is(CallCenterCallOutCome.REACHED)
         )), Parcel.class);
 
         long unreachable = mongoTemplate.count(new Query(new Criteria().andOperator(
+                companyScope(),
                 Criteria.where("isDelivered").is(true),
                 Criteria.where("updatedAt").gte(startOfYesterday).lte(endOfYesterday),
                 Criteria.where("callOutCome").is(CallCenterCallOutCome.UNREACHABLE)
         )), Parcel.class);
 
         long notCalled = mongoTemplate.count(new Query(new Criteria().andOperator(
+                companyScope(),
                 Criteria.where("isDelivered").is(true),
                 Criteria.where("updatedAt").gte(startOfYesterday).lte(endOfYesterday),
                 Criteria.where("hasCallCenterSpokenToClient").is(false),
@@ -1300,6 +1385,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public CallerStatsResponse getCallerStats(String callerPhoneNumber, String period) {
         List<Criteria> criteria = new ArrayList<>();
+        criteria.add(companyScope());
         criteria.add(Criteria.where("callerPhoneNumber").is(callerPhoneNumber));
 
         if ("month".equalsIgnoreCase(period)) {
@@ -1339,6 +1425,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public Page<ParcelSystemLog> getParcelSystemLogs(String officeId, String parcelId, Pageable pageable) {
         Query query = new Query();
+        query.addCriteria(companyScope());
 
         if (officeId != null && !officeId.isBlank()) {
             query.addCriteria(Criteria.where("officeId").is(officeId));
@@ -1371,6 +1458,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
 
         Parcel parcel = parcelRepository.findById(request.getParcelId())
                 .orElseThrow(() -> new EntityNotFound("Parcel not found"));
+        assertSameCompany(parcel);
 
         parcel.setPickedUp(true);
         Parcel savedParcel = parcelRepository.save(parcel);
@@ -1437,6 +1525,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         log.setFrontDeskPersonellName(user.getName());
         log.setFrontDeskPersonellPhoneNumber(user.getPhoneNumber());
         log.setOfficeId(officeId);
+        log.setCompanyId(savedParcel.getCompanyId());
 
         return parcelSystemLogRepository.save(log);
     }
@@ -1448,6 +1537,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
                 .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
         Query query = new Query(new Criteria().andOperator(
+                companyScope(),
                 Criteria.where("officeId").is(officeId),
                 Criteria.where("isDelivered").is(true),
                 Criteria.where("createdAt").gte(startOfYesterday),
@@ -1470,6 +1560,7 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CALLCENTER')")
     public Page<Parcel> getNotDeliveredUncalledParcels(String officeId, Pageable pageable) {
         Query query = new Query(new Criteria().andOperator(
+                companyScope(),
                 Criteria.where("officeId").is(officeId),
                 Criteria.where("isDelivered").is(false),
                 new Criteria().orOperator(

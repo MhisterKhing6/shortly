@@ -25,6 +25,9 @@ public class ParcelSystemLog {
     @Indexed
     private String officeId;
 
+    @Indexed
+    private String companyId;
+
     @CreatedDate
     private Long createdAt;
 }

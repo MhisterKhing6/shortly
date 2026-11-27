@@ -43,6 +43,8 @@ public class Reconcilations {
 
     @Indexed
     private String officeId;
+    @Indexed
+    private String companyId;
     private String riderPhoneNumber;
 
     @Indexed
@@ -53,9 +55,5 @@ public class Reconcilations {
     private java.util.List<ReconciliationLine> lines;
     private String reconciledById;
     private String reconciledByName;
-
-
-
-
 }
 

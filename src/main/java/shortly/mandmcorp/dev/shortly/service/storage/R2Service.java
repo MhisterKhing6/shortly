@@ -14,18 +14,19 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Service
-public class S3Service {
+public class R2Service {
 
-    private final S3Client s3Client;
+    private final S3Client r2Client;
 
-    @Value("${aws.s3.bucket}")
+    @Value("${r2.bucket}")
     private String bucket;
 
-    @Value("${aws.s3.region}")
-    private String region;
+    /** Public URL base for serving objects — an r2.dev subdomain or a custom domain bound to the bucket. */
+    @Value("${r2.public-base-url}")
+    private String publicBaseUrl;
 
-    public S3Service(S3Client s3Client) {
-        this.s3Client = s3Client;
+    public R2Service(S3Client r2Client) {
+        this.r2Client = r2Client;
     }
 
     public String uploadBase64Image(String base64) {
@@ -44,7 +45,7 @@ public class S3Service {
         byte[] bytes = Base64.getDecoder().decode(data);
         String key = "parcels/" + UUID.randomUUID() + "." + extension;
 
-        s3Client.putObject(
+        r2Client.putObject(
                 PutObjectRequest.builder()
                         .bucket(bucket)
                         .key(key)
@@ -52,7 +53,8 @@ public class S3Service {
                         .build(),
                 RequestBody.fromBytes(bytes));
 
-        return "https://" + bucket + ".s3." + region + ".amazonaws.com/" + key;
+        String base = publicBaseUrl.endsWith("/") ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1) : publicBaseUrl;
+        return base + "/" + key;
     }
 
     public List<String> uploadImages(List<String> base64Images) {

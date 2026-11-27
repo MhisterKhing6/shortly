@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -19,6 +20,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
+import shortly.mandmcorp.dev.shortly.enums.DepartmentRole;
 import shortly.mandmcorp.dev.shortly.enums.UserRole;
 import shortly.mandmcorp.dev.shortly.enums.UserStatusEnum;
 
@@ -34,9 +36,12 @@ public class User implements UserDetails {
 
     private String officeId;
 
+    private String companyId;
+
     @NotBlank
     private String phoneNumber;
-
+    
+    @Indexed
     private String email;
 
     @Builder.Default
@@ -54,6 +59,8 @@ public class User implements UserDetails {
 
     @NotNull
     private UserRole role;
+
+    private DepartmentRole departmentRole;
 
     private String deviceImei;
 

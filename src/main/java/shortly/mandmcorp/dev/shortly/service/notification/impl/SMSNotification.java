@@ -37,13 +37,16 @@ public class SMSNotification implements NotificationInterface {
 
     private boolean sendMessage(NotificationRequestTemplate notify) {
         try {
-            Map<String, Object> requestBody = Map.of(
+            Map<String, Object> requestBody = new java.util.HashMap<>(Map.of(
                 "recipient", List.of(notify.getTo()),
                 "sender", mNotifyConfig.getSender(),
                 "message", notify.getBody(),
                 "is_schedule", false,
                 "schedule_date", ""
-            );
+            ));
+           if (notify.isOtp()) {
+               requestBody.put("sms_type", "otp");
+           }
            String uri = mNotifyConfig.getBaseUrl() + "/quick?key=" + mNotifyConfig.getAccessKey();
            log.info("Sending SMS request to: {}", uri);
            log.info("Request body: {}", requestBody);

@@ -203,6 +203,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             assignment.setAssignmentId(dailyAssignmentId);
             assignment.setRiderInfo(riderInfo);
             assignment.setOfficeId(officeId);
+            assignment.setCompanyId(frontDesk.getCompanyId());
             assignment.setStatus(DeliveryStatus.ASSIGNED);
             assignment.setConfirmationCode(confirmationCode);
             assignment.setAssignedAt(assignedAt);
@@ -298,7 +299,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
             String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(officeManager.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
             NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
-                .to(parcel.getRecieverPhoneNumber()).build();
+                .to(parcel.getRecieverPhoneNumber()).otp(true).build();
             notification.send(notify);
         }
 
@@ -869,7 +870,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(riderPhone, riderName, assignment.getConfirmationCode(), receiverName, parcelId);
         NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
-        .to(receiverPhone).build();
+        .to(receiverPhone).otp(true).build();
         notification.send(notify);
         return UserResponse.builder().message("Successful sent").build();
     }
@@ -1166,6 +1167,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             officeId, date, startOfDay, endOfDay, useReconciledAt ? "reconciledAt" : "createdAt");
         // Build query for reconciliations by date
         Query query = new Query();
+        query.addCriteria(Criteria.where("companyId").is(user.getCompanyId()));
         query.addCriteria(Criteria.where("officeId").is(officeId));
         query.addCriteria(Criteria.where("payed").is(true));
 
@@ -1385,14 +1387,23 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             throw new WrongCredentialsException("User has no assigned office");
         }
 
-        return driverReconcilationRepository.findByOfficeIdAndPayedFalse(officeId, pageable);
+        return driverReconcilationRepository.findByOfficeIdAndCompanyIdAndPayedFalse(officeId, user.getCompanyId(), pageable);
     }
 
     @Override
     @PreAuthorize("hasAnyRole('FRONTDESK', 'ADMIN', 'MANAGER')")
     public DriverReconcilation payDriverReconciliation(String reconciliationId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
+            throw new WrongCredentialsException("User not authenticated");
+        }
+
         DriverReconcilation reconciliation = driverReconcilationRepository.findByIdAndPayedFalse(reconciliationId)
                 .orElseThrow(() -> new EntityNotFound("Driver reconciliation not found or already paid"));
+
+        if (!java.util.Objects.equals(reconciliation.getCompanyId(), user.getCompanyId())) {
+            throw new WrongCredentialsException("This reconciliation does not belong to your company");
+        }
 
         reconciliation.setPayed(true);
         log.info("Driver reconciliation {} marked as paid", reconciliationId);
@@ -1411,6 +1422,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         List<Criteria> criteriaList = new ArrayList<>();
         criteriaList.add(Criteria.where("officeId").is(officeId));
+        criteriaList.add(Criteria.where("companyId").is(user.getCompanyId()));
         criteriaList.add(Criteria.where("payed").is(false));
         if (driverPhoneNumber != null && !driverPhoneNumber.isBlank()) {
             criteriaList.add(Criteria.where("driverPhoneNumber").is(driverPhoneNumber));
@@ -1439,6 +1451,13 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         if (assignments.isEmpty()) {
             throw new EntityNotFound("No driver assignments found for the provided IDs");
+        }
+
+        // Multi-tenant guard: every assignment must belong to the caller's company.
+        for (DriverAssignment assignment : assignments) {
+            if (!java.util.Objects.equals(assignment.getCompanyId(), user.getCompanyId())) {
+                throw new WrongCredentialsException("One or more assignments do not belong to your company");
+            }
         }
 
         for (DriverAssignment assignment : assignments) {

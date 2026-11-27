@@ -35,6 +35,9 @@ public class DeliveryAssignments {
     private String officeId;
 
     @Indexed
+    private String companyId;
+
+    @Indexed
     private DeliveryStatus status;
 
     @Indexed

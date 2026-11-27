@@ -87,9 +87,7 @@ public class DeliveryCheckService {
         long end = endLdt.toInstant(ZoneOffset.UTC).toEpochMilli();
 
         String scopedOffice = CurrentUser.scopedOfficeId(officeId);
-        List<User> riders = scopedOffice == null
-                ? userRepository.findByRole(UserRole.RIDER)
-                : userRepository.findByRoleAndOfficeIdsContaining(UserRole.RIDER, scopedOffice);
+        List<User> riders = CurrentUser.ridersInScope(userRepository, scopedOffice);
 
         List<DeliveryCheckSummaryRow> rows = new ArrayList<>();
         for (User rider : riders) {

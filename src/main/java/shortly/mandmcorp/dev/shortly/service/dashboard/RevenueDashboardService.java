@@ -19,6 +19,9 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationExpression;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import shortly.mandmcorp.dev.shortly.model.User;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -67,8 +70,16 @@ public class RevenueDashboardService {
 
     // ---- Criteria builders ----
 
+    /** Restricts every dashboard aggregation to the logged-in admin's company. */
+    private Criteria companyScope() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String companyId = (auth != null && auth.getPrincipal() instanceof User user) ? user.getCompanyId() : null;
+        return Criteria.where("companyId").is(companyId);
+    }
+
     private Criteria parcelCriteria(String officeId, long start, long end, Criteria... extras) {
         List<Criteria> conditions = new ArrayList<>();
+        conditions.add(companyScope());
         conditions.add(Criteria.where("createdAt").gte(start).lte(end));
         if (officeId != null) conditions.add(Criteria.where("officeId").is(officeId));
         Collections.addAll(conditions, extras);
@@ -77,6 +88,7 @@ public class RevenueDashboardService {
 
     private Criteria reconcilCriteria(String officeId, long start, long end, boolean completed) {
         List<Criteria> conditions = new ArrayList<>();
+        conditions.add(companyScope());
         conditions.add(Criteria.where("createdAt").gte(start).lte(end));
         conditions.add(Criteria.where("isCompleted").is(completed));
         if (officeId != null) conditions.add(Criteria.where("officeId").is(officeId));
@@ -85,6 +97,7 @@ public class RevenueDashboardService {
 
     private Criteria driverReconCriteria(String officeId) {
         List<Criteria> conditions = new ArrayList<>();
+        conditions.add(companyScope());
         conditions.add(Criteria.where("payed").is(false));
         if (officeId != null) conditions.add(Criteria.where("officeId").is(officeId));
         return new Criteria().andOperator(conditions.toArray(new Criteria[0]));
@@ -134,6 +147,7 @@ public class RevenueDashboardService {
         }
 
         List<Criteria> reconConds = new ArrayList<>();
+        reconConds.add(companyScope());
         reconConds.add(Criteria.where("reconciledAt").gte(start).lte(end));
         reconConds.add(Criteria.where("isCompleted").is(true));
         if (officeId != null) reconConds.add(Criteria.where("officeId").is(officeId));

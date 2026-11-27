@@ -16,6 +16,8 @@ public class DriverAssignment {
     @Indexed
     private String officeId;
     @Indexed
+    private String companyId;
+    @Indexed
     private String parcelId;
 
     private ParcelInfo parcelInfo;

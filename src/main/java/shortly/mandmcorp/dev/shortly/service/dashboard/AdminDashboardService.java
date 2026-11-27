@@ -21,6 +21,8 @@ import org.springframework.data.mongodb.core.aggregation.AggregationExpression;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
@@ -97,8 +99,21 @@ public class AdminDashboardService {
 
     // ---- Criteria builders ----
 
+    /** Restricts every dashboard aggregation to the logged-in admin's company. */
+    private Criteria companyScope() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String companyId = (auth != null && auth.getPrincipal() instanceof User user) ? user.getCompanyId() : null;
+        return Criteria.where("companyId").is(companyId);
+    }
+
+    private String loggedInCompanyId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return (auth != null && auth.getPrincipal() instanceof User user) ? user.getCompanyId() : null;
+    }
+
     private Criteria parcelCriteria(String officeId, long start, long end, Criteria... extras) {
         List<Criteria> conditions = new ArrayList<>();
+        conditions.add(companyScope());
         conditions.add(Criteria.where("createdAt").gte(start).lte(end));
         if (officeId != null) conditions.add(Criteria.where("officeId").is(officeId));
         Collections.addAll(conditions, extras);
@@ -107,6 +122,7 @@ public class AdminDashboardService {
 
     private Criteria reconcilCriteria(String officeId, long start, long end, boolean completed) {
         List<Criteria> conditions = new ArrayList<>();
+        conditions.add(companyScope());
         conditions.add(Criteria.where("createdAt").gte(start).lte(end));
         conditions.add(Criteria.where("isCompleted").is(completed));
         if (officeId != null) conditions.add(Criteria.where("officeId").is(officeId));
@@ -115,6 +131,7 @@ public class AdminDashboardService {
 
     private Criteria reconcilCollectedDailyCriteria(String officeId, long start, long end) {
         List<Criteria> conditions = new ArrayList<>();
+        conditions.add(companyScope());
         conditions.add(Criteria.where("reconciledAt").gte(start).lte(end));
         conditions.add(Criteria.where("isCompleted").is(true));
         if (officeId != null) conditions.add(Criteria.where("officeId").is(officeId));
@@ -123,6 +140,7 @@ public class AdminDashboardService {
 
     private Criteria driverReconCriteria(String officeId) {
         List<Criteria> conditions = new ArrayList<>();
+        conditions.add(companyScope());
         conditions.add(Criteria.where("payed").is(false));
         if (officeId != null) conditions.add(Criteria.where("officeId").is(officeId));
         return new Criteria().andOperator(conditions.toArray(new Criteria[0]));
@@ -130,6 +148,7 @@ public class AdminDashboardService {
 
     private Criteria assignmentCriteria(String officeId, long start, long end, DeliveryStatus status) {
         List<Criteria> conditions = new ArrayList<>();
+        conditions.add(companyScope());
         conditions.add(Criteria.where("assignedAt").gte(start).lte(end));
         conditions.add(Criteria.where("status").is(status));
         if (officeId != null) conditions.add(Criteria.where("officeId").is(officeId));
@@ -228,7 +247,14 @@ public class AdminDashboardService {
         Query activeQuery = new Query(Criteria.where("riderStatus").ne(RiderStatus.OFFLINE));
         List<RiderStatusModel> activeStatuses = mongoTemplate.find(activeQuery, RiderStatusModel.class);
 
-        if (officeId == null) return activeStatuses.size();
+        // No office filter: still scope to the logged-in admin's company.
+        if (officeId == null) {
+            String companyId = loggedInCompanyId();
+            return activeStatuses.stream()
+                    .filter(s -> s.getRider() != null
+                            && java.util.Objects.equals(s.getRider().getCompanyId(), companyId))
+                    .count();
+        }
 
         List<User> officeRiders = userRepository.findByRoleAndOfficeIdsContaining(UserRole.RIDER, officeId);
         Set<String> riderIds = officeRiders.stream().map(User::getUserId).collect(Collectors.toSet());

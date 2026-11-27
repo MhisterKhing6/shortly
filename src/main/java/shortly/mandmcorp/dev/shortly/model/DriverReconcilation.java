@@ -21,6 +21,7 @@ public class DriverReconcilation {
     private double totalAmount;
     private double amountDelivered;
     private String officeId;
-    
-    
+    private String companyId;
+
+
 }

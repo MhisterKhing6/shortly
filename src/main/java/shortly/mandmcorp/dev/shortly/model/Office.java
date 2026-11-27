@@ -20,8 +20,11 @@ public class Office {
     @Indexed
     private String name;
 
+    @Indexed
+    private String companyId;
+
     @Indexed(unique = true)
-    private String code; 
+    private String code;
 
     private String address;
     

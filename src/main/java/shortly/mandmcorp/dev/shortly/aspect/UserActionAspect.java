@@ -37,6 +37,7 @@ public class UserActionAspect {
                 String phoneNumber = null;
 
                 String officeId = null;
+                String companyId = null;
 
                 if (auth != null && auth.getPrincipal() instanceof User) {
                     User user = (User) auth.getPrincipal();
@@ -46,6 +47,7 @@ public class UserActionAspect {
                     phoneNumber = user.getPhoneNumber();
                     officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty())
                             ? user.getOfficeIds().get(0) : null;
+                    companyId = user.getCompanyId();
                 }
 
                 UserAction userAction = UserAction.builder()
@@ -56,6 +58,7 @@ public class UserActionAspect {
                         .phoneNumber(phoneNumber)
                         .description(annotation.description())
                         .officeId(officeId)
+                        .companyId(companyId)
                         .build();
 
                 userActionRepository.save(userAction);

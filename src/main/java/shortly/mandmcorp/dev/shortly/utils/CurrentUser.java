@@ -26,6 +26,20 @@ public final class CurrentUser {
         return (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()) ? user.getOfficeIds().get(0) : null;
     }
 
+    /** The caller's company id (null for legacy single-company users). */
+    public static String companyId() {
+        return get().getCompanyId();
+    }
+
+    /** Riders in scope: one office (any role-checked caller) or all riders of the caller's company. */
+    public static java.util.List<User> ridersInScope(shortly.mandmcorp.dev.shortly.repository.UserRepository repo, String scopedOfficeId) {
+        String company = companyId();
+        java.util.List<User> riders = scopedOfficeId == null
+                ? repo.findByRoleAndCompanyId(UserRole.RIDER, company)
+                : repo.findByRoleAndOfficeIdsContaining(UserRole.RIDER, scopedOfficeId);
+        return riders.stream().filter(r -> java.util.Objects.equals(r.getCompanyId(), company)).toList();
+    }
+
     public static boolean isManager(User user) {
         return user.getRole() == UserRole.MANAGER;
     }

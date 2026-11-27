@@ -113,8 +113,9 @@ public class FrontDeskController {
             @RequestParam(required = false) Boolean isParcelAssigned,
             @RequestParam(required = false) String driverId,
             @RequestParam(required = false) Boolean hasCalled,
+            @RequestParam(required = false) String search,
             Pageable pageable) {
-        return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, null, driverId, hasCalled, pageable, true);
+        return parcelService.searchParcels(isPOD, isDelivered, isParcelAssigned, null, driverId, hasCalled, search, pageable, true);
     }
 
 
@@ -225,7 +226,7 @@ public class FrontDeskController {
     @Operation(summary = "Get delivered parcels", description = "Paged delivered parcels in the user's office")
     @SecurityRequirement(name = "Bearer Authentication")
     public Page<Parcel> getDeliveredParcels(Pageable pageable) {
-        return parcelService.searchParcels(null, true, null, null, null, null, pageable, true);
+        return parcelService.searchParcels(null, true, null, null, null, null, null, pageable, true);
     }
 
     @GetMapping("/driver/{driverId}/parcels")

@@ -16,13 +16,16 @@ public class UserMapper {
     PasswordEncoder passwordEncoder;
     
 
-    public  UserRegistrationResponse toUserRegistrationResponse(User user) {
+    public  UserRegistrationResponse toUserRegistrationResponse(User user, String companyName, java.util.List<String> officeNames) {
         return UserRegistrationResponse.builder()
                 .email(user.getEmail())
                 .userId(user.getUserId())
                 .name(user.getName())
                 .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole())
+                .departmentRole(user.getDepartmentRole())
+                .companyName(companyName)
+                .officeNames(officeNames)
                 .build();
     }
 
@@ -32,18 +35,22 @@ public class UserMapper {
                 .name(user.getName())
                 .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole())
+                .departmentRole(user.getDepartmentRole())
                 .passwordHash(passwordEncoder.encode(user.getPassword()))
                 .build();
     }
 
-    public UserLoginResponse toUserLoginResponse(User user, String token, Office office) {
+    public UserLoginResponse toUserLoginResponse(User user, String token, Office office, String companyName) {
         return UserLoginResponse.builder()
                 .token(token)
                 .userId(user.getUserId())
                 .name(user.getName())
                 .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole().name())
+                .departmentRole(user.getDepartmentRole())
+                .companyId(user.getCompanyId())
+                .companyName(companyName)
                 .office(office)
                 .build();
-    }   
+    }
 }

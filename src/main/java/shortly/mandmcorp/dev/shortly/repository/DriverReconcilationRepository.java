@@ -21,4 +21,6 @@ public interface DriverReconcilationRepository extends MongoRepository<DriverRec
     Page<DriverReconcilation> findByPayedFalse(Pageable pageable);
 
     Page<DriverReconcilation> findByOfficeIdAndPayedFalse(String officeId, Pageable pageable);
-} 
+
+    Page<DriverReconcilation> findByOfficeIdAndCompanyIdAndPayedFalse(String officeId, String companyId, Pageable pageable);
+}

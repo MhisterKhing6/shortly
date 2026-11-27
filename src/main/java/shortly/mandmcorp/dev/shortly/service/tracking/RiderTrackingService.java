@@ -9,6 +9,8 @@ import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -42,12 +44,22 @@ public class RiderTrackingService {
         return phone.startsWith(" ") ? "+" + phone.trim() : phone.trim();
     }
 
+    /** Rejects (as not-found) if the rider isn't in the logged-in caller's company. */
+    private void assertSameCompany(User rider) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String companyId = (auth != null && auth.getPrincipal() instanceof User caller) ? caller.getCompanyId() : null;
+        if (!java.util.Objects.equals(rider.getCompanyId(), companyId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rider not found");
+        }
+    }
+
     /** Looks up a rider by phone, checking role and (for managers) office scope. */
     public User requireRider(String phoneNumber) {
         User rider = userRepository.findByPhoneNumber(normalizePhone(phoneNumber));
         if (rider == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rider not found");
         }
+        assertSameCompany(rider);
         if (rider.getRole() != UserRole.RIDER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not a rider");
         }
@@ -141,9 +153,7 @@ public class RiderTrackingService {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public List<RiderLocationResponse> getRiderLocations(String officeId) {
         String scopedOffice = CurrentUser.scopedOfficeId(officeId);
-        List<User> riders = scopedOffice == null
-                ? userRepository.findByRole(UserRole.RIDER)
-                : userRepository.findByRoleAndOfficeIdsContaining(UserRole.RIDER, scopedOffice);
+        List<User> riders = CurrentUser.ridersInScope(userRepository, scopedOffice);
 
         Map<String, JsonNode> byImei = new HashMap<>();
         List<String> imeis = riders.stream()
