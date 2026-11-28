@@ -31,6 +31,8 @@ public class AdminFinanceController {
 
     private final CounterService counterService;
     private final DriverPaymentService driverPaymentService;
+    private final shortly.mandmcorp.dev.shortly.service.driverpay.DriverPaymentIntegrityService integrityService;
+    private final shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface riderService;
 
     @GetMapping("/counter-cashups")
     @Operation(summary = "Cash-ups by station and day", description = "Expected and counted cash, difference, MoMo, who closed it; closed=false rows are days with counter money not yet closed. Default: last 30 days.")
@@ -74,5 +76,37 @@ public class AdminFinanceController {
     @TrackUserAction(action = "MIGRATE_DRIVER_PAYMENTS", description = "Ran the driver payments migration")
     public Map<String, Object> migrate() {
         return driverPaymentService.migrate();
+    }
+
+    @GetMapping("/assignments/duplicates")
+    @Operation(summary = "Parcels on more than one active rider assignment")
+    public List<Map<String, Object>> duplicateAssignments() {
+        return riderService.findDuplicateAssignments();
+    }
+
+    @PostMapping("/assignments/duplicates/fix")
+    @Operation(summary = "Remove duplicate assignments", description = "Keeps each parcel on its newest active assignment, takes it off the others, and links every parcel out with a rider to its assignment. Safe to re-run.")
+    @TrackUserAction(action = "FIX_DUPLICATE_ASSIGNMENTS", description = "Removed duplicate rider assignments")
+    public Map<String, Object> fixDuplicateAssignments() {
+        return riderService.fixDuplicateAssignments();
+    }
+
+    @GetMapping("/driver-payments/integrity")
+    @Operation(summary = "Driver money problems found by the nightly check", description = "PAID fees without a live payout, payout totals that don't match their fees, a fee on two payouts, advances whose repaid amount is wrong. Empty = all good.")
+    public List<shortly.mandmcorp.dev.shortly.model.DriverPaymentIssue> integrity(@RequestParam(required = false) String officeId) {
+        return integrityService.issues(officeId);
+    }
+
+    @PostMapping("/driver-payments/integrity/run")
+    @Operation(summary = "Run the driver money check now", description = "ADMIN. Replaces the stored problems for your company and returns them.")
+    public List<shortly.mandmcorp.dev.shortly.model.DriverPaymentIssue> runIntegrity() {
+        return integrityService.runNow();
+    }
+
+    @PostMapping("/pod-payouts")
+    @Operation(summary = "Record POD values paid on to senders", description = "Sets podPaidOut on each collection and itemOwnerPaid on the parcel. 409 if any is already paid out; 400 for MOMO without momoReference. Cash comes out of that day's counter cash.")
+    @TrackUserAction(action = "POD_PAYOUT", description = "Paid POD money out to a sender")
+    public List<CounterCollection> payOutPod(@org.springframework.web.bind.annotation.RequestBody shortly.mandmcorp.dev.shortly.dto.request.PodPayoutRequest request) {
+        return counterService.payOutPod(request);
     }
 }

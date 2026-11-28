@@ -48,10 +48,13 @@ public class CounterService {
 
     private final MongoTemplate mongoTemplate;
     private final OfficeRepository officeRepository;
+    private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
 
-    public CounterService(MongoTemplate mongoTemplate, OfficeRepository officeRepository) {
+    public CounterService(MongoTemplate mongoTemplate, OfficeRepository officeRepository,
+                          org.springframework.transaction.support.TransactionTemplate transactionTemplate) {
         this.mongoTemplate = mongoTemplate;
         this.officeRepository = officeRepository;
+        this.transactionTemplate = transactionTemplate;
     }
 
     // ------------------------------------------------------------------ 2.1 recording a pickup
@@ -188,6 +191,10 @@ public class CounterService {
             if (c.getPaymentMethod() == CounterPaymentMethod.CASH) cash += c.getAmountPaid();
             if (c.getPaymentMethod() == CounterPaymentMethod.MOMO) momo += c.getAmountPaid();
         }
+        List<CounterCollection> podCashPayouts = mongoTemplate.find(new Query(Criteria.where("companyId").is(company)
+                .and("officeId").is(officeId).and("podPayoutBusinessDate").is(day.toString())
+                .and("podPaymentMethod").is(CounterPaymentMethod.CASH)), CounterCollection.class);
+        double podCash = podCashPayouts.stream().mapToDouble(CounterCollection::getPodAmount).sum();
         double payoutCash = payouts.stream().mapToDouble(DriverPayout::getNetAmount).sum();
         double advanceCash = advances.stream().mapToDouble(DriverAdjustment::getAmount).sum();
 
@@ -197,6 +204,7 @@ public class CounterService {
                 .collections(collections)
                 .driverCashPayouts(payouts)
                 .driverCashAdvances(advances)
+                .podCashPayouts(podCashPayouts)
                 .totals(CounterCashMovementsResponse.Totals.builder()
                         .count(collections.size())
                         .due(r(due)).received(r(received))
@@ -204,7 +212,8 @@ public class CounterService {
                         .shortOver(r(received - due))
                         .driverCashPayouts(r(payoutCash))
                         .driverCashAdvances(r(advanceCash))
-                        .expectedCash(r(cash - payoutCash - advanceCash))
+                        .podCashPayouts(r(podCash))
+                        .expectedCash(r(cash - payoutCash - advanceCash - podCash))
                         .expectedMomo(r(momo))
                         .build())
                 .closed(isClosed(officeId, day))
@@ -243,7 +252,7 @@ public class CounterService {
                 .expectedMomo(t.getExpectedMomo()).note(request.getNote())
                 .collectionCount(t.getCount()).totalDue(t.getDue()).totalReceived(t.getReceived())
                 .counterCash(t.getCounterCash()).driverCashPayouts(t.getDriverCashPayouts())
-                .driverCashAdvances(t.getDriverCashAdvances()).shortOver(t.getShortOver())
+                .driverCashAdvances(t.getDriverCashAdvances()).podCashPayouts(t.getPodCashPayouts()).shortOver(t.getShortOver())
                 .closedAt(System.currentTimeMillis()).closedById(manager.getUserId()).closedByName(manager.getName())
                 .build();
         try {
@@ -263,6 +272,21 @@ public class CounterService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "This day hasn't been closed yet");
         }
         return cashup;
+    }
+
+    /**
+     * Cash that came back into the drawer for a day (a reversed cash payout). An open day picks
+     * this up by itself, because reversed payouts drop out of expected cash; a closed day gets a
+     * "cash returned" adjustment so the closed figures stay as they were.
+     */
+    public void cashReturned(String officeId, String date, double amount, String reason, User user) {
+        if (officeId == null || date == null || amount <= 0) return;
+        CounterCashup closed = mongoTemplate.findOne(new Query(Criteria.where("officeId").is(officeId).and("date").is(date)), CounterCashup.class);
+        if (closed == null) return;
+        CounterCashup.CashupAdjustment adj = new CounterCashup.CashupAdjustment(r(amount), reason,
+                System.currentTimeMillis(), user != null ? user.getUserId() : null, user != null ? user.getName() : null);
+        mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(closed.getId())),
+                new Update().push("adjustments", adj), CounterCashup.class);
     }
 
     /** Corrections to a closed day are appended, never edited in place. */
@@ -370,6 +394,59 @@ public class CounterService {
                 .pickups(list.size()).due(r(due)).received(r(received)).cash(r(cash)).momo(r(momo))
                 .shortOver(r(received - due)).podCollected(r(pod)).driverPayouts(r(payouts))
                 .build();
+    }
+
+    // ------------------------------------------------------------------ POD payouts
+
+    /**
+     * Records that collected POD values were paid on to the sender/vendor. All or nothing: 409 if
+     * any is already paid out. Cash comes out of the station's counter drawer for the day.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public List<CounterCollection> payOutPod(shortly.mandmcorp.dev.shortly.dto.request.PodPayoutRequest req) {
+        User user = CurrentUser.get();
+        List<String> ids = req.getCollectionIds();
+        if (ids == null || ids.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "collectionIds is required");
+        if (ids.stream().distinct().count() != ids.size()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A collection is listed twice");
+        if (req.getPaymentMethod() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "paymentMethod (CASH or MOMO) is required");
+        if (req.getPaymentMethod() == CounterPaymentMethod.MOMO && (req.getMomoReference() == null || req.getMomoReference().isBlank())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "momoReference is required for mobile money");
+        }
+        String scoped = CurrentUser.scopedOfficeId(null); // managers: own office only
+        try {
+            return transactionTemplate.execute(tx -> {
+                List<CounterCollection> list = mongoTemplate.find(new Query(Criteria.where("_id").in(ids)), CounterCollection.class);
+                if (list.size() != ids.size()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Some collections were not found");
+                for (CounterCollection c : list) {
+                    if (!Objects.equals(c.getCompanyId(), user.getCompanyId())
+                            || (scoped != null && !scoped.equals(c.getOfficeId()))) {
+                        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Some collections were not found");
+                    }
+                    if (c.getPodAmount() <= 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parcel " + c.getParcelId() + " has no POD value");
+                    if (c.isPodPaidOut()) throw new ResponseStatusException(HttpStatus.CONFLICT, "POD for parcel " + c.getParcelId() + " was already paid out");
+                }
+                long now = System.currentTimeMillis();
+                List<CounterCollection> out = new ArrayList<>();
+                for (CounterCollection c : list) {
+                    Update u = new Update().set("podPaidOut", true).set("podPaidAt", now)
+                            .set("podPaidById", user.getUserId()).set("podPaidByName", user.getName())
+                            .set("podPaymentMethod", req.getPaymentMethod())
+                            .set("podMomoReference", req.getPaymentMethod() == CounterPaymentMethod.MOMO ? req.getMomoReference().trim() : null)
+                            .set("podPaidTo", req.getPaidTo()).set("podPayoutNote", req.getNote())
+                            .set("podPayoutBusinessDate", openBusinessDate(c.getOfficeId()).toString());
+                    CounterCollection updated = mongoTemplate.findAndModify(
+                            new Query(Criteria.where("_id").is(c.getId()).and("podPaidOut").is(false)), u,
+                            org.springframework.data.mongodb.core.FindAndModifyOptions.options().returnNew(true), CounterCollection.class);
+                    if (updated == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "POD for parcel " + c.getParcelId() + " was just paid out");
+                    mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(c.getParcelId())),
+                            new Update().set("isItemOwnerPaid", true), Parcel.class);
+                    out.add(updated);
+                }
+                return out;
+            });
+        } catch (org.springframework.dao.DataAccessException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Someone else paid these out at the same moment; reload and try again");
+        }
     }
 
     // ------------------------------------------------------------------ helpers

@@ -162,8 +162,9 @@ public class FrontDeskController {
         @ApiResponse(responseCode = "200", description = "Parcels assigned successfully"),
         @ApiResponse(responseCode = "404", description = "Rider or parcel not found")
     })
-    public UserResponse assignParcelsToRider(@RequestBody @Valid DeliveryAssignmentRequest assignmentRequest) {
-        return riderService.assignParcelsToRider(assignmentRequest);
+    public UserResponse assignParcelsToRider(@RequestBody @Valid DeliveryAssignmentRequest assignmentRequest,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return riderService.assignParcelsToRider(assignmentRequest, idempotencyKey);
     }
 
     @PostMapping("/reconcilation-parcels")

@@ -118,6 +118,15 @@ public class Parcel {
     // Driver who brought the parcel in (driver payments)
     private String driverRecordId;
     private String tripId;
+
+    /** The one active rider assignment holding this parcel; cleared on deliver, return or removal. */
+    @Indexed
+    private String activeAssignmentId;
+
+    // Customer-booked delivery (paid online)
+    private Double deliveryPrepaidAmount;
+    private String deliveryPaymentReference;
+    private String customerDeliveryRequestId;
     
     private java.util.List<String> imageUrls;
 

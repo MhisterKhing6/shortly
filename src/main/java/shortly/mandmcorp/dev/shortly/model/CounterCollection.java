@@ -58,6 +58,16 @@ public class CounterCollection {
     private double podAmount;
     /** True once the POD value has been paid on to the sender/vendor. */
     private boolean podPaidOut;
+    // Set when the POD value is paid on (POST /api-admin/pod-payouts)
+    private Long podPaidAt;
+    private String podPaidById;
+    private String podPaidByName;
+    private CounterPaymentMethod podPaymentMethod;
+    private String podMomoReference;
+    private String podPaidTo;
+    private String podPayoutNote;
+    /** Station day whose drawer a cash POD payout came out of. */
+    private String podPayoutBusinessDate;
 
     private String recordedById;
     private String recordedByName;

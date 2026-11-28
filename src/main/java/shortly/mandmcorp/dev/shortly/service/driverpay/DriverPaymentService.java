@@ -66,6 +66,7 @@ import shortly.mandmcorp.dev.shortly.service.notification.NotificationRequestTem
 import shortly.mandmcorp.dev.shortly.utils.BusinessDay;
 import shortly.mandmcorp.dev.shortly.utils.CounterPickupRules;
 import shortly.mandmcorp.dev.shortly.utils.CurrentUser;
+import shortly.mandmcorp.dev.shortly.utils.Money;
 import shortly.mandmcorp.dev.shortly.utils.PhoneNumberUtils;
 
 /**
@@ -88,16 +89,22 @@ public class DriverPaymentService {
     private final DriverFeeLineService feeLines;
     private final CounterService counterService;
     private final NotificationInterface notification;
+    private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
+    private final shortly.mandmcorp.dev.shortly.service.common.IdempotencyService idempotencyService;
     private final SecureRandom random = new SecureRandom();
 
     public DriverPaymentService(MongoTemplate mongoTemplate, OfficeRepository officeRepository,
                                 DriverFeeLineService feeLines, CounterService counterService,
-                                @Qualifier("smsNotification") NotificationInterface notification) {
+                                @Qualifier("smsNotification") NotificationInterface notification,
+                                org.springframework.transaction.support.TransactionTemplate transactionTemplate,
+                                shortly.mandmcorp.dev.shortly.service.common.IdempotencyService idempotencyService) {
         this.mongoTemplate = mongoTemplate;
         this.officeRepository = officeRepository;
         this.feeLines = feeLines;
         this.counterService = counterService;
         this.notification = notification;
+        this.transactionTemplate = transactionTemplate;
+        this.idempotencyService = idempotencyService;
     }
 
     // ================================================================== 3.1 drivers
@@ -321,7 +328,7 @@ public class DriverPaymentService {
         Driver driver = requireDriver(driverId);
         String company = CurrentUser.companyId();
         String office = officeOrNull(null);
-        long[] range = range(from, to, 30);
+        long[] range = range(from, to, 60);
 
         Criteria tripC = Criteria.where("driverId").is(driverId).and("companyId").is(company);
         if (office != null) tripC = tripC.and("officeId").is(office);
@@ -354,7 +361,8 @@ public class DriverPaymentService {
 
         return Statement.builder()
                 .driver(driver)
-                .balances(balancesByDriver(company, office, driverId).getOrDefault(driverId, new Balances()))
+                .balances(balancesFromLines(openLines,
+                        balancesByDriver(company, office, driverId).getOrDefault(driverId, new Balances()).getPaidLast30Days()))
                 .trips(tripViews)
                 .payouts(payouts)
                 .openAdjustments(adjustments(driverId, true))
@@ -397,10 +405,28 @@ public class DriverPaymentService {
 
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public DriverPayout createPayout(PayoutRequest req) {
+        return createPayout(req, null);
+    }
+
+    /**
+     * Pays a driver in one transaction: every line must be READY, belong to the driver and have no
+     * payout; adjustments used must still be open; the net must match what the staff member saw
+     * (expectedNetAmount). A repeat with the same Idempotency-Key returns the first payout.
+     */
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    public DriverPayout createPayout(PayoutRequest req, String idempotencyKey) {
+        return idempotencyService.run("driver-payout", idempotencyKey,
+                () -> inTransaction(() -> doCreatePayout(req)),
+                p -> List.of(p.getId()),
+                rec -> withBalanceAfter(requirePayout(rec.getResultIds().get(0))));
+    }
+
+    private DriverPayout doCreatePayout(PayoutRequest req) {
         User user = CurrentUser.get();
         Driver driver = requireDriver(req.getDriverId());
         if (req.getLineIds() == null || req.getLineIds().isEmpty()) throw bad("Select at least one fee to pay");
-        List<String> lineIds = req.getLineIds().stream().distinct().toList();
+        if (req.getLineIds().stream().distinct().count() != req.getLineIds().size()) throw bad("A fee is listed twice");
+        List<String> lineIds = req.getLineIds();
         if (req.getPaymentMethod() == null) throw bad("paymentMethod (CASH or MOMO) is required");
         if (req.getPaymentMethod() == CounterPaymentMethod.MOMO && isBlank(req.getMomoReference())) {
             throw bad("momoReference is required for mobile money");
@@ -412,7 +438,9 @@ public class DriverPaymentService {
         for (DriverAssignment l : lines) {
             if (!Objects.equals(l.getCompanyId(), user.getCompanyId())) throw bad("Some fees were not found");
             if (!driver.getId().equals(l.getDriverId())) throw bad("Fee " + l.getId() + " belongs to another driver");
-            if (l.getState() != DriverFeeState.READY) throw conflict("Fee for parcel " + l.getParcelId() + " is not ready to pay");
+            if (l.getState() != DriverFeeState.READY || l.getPayoutId() != null) {
+                throw conflict("Fee for parcel " + l.getParcelId() + " is not ready to pay (it may have just been paid)");
+            }
             offices.add(l.getOfficeId());
         }
         if (offices.size() > 1) throw bad("Pay one station's fees at a time");
@@ -422,88 +450,99 @@ public class DriverPaymentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "These fees belong to another station");
         }
 
-        double gross = r(lines.stream().mapToDouble(DriverAssignment::getAmount).sum());
+        long grossP = lines.stream().mapToLong(l -> Money.p(l.getAmount())).sum();
         List<DriverPayout.DriverPayoutAdjustment> applied = new ArrayList<>();
-        List<DriverAdjustment> toSettle = new ArrayList<>();
-        double deductions = 0, bonuses = 0;
+        Map<String, Long> settleP = new LinkedHashMap<>();
+        Map<String, DriverAdjustment> settle = new LinkedHashMap<>();
+        long deductionsP = 0, bonusesP = 0;
         for (PayoutAdjustment a : req.getAdjustments() == null ? List.<PayoutAdjustment>of() : req.getAdjustments()) {
             if (a.getType() == null || a.getType() == DriverAdjustmentType.ADVANCE) {
                 throw bad("Adjustment type must be DEDUCTION, BONUS or ADVANCE_REPAID");
             }
             if (a.getAmount() == null || a.getAmount() <= 0) throw bad("Adjustment amounts must be greater than 0");
             if (isBlank(a.getReason()) && a.getAdjustmentId() == null) throw bad("Each adjustment needs a reason");
-            double amount = r(a.getAmount());
+            if (a.getType() == DriverAdjustmentType.ADVANCE_REPAID && a.getAdjustmentId() == null) {
+                throw bad("An advance repayment must name the advance (adjustmentId)");
+            }
+            long amountP = Money.p(a.getAmount());
             if (a.getAdjustmentId() != null) {
                 DriverAdjustment open = mongoTemplate.findById(a.getAdjustmentId(), DriverAdjustment.class);
-                if (open == null || !open.isOpen() || !driver.getId().equals(open.getDriverId())) {
-                    throw bad("Adjustment " + a.getAdjustmentId() + " is not open for this driver");
-                }
+                if (open == null || !driver.getId().equals(open.getDriverId())) throw bad("Adjustment " + a.getAdjustmentId() + " not found for this driver");
+                if (!open.isOpen()) throw conflict("Adjustment \"" + open.getReason() + "\" was already settled; reload and try again");
                 DriverAdjustmentType expected = a.getType() == DriverAdjustmentType.ADVANCE_REPAID ? DriverAdjustmentType.ADVANCE : a.getType();
                 if (open.getType() != expected) throw bad("Adjustment " + a.getAdjustmentId() + " is a " + open.getType());
-                double outstanding = r(open.getAmount() - open.getRepaidAmount());
-                if (amount > outstanding + 0.001) throw bad("Only GHC " + outstanding + " is outstanding on adjustment " + open.getId());
-                toSettle.add(open);
+                long already = settleP.getOrDefault(open.getId(), 0L);
+                long outstandingP = Money.p(open.getAmount()) - Money.p(open.getRepaidAmount()) - already;
+                if (amountP > outstandingP) {
+                    throw conflict("Only GHC " + Money.format(Math.max(outstandingP, 0)) + " is still owed on \"" + open.getReason() + "\"");
+                }
+                settle.put(open.getId(), open);
+                settleP.merge(open.getId(), amountP, Long::sum);
                 if (isBlank(a.getReason())) a.setReason(open.getReason());
             }
-            if (a.getType() == DriverAdjustmentType.BONUS) bonuses += amount; else deductions += amount;
-            applied.add(DriverPayout.DriverPayoutAdjustment.builder().type(a.getType()).amount(amount).reason(a.getReason())
+            if (a.getType() == DriverAdjustmentType.BONUS) bonusesP += amountP; else deductionsP += amountP;
+            applied.add(DriverPayout.DriverPayoutAdjustment.builder().type(a.getType()).amount(Money.c(amountP)).reason(a.getReason())
                     .parcelId(a.getParcelId()).adjustmentId(a.getAdjustmentId()).build());
         }
-        double net = r(gross - deductions + bonuses);
-        if (net < 0) throw bad("Deductions are larger than the fees: net would be GHC " + net);
+        long netP = grossP - deductionsP + bonusesP;
+        if (netP < 0) throw bad("Deductions are larger than the fees: net would be GHC " + Money.format(netP));
+        if (req.getExpectedNetAmount() != null && Math.abs(Money.p(req.getExpectedNetAmount()) - netP) > 1) {
+            throw conflict("The total is now GHC " + Money.format(netP) + ", not GHC " + Money.format(Money.p(req.getExpectedNetAmount())));
+        }
 
-        // Claim the lines atomically.
+        // Claim the lines (same transaction: a concurrent payout of any of them aborts one of the two).
         String payoutId = new ObjectId().toHexString();
         long now = System.currentTimeMillis();
         long claimed = mongoTemplate.updateMulti(new Query(Criteria.where("_id").in(lineIds)
-                        .and("driverId").is(driver.getId()).and("state").is(DriverFeeState.READY)),
+                        .and("driverId").is(driver.getId()).and("state").is(DriverFeeState.READY).and("payoutId").is(null)),
                 new Update().set("state", DriverFeeState.PAID).set("payoutId", payoutId).set("paidAt", now)
                         .set("payed", true).set("whoPayedDriverName", user.getName())
                         .set("whoPayedDriverPhoneNumber", user.getPhoneNumber()),
                 DriverAssignment.class).getModifiedCount();
-        if (claimed != lineIds.size()) {
-            unclaim(payoutId);
-            throw conflict("Some of these fees were just paid or changed; reload and try again");
-        }
+        if (claimed != lineIds.size()) throw conflict("Some of these fees were just paid or changed; reload and try again");
 
-        DriverPayout payout;
-        try {
-            payout = mongoTemplate.insert(DriverPayout.builder()
-                    .id(payoutId)
-                    .receiptNo(nextReceiptNo(office))
-                    .companyId(user.getCompanyId()).officeId(office)
-                    .driverId(driver.getId()).driverName(driver.getName())
-                    .driverPhone(driver.getPhoneNumbers().isEmpty() ? null : driver.getPhoneNumbers().get(0))
-                    .lineIds(new ArrayList<>(lineIds))
-                    .tripCount((int) lines.stream().map(DriverAssignment::getTripId).distinct().count())
-                    .adjustments(applied)
-                    .grossAmount(gross).deductions(r(deductions)).bonuses(r(bonuses)).netAmount(net)
-                    .paymentMethod(req.getPaymentMethod())
-                    .momoNumber(req.getPaymentMethod() == CounterPaymentMethod.MOMO
-                            ? (isBlank(req.getMomoNumber()) ? driver.getMomoNumber() : PhoneNumberUtils.normalizeGhana(req.getMomoNumber()))
-                            : null)
-                    .momoReference(req.getPaymentMethod() == CounterPaymentMethod.MOMO ? req.getMomoReference().trim() : null)
-                    .note(req.getNote())
-                    .businessDate(counterService.openBusinessDate(office).toString())
-                    .paidById(user.getUserId()).paidByName(user.getName()).paidAt(now)
-                    .build());
-        } catch (RuntimeException e) {
-            unclaim(payoutId);
-            throw e;
-        }
+        DriverPayout payout = mongoTemplate.insert(DriverPayout.builder()
+                .id(payoutId)
+                .receiptNo(nextReceiptNo(office))
+                .companyId(user.getCompanyId()).officeId(office)
+                .driverId(driver.getId()).driverName(driver.getName())
+                .driverPhone(driver.getPhoneNumbers().isEmpty() ? null : driver.getPhoneNumbers().get(0))
+                .lineIds(new ArrayList<>(lineIds))
+                .tripCount((int) lines.stream().map(DriverAssignment::getTripId).distinct().count())
+                .adjustments(applied)
+                .grossAmount(Money.c(grossP)).deductions(Money.c(deductionsP)).bonuses(Money.c(bonusesP)).netAmount(Money.c(netP))
+                .paymentMethod(req.getPaymentMethod())
+                .momoNumber(req.getPaymentMethod() == CounterPaymentMethod.MOMO
+                        ? (isBlank(req.getMomoNumber()) ? driver.getMomoNumber() : PhoneNumberUtils.normalizeGhana(req.getMomoNumber()))
+                        : null)
+                .momoReference(req.getPaymentMethod() == CounterPaymentMethod.MOMO ? req.getMomoReference().trim() : null)
+                .note(req.getNote())
+                .businessDate(counterService.openBusinessDate(office).toString())
+                .paidById(user.getUserId()).paidByName(user.getName()).paidAt(now)
+                .build());
 
-        // Settle the adjustments this payout applied.
-        for (int i = 0; i < toSettle.size(); i++) {
-            DriverAdjustment adj = toSettle.get(i);
-            double amount = applied.stream().filter(x -> adj.getId().equals(x.getAdjustmentId()))
-                    .mapToDouble(DriverPayout.DriverPayoutAdjustment::getAmount).sum();
-            double repaid = r(adj.getRepaidAmount() + amount);
-            boolean stillOpen = adj.getType() == DriverAdjustmentType.ADVANCE && repaid < adj.getAmount() - 0.001;
-            mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(adj.getId())), new Update()
-                    .set("repaidAmount", repaid).set("open", stillOpen)
-                    .set("appliedPayoutId", payoutId).set("appliedAt", now), DriverAdjustment.class);
+        // Settle the adjustments this payout used (conditional on them still being open).
+        for (Map.Entry<String, Long> e : settleP.entrySet()) {
+            DriverAdjustment adj = settle.get(e.getKey());
+            long repaidP = Money.p(adj.getRepaidAmount()) + e.getValue();
+            boolean stillOpen = adj.getType() == DriverAdjustmentType.ADVANCE && repaidP < Money.p(adj.getAmount());
+            long n = mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(adj.getId()).and("open").is(true)
+                            .and("repaidAmount").is(adj.getRepaidAmount())),
+                    new Update().set("repaidAmount", Money.c(repaidP)).set("open", stillOpen)
+                            .set("appliedPayoutId", payoutId).set("appliedAt", now), DriverAdjustment.class).getModifiedCount();
+            if (n == 0) throw conflict("Adjustment \"" + adj.getReason() + "\" just changed; reload and try again");
         }
         return withBalanceAfter(payout);
+    }
+
+    /** Runs in a Mongo transaction; a write conflict with a concurrent request becomes a 409. */
+    private <T> T inTransaction(java.util.function.Supplier<T> work) {
+        try {
+            return transactionTemplate.execute(tx -> work.get());
+        } catch (org.springframework.dao.DataAccessException e) {
+            log.warn("Driver payment conflict: {}", e.getMessage());
+            throw conflict("Someone else changed these fees at the same moment; reload and try again");
+        }
     }
 
     private void unclaim(String payoutId) {
@@ -573,25 +612,41 @@ public class DriverPaymentService {
         return withBalanceAfter(requirePayout(payoutId));
     }
 
+    /**
+     * Reverses a payout in one transaction: its lines go back to READY, advance repayments and
+     * saved deductions/bonuses it used reopen, and for a cash payout the cash goes back into the
+     * counter (automatically for an open day; as a "cash returned" adjustment on a closed one).
+     * Nothing is deleted; the payout keeps who, when and why.
+     */
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public DriverPayout reverse(String payoutId, String reason) {
         if (reason == null || reason.isBlank()) throw bad("A reason is required");
         User user = CurrentUser.get();
-        DriverPayout payout = requirePayout(payoutId);
-        DriverPayout claimed = mongoTemplate.findAndModify(
-                new Query(Criteria.where("_id").is(payoutId).and("reversed").is(false)),
-                new Update().set("reversed", true).set("reversedReason", reason.trim())
-                        .set("reversedAt", System.currentTimeMillis()).set("reversedByName", user.getName()),
-                FindAndModifyOptions.options().returnNew(true), DriverPayout.class);
-        if (claimed == null) throw conflict("This payout was already reversed");
-        unclaim(payoutId);
-        for (DriverPayout.DriverPayoutAdjustment a : payout.getAdjustments()) {
-            if (a.getAdjustmentId() == null) continue;
-            mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(a.getAdjustmentId())),
-                    new Update().inc("repaidAmount", -a.getAmount()).set("open", true).unset("appliedPayoutId").unset("appliedAt"),
-                    DriverAdjustment.class);
+        DriverPayout reversed = inTransaction(() -> {
+            DriverPayout payout = requirePayout(payoutId);
+            DriverPayout claimed = mongoTemplate.findAndModify(
+                    new Query(Criteria.where("_id").is(payoutId).and("reversed").is(false)),
+                    new Update().set("reversed", true).set("reversedReason", reason.trim())
+                            .set("reversedAt", System.currentTimeMillis()).set("reversedByName", user.getName()),
+                    FindAndModifyOptions.options().returnNew(true), DriverPayout.class);
+            if (claimed == null) throw conflict("This payout was already reversed");
+            unclaim(payoutId);
+            for (DriverPayout.DriverPayoutAdjustment a : payout.getAdjustments()) {
+                if (a.getAdjustmentId() == null) continue;
+                DriverAdjustment adj = mongoTemplate.findById(a.getAdjustmentId(), DriverAdjustment.class);
+                if (adj == null) continue;
+                double repaid = Money.c(Math.max(0, Money.p(adj.getRepaidAmount()) - Money.p(a.getAmount())));
+                mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(adj.getId())),
+                        new Update().set("repaidAmount", repaid).set("open", true).unset("appliedPayoutId").unset("appliedAt"),
+                        DriverAdjustment.class);
+            }
+            return claimed;
+        });
+        if (reversed.getPaymentMethod() == CounterPaymentMethod.CASH) {
+            counterService.cashReturned(reversed.getOfficeId(), reversed.getBusinessDate(), reversed.getNetAmount(),
+                    "Cash returned: reversed driver payout " + reversed.getReceiptNo(), user);
         }
-        return claimed;
+        return reversed;
     }
 
     /** Old PUT driver-assignments/pay: one cash payout per driver, no adjustments. Returns lines paid. */
@@ -756,6 +811,26 @@ public class DriverPaymentService {
     }
 
     // ================================================================== helpers
+
+    /** Balances from exactly the open lines a statement lists, so the two always agree. */
+    private static Balances balancesFromLines(List<DriverAssignment> openLines, double paidLast30Days) {
+        Balances b = new Balances();
+        long ready = 0, waiting = 0, hold = 0;
+        for (DriverAssignment l : openLines) {
+            long p = Money.p(l.getAmount());
+            switch (l.getState()) {
+                case READY -> { ready += p; b.setReadyCount(b.getReadyCount() + 1); }
+                case WAITING -> { waiting += p; b.setWaitingCount(b.getWaitingCount() + 1); }
+                case ON_HOLD -> { hold += p; b.setOnHoldCount(b.getOnHoldCount() + 1); }
+                default -> { }
+            }
+        }
+        b.setReadyAmount(Money.c(ready));
+        b.setWaitingAmount(Money.c(waiting));
+        b.setOnHoldAmount(Money.c(hold));
+        b.setPaidLast30Days(paidLast30Days);
+        return b;
+    }
 
     /** Open balances per driver from the fee lines, plus net paid in the last 30 days. */
     private Map<String, Balances> balancesByDriver(String company, String office, String driverId) {

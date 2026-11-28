@@ -60,6 +60,8 @@ public final class DriverPaymentRequests {
         private String momoNumber;
         private String momoReference;
         private String note;
+        /** The net the staff member saw and is handing over; 409 if the server's net differs by more than GHC 0.01. */
+        private Double expectedNetAmount;
     }
 
     @Data

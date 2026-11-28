@@ -135,8 +135,9 @@ public class DriverPaymentController {
     @PostMapping("/driver-payouts")
     @Operation(summary = "Pay a driver", description = "MANAGER/ADMIN. Every line must be READY and belong to the driver. net = gross − deductions − advances repaid + bonuses, never negative.")
     @TrackUserAction(action = "DRIVER_PAYOUT", description = "Paid a driver")
-    public DriverPayout pay(@RequestBody PayoutRequest request) {
-        return service.createPayout(request);
+    public DriverPayout pay(@RequestBody PayoutRequest request,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return service.createPayout(request, idempotencyKey);
     }
 
     @GetMapping("/driver-payouts")

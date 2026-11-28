@@ -46,6 +46,8 @@ public class ParcelInfo {
     private String senderName;
     private String senderPhoneNumber;
     private double parcelAmount;
+    /** Paid online by the customer when booking delivery; parcelAmount is what the rider still collects. */
+    private double prepaidAmount;
     private double parcelWeight;
     private boolean payed;
     private boolean returned;

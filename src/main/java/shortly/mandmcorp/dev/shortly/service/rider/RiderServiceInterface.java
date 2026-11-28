@@ -23,6 +23,7 @@ public interface RiderServiceInterface {
      * @return UserResponse with success message
      */
     UserResponse assignParcelsToRider(DeliveryAssignmentRequest assignmentRequest);
+    UserResponse assignParcelsToRider(DeliveryAssignmentRequest assignmentRequest, String idempotencyKey);
     
     /**
      * Retrieves delivery assignments for authenticated rider.
@@ -68,6 +69,8 @@ public interface RiderServiceInterface {
     List<DeliveryAssignments> getRiderAssignmentsByRiderId(String riderId, boolean payed);
     List<DeliveryAssignments> getRiderAssignmentsByRiderId(String riderId, Boolean payed, Long from, Long to);
     UserResponse reconcileBatch(List<ReconcilationRiderRequest> requests);
+    List<java.util.Map<String, Object>> findDuplicateAssignments();
+    java.util.Map<String, Object> fixDuplicateAssignments();
     
     /**
      * Marks multiple delivery assignments as paid for reconciliation.

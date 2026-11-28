@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -90,6 +92,9 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     private final shortly.mandmcorp.dev.shortly.service.tracking.RiderTrackingService riderTrackingService;
     private final shortly.mandmcorp.dev.shortly.service.driverpay.DriverFeeLineService driverFeeLineService;
     private final shortly.mandmcorp.dev.shortly.service.driverpay.DriverPaymentService driverPaymentService;
+    private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
+    private final shortly.mandmcorp.dev.shortly.service.common.IdempotencyService idempotencyService;
+    private final shortly.mandmcorp.dev.shortly.service.customer.CustomerLinkService customerLinks;
 
     public RiderServiceImplementation(DeliveryAssignmentsRepository deliveryAssignmentsRepository, UserRepository userRepository, ParcelRepository parcelRepository,
         @Qualifier("smsNotification") NotificationInterface notification, ParcelMapper parcelMapper, MongoTemplate mongoTemplate,
@@ -97,7 +102,10 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         DriverAssignmentRepository driverAssignmentRepository, FuelRequestRepository fuelRequestRepository, OfficeRepository officeRepository,
         shortly.mandmcorp.dev.shortly.service.tracking.RiderTrackingService riderTrackingService,
         shortly.mandmcorp.dev.shortly.service.driverpay.DriverFeeLineService driverFeeLineService,
-        shortly.mandmcorp.dev.shortly.service.driverpay.DriverPaymentService driverPaymentService) {
+        shortly.mandmcorp.dev.shortly.service.driverpay.DriverPaymentService driverPaymentService,
+        org.springframework.transaction.support.TransactionTemplate transactionTemplate,
+        shortly.mandmcorp.dev.shortly.service.common.IdempotencyService idempotencyService,
+        shortly.mandmcorp.dev.shortly.service.customer.CustomerLinkService customerLinks) {
         this.deliveryAssignmentsRepository = deliveryAssignmentsRepository;
         this.userRepository = userRepository;
         this.parcelRepository = parcelRepository;
@@ -113,6 +121,9 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         this.riderTrackingService = riderTrackingService;
         this.driverFeeLineService = driverFeeLineService;
         this.driverPaymentService = driverPaymentService;
+        this.transactionTemplate = transactionTemplate;
+        this.idempotencyService = idempotencyService;
+        this.customerLinks = customerLinks;
     }
 
     /**
@@ -158,162 +169,158 @@ public class RiderServiceImplementation implements RiderServiceInterface {
     @Override
     @PreAuthorize("hasRole('FRONTDESK') or hasRole('ADMIN') or hasRole('MANAGER')")
     public UserResponse assignParcelsToRider(DeliveryAssignmentRequest assignmentRequest) {
-        log.info("Assigning {} parcels to rider: {}", assignmentRequest.getParcelIds().size(), assignmentRequest.getRiderId());
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if(auth == null || !(auth.getPrincipal() instanceof User)) {
-            throw new WrongCredentialsException("User not authenticated");
+        return assignParcelsToRider(assignmentRequest, null);
+    }
+
+    /**
+     * Assigns parcels to a rider in one transaction. A parcel can be on only one active assignment:
+     * the same rider again is a 409; another rider's active assignment loses the parcel ("Reassigned");
+     * delivered, collected or returned-to-sender parcels are a 409. Each parcel is claimed with a
+     * conditional update on activeAssignmentId, so two simultaneous requests can't both assign it.
+     */
+    @Override
+    @PreAuthorize("hasRole('FRONTDESK') or hasRole('ADMIN') or hasRole('MANAGER')")
+    public UserResponse assignParcelsToRider(DeliveryAssignmentRequest assignmentRequest, String idempotencyKey) {
+        List<String> ids = assignmentRequest.getParcelIds();
+        if (ids == null || ids.isEmpty()) throw badRequest("Parcel IDs list cannot be empty");
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (String id : ids) {
+            if (id == null || id.isBlank()) throw badRequest("Parcel IDs can't be blank");
+            if (!seen.add(id)) throw badRequest("Parcel " + id + " is listed twice");
         }
-        
-        User frontDesk = (User) auth.getPrincipal();
+        return idempotencyService.run("assign-parcels", idempotencyKey,
+            () -> {
+                List<NotificationRequestTemplate> sms = new ArrayList<>();
+                UserResponse result;
+                try {
+                    result = transactionTemplate.execute(tx -> doAssign(assignmentRequest, sms));
+                } catch (org.springframework.dao.DataAccessException e) {
+                    // Write conflict: someone else changed one of these parcels at the same moment.
+                    log.warn("Assignment conflict: {}", e.getMessage());
+                    throw conflict("These parcels were just changed by someone else; reload and try again");
+                }
+                sms.forEach(notification::send);
+                return result;
+            },
+            r -> List.of(r.getMessage()),
+            rec -> new UserResponse(rec.getMessage() != null ? rec.getMessage() : "Parcels assigned successfully", null));
+    }
+
+    private UserResponse doAssign(DeliveryAssignmentRequest assignmentRequest, List<NotificationRequestTemplate> sms) {
+        User frontDesk = CurrentUser.get();
+        log.info("Assigning {} parcels to rider: {}", assignmentRequest.getParcelIds().size(), assignmentRequest.getRiderId());
 
         User rider = userRepository.findById(assignmentRequest.getRiderId())
             .orElseThrow(() -> new EntityNotFound("Rider not found"));
+        if (rider.getRole() != UserRole.RIDER) throw badRequest("The chosen user is not a rider");
 
-        // Get the first office ID from rider's office list
         String riderOfficeId = (rider.getOfficeIds() != null && !rider.getOfficeIds().isEmpty())
             ? rider.getOfficeIds().get(0)
             : null;
-
         if(riderOfficeId == null) {
             throw new EntityNotFound("Rider has no assigned office");
         }
 
-        User officeManager = null;
         List<User> managers = userRepository.findByRoleAndOfficeIdsContaining(UserRole.MANAGER, riderOfficeId);
-        if(!managers.isEmpty()) {
-            officeManager = managers.get(0);
-        } else {
-            officeManager = rider;
-        }
-         RiderInfo riderInfo = RiderInfo.builder()
+        User officeManager = !managers.isEmpty() ? managers.get(0) : rider;
+        RiderInfo riderInfo = RiderInfo.builder()
                 .riderId(rider.getUserId())
                 .riderName(rider.getName())
                 .riderPhoneNumber(rider.getPhoneNumber())
                 .build();
         long assignedAt = System.currentTimeMillis();
-        String confirmationCode = "";
 
-        String officeId = frontDesk.getOfficeIds().get(0);
-        // Generate daily assignment ID: {riderId}_{YYYYMMDD}_{officeId}
+        String officeId = CurrentUser.officeId(frontDesk);
+        if (officeId == null) throw new WrongCredentialsException("User has no assigned office");
         String dailyAssignmentId = generateDailyAssignmentId(rider.getUserId(), assignedAt, officeId);
 
-        DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(dailyAssignmentId)
-                .orElse(null);
-
-        boolean isNewAssignment = (assignment == null);
-
-        
-
-        if (isNewAssignment) {
-            assignment = new DeliveryAssignments();
-            assignment.setAssignmentId(dailyAssignmentId);
-            assignment.setRiderInfo(riderInfo);
-            assignment.setOfficeId(officeId);
-            assignment.setCompanyId(frontDesk.getCompanyId());
-            assignment.setStatus(DeliveryStatus.ASSIGNED);
-            assignment.setConfirmationCode(confirmationCode);
-            assignment.setAssignedAt(assignedAt);
-            assignment.setCreatedAt(assignedAt);
-            assignment.setParcels(new ArrayList<>());
-            assignment.setAmount(0.0);
-
-        } else {
-            log.info("Found existing assignment for rider {} on date {}. Adding parcels to it.", rider.getUserId(), dailyAssignmentId);
-        }
-
-        // Get existing parcels list or create new one
-        List<ParcelInfo> existingParcels = assignment.getParcels();
-        if (existingParcels == null) {
-            existingParcels = new ArrayList<>();
-        }
-
-        List<ParcelInfo> newParcels = new ArrayList<>();
-        for(String parcelId : assignmentRequest.getParcelIds()) {
+        // ---- 1. Check every parcel before changing anything (all or nothing).
+        List<Parcel> toAssign = new ArrayList<>();
+        Map<String, DeliveryAssignments> currentActive = new java.util.HashMap<>();
+        for (String parcelId : assignmentRequest.getParcelIds()) {
             Parcel parcel = parcelRepository.findById(parcelId)
                 .orElseThrow(() -> new EntityNotFound("Parcel not found: " + parcelId));
-                parcel.setRiderInfo(riderInfo);
-                if(!parcel.isHasCalled() ||!parcel.isHomeDelivery()) {
+            if (!java.util.Objects.equals(parcel.getCompanyId(), frontDesk.getCompanyId())) {
+                throw new EntityNotFound("Parcel not found: " + parcelId);
+            }
+            if (parcel.isDelivered()) throw conflict(parcelId + " is already delivered");
+            if (parcel.getCounterPayment() != null
+                    || (parcel.isPickedUp() && parcel.getTypeofParcel() != shortly.mandmcorp.dev.shortly.enums.ParcelTypes.PICKUP)) {
+                throw conflict(parcelId + " was already collected at the counter");
+            }
+            if (parcel.getParcelStatus() == ParcelStatus.REVERSED) throw conflict(parcelId + " was returned to the sender");
+
+            DeliveryAssignments active = findActiveAssignmentFor(parcelId);
+            if (active != null && active.getRiderInfo() != null
+                    && rider.getUserId().equals(active.getRiderInfo().getRiderId())) {
+                throw conflict(rider.getName() + " already has " + parcelId);
+            }
+
+            if(!parcel.isHasCalled() || !parcel.isHomeDelivery()) {
                 if(assignmentRequest.getParcelIds().size() == 1) {
                     throw new EntityNotFound("Parcel has not been called or is not for home delivery: " + parcelId);
                 }
                 log.warn("Parcel {} has not been called. Skipping assignment.", parcelId);
                 continue;
             }
+            toAssign.add(parcel);
+            if (active != null) currentActive.put(parcelId, active);
+        }
 
-            if(parcel.isParcelAssigned() || parcel.isDelivered()) {
-                log.warn("Parcel {} is already assigned. Skipping assignment.", parcelId);
-                if(parcel.getRiderId() != null && parcel.getRiderId().equals(rider.getUserId())) {
-                    log.info("Parcel {} is already assigned to the same rider {}. Skipping exception.", parcelId, rider.getUserId());
-                    if(assignmentRequest.getParcelIds().size() == 1) {
-                        throw new EntityNotFound("Parcel is already assigned to the same rider: " + parcelId);
-                    }
-                    continue;
-                }
-                
+        // ---- 2. Write.
+        DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(dailyAssignmentId).orElse(null);
+        if (assignment == null) {
+            assignment = new DeliveryAssignments();
+            assignment.setAssignmentId(dailyAssignmentId);
+            assignment.setRiderInfo(riderInfo);
+            assignment.setOfficeId(officeId);
+            assignment.setCompanyId(frontDesk.getCompanyId());
+            assignment.setStatus(DeliveryStatus.ASSIGNED);
+            assignment.setConfirmationCode("");
+            assignment.setAssignedAt(assignedAt);
+            assignment.setCreatedAt(assignedAt);
+            assignment.setParcels(new ArrayList<>());
+            assignment.setAmount(0.0);
+        } else if (assignment.getStatus() == DeliveryStatus.DELIVERED || assignment.getStatus() == DeliveryStatus.RETURNED
+                || assignment.getStatus() == DeliveryStatus.CANCELLED || assignment.getStatus() == DeliveryStatus.COMPLETED) {
+            // Today's assignment was finished; new parcels make it active again.
+            assignment.setStatus(DeliveryStatus.ASSIGNED);
+        }
+        List<ParcelInfo> existingParcels = assignment.getParcels() != null ? assignment.getParcels() : new ArrayList<>();
+
+        List<ParcelInfo> newParcels = new ArrayList<>();
+        for (Parcel parcel : toAssign) {
+            String parcelId = parcel.getParcelId();
+            DeliveryAssignments old = currentActive.get(parcelId);
+            if (old != null) {
+                removeFromAssignment(old, parcelId, "Reassigned to " + rider.getName());
             }
+            // Claim the parcel: only if nobody else claimed it since we read it.
+            Criteria free = new Criteria().orOperator(
+                Criteria.where("activeAssignmentId").exists(false),
+                Criteria.where("activeAssignmentId").is(null),
+                Criteria.where("activeAssignmentId").is(old != null ? old.getAssignmentId() : "__none__"));
+            long claimed = mongoTemplate.updateFirst(
+                new Query(new Criteria().andOperator(Criteria.where("_id").is(parcelId), free)),
+                new Update().set("activeAssignmentId", dailyAssignmentId).set("parcelAssigned", true)
+                    .set("riderId", rider.getUserId()).set("riderInfo", riderInfo),
+                Parcel.class).getModifiedCount();
+            if (claimed == 0) throw conflict(parcelId + " was just assigned by someone else; reload and try again");
 
-            confirmationCode = OtpUtil.generateOtp();
-            double parcelAmount = parcel.getDeliveryCost() + parcel.getInboundCost();
-            ParcelInfo parcelInfo = ParcelInfo.builder()
-                .parcelId(parcel.getParcelId())
-                .receiverName(parcel.getReceiverName())
-                .receiverPhoneNumber(parcel.getRecieverPhoneNumber())
-                .receiverAddress(parcel.getReceiverAddress())
-                .senderName(parcel.getSenderName())
-                .parcelAmount(parcelAmount)
-                .inboundCost(parcel.getInboundCost())
-                .deliveryCost(parcel.getDeliveryCost())
-                .senderPhoneNumber(parcel.getSenderPhoneNumber())
-                .isPOD(parcel.isPOD())
-                .isFragile(parcel.isFragile())
-                .storageCost(parcel.getStorageCost())
-                .pickUpCost(parcel.getPickUpCost())
-                .parcelWeight(parcel.getParcelWeight())
-                .pickedUp(parcel.isPickedUp())
-                .homeDelivery(parcel.isHomeDelivery())
-                .vehicleNumber(parcel.getVehicleNumber())
-                .driverName(parcel.getDriverName())
-                .driverPhoneNumber(parcel.getDriverPhoneNumber())
-                .driverId(parcel.getDriverId())
-                .officeId(parcel.getOfficeId())
-                .paymentMethod(parcel.getPaymentMethod())
-                .shelfName(parcel.getShelfName())
-                .inboudPayed(parcel.isInboudPayed())
-                .shelfId(parcel.getShelfId())
-                .typeofParcel(parcel.getTypeofParcel())
-                .ItemCost(parcel.getItemCost())
-                .pickupAddress(parcel.getPickupAddress())
-                .pickupContactName(parcel.getPickupContactName())
-                .pickupContactPhoneNumber(parcel.getPickupContactPhoneNumber())
-                .pickupInstructions(parcel.getPickupInstructions())
-                .deliveryAddress(parcel.getDeliveryAddress())
-                .deliveryContactName(parcel.getDeliveryContactName())
-                .deliveryContactPhoneNumber(parcel.getDeliveryContactPhoneNumber())
-                .specialInstructions(parcel.getSpecialInstructions())
-                .imageUrls(parcel.getImageUrls())
-                .receiverLatitude(parcel.getReceiverLatitude())
-                .receiverLongitude(parcel.getReceiverLongitude())
-                .receiverLocationName(parcel.getReceiverLocationName())
-                .receiverPlaceId(parcel.getReceiverPlaceId())
-                .receiverLocationSource(parcel.getReceiverLocationSource())
-                .pickupLatitude(parcel.getPickupLatitude())
-                .pickupLongitude(parcel.getPickupLongitude())
-                .pickupLocationName(parcel.getPickupLocationName())
-                .pickupPlaceId(parcel.getPickupPlaceId())
-                .pickupLocationSource(parcel.getPickupLocationSource())
-                .build();
+            String confirmationCode = OtpUtil.generateOtp();
+            ParcelInfo parcelInfo = toParcelInfo(parcel);
             newParcels.add(parcelInfo);
             assignment.setInboundCost(assignment.getInboundCost() + parcel.getInboundCost());
             assignment.setDeliveryCost(assignment.getDeliveryCost() + parcel.getDeliveryCost());
-            parcel.setParcelAssigned(true);
-            parcelRepository.save(parcel);
 
             String notifyReceiverSmsMessage = NotificationUtil.generateAssignmentMessgeCustomer(officeManager.getPhoneNumber(), rider.getName(), confirmationCode, parcel.getReceiverName(), parcel.getParcelId());
-            NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(notifyReceiverSmsMessage)
-                .to(parcel.getRecieverPhoneNumber()).otp(true).build();
-            notification.send(notify);
+            sms.add(NotificationRequestTemplate.builder().body(customerLinks.appendLink(notifyReceiverSmsMessage, parcel))
+                .to(parcel.getRecieverPhoneNumber()).otp(true).build());
         }
 
+        if (newParcels.isEmpty()) {
+            throw conflict("None of these parcels can be assigned (not called, or not for home delivery)");
+        }
         existingParcels.addAll(newParcels);
         assignment.setParcels(existingParcels);
         RoutePlan plan = validRoutePlan(assignmentRequest, newParcels);
@@ -323,12 +330,167 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         assignment.setUpdatedAt(System.currentTimeMillis());
         assignment.setAmount(assignment.getDeliveryCost() + assignment.getInboundCost());
         deliveryAssignmentsRepository.save(assignment);
-        log.info("Successfully assigned {} parcels to rider: {}", assignmentRequest.getParcelIds().size(), rider.getName());
-        NotificationRequestTemplate notify = NotificationRequestTemplate.builder().body(NotificationUtil.genrateRiderAssMsg(rider.getName(), assignmentRequest.getParcelIds().size()))
-        .to(rider.getPhoneNumber()).build();
-        notification.send(notify);
-        
+        log.info("Assigned {} parcels to rider: {}", newParcels.size(), rider.getName());
+        sms.add(NotificationRequestTemplate.builder().body(NotificationUtil.genrateRiderAssMsg(rider.getName(), newParcels.size()))
+            .to(rider.getPhoneNumber()).build());
+
         return new UserResponse("Parcels assigned successfully", rider.getPhoneNumber());
+    }
+
+    /** The parcel's active (ASSIGNED, ACCEPTED or PICKED_UP) assignment where it isn't finished, or null. */
+    private DeliveryAssignments findActiveAssignmentFor(String parcelId) {
+        List<DeliveryAssignments> found = mongoTemplate.find(new Query(Criteria.where("status")
+                .in(DeliveryStatus.ASSIGNED, DeliveryStatus.ACCEPTED, DeliveryStatus.PICKED_UP)
+                .and("parcels").elemMatch(Criteria.where("parcelId").is(parcelId)
+                    .and("delivered").ne(true).and("returned").ne(true)))
+            .with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "assignedAt")),
+            DeliveryAssignments.class);
+        return found.isEmpty() ? null : found.get(0);
+    }
+
+    /** Takes a parcel off an assignment, adjusting totals; an assignment left empty is CANCELLED. */
+    private void removeFromAssignment(DeliveryAssignments assignment, String parcelId, String reason) {
+        ParcelInfo removed = assignment.getParcels().stream().filter(p -> parcelId.equals(p.getParcelId())).findFirst().orElse(null);
+        if (removed == null) return;
+        assignment.getParcels().remove(removed);
+        assignment.setDeliveryCost(assignment.getDeliveryCost() - removed.getDeliveryCost());
+        assignment.setInboundCost(assignment.getInboundCost() - removed.getInboundCost());
+        assignment.setAmount(assignment.getDeliveryCost() + assignment.getInboundCost());
+        if (assignment.getRoutePlan() != null && assignment.getRoutePlan().getStopOrder() != null) {
+            assignment.getRoutePlan().getStopOrder().remove(parcelId);
+        }
+        if (assignment.getRemovedParcels() == null) assignment.setRemovedParcels(new ArrayList<>());
+        assignment.getRemovedParcels().add(new DeliveryAssignments.RemovedParcel(parcelId, reason, System.currentTimeMillis()));
+        boolean anyOpen = assignment.getParcels().stream().anyMatch(p -> !p.isDelivered() && !p.isReturned());
+        if (assignment.getParcels().isEmpty()) {
+            assignment.setStatus(DeliveryStatus.CANCELLED);
+            assignment.setReturnReason(reason);
+        } else if (!anyOpen && assignment.getParcels().stream().allMatch(ParcelInfo::isDelivered)) {
+            assignment.setStatus(DeliveryStatus.DELIVERED);
+        }
+        assignment.setUpdatedAt(System.currentTimeMillis());
+        deliveryAssignmentsRepository.save(assignment);
+    }
+
+    /** Clears the parcel's active-assignment claim (delivered, returned or removed). */
+    private void releaseParcel(String parcelId) {
+        mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(parcelId)),
+            new Update().unset("activeAssignmentId"), Parcel.class);
+    }
+
+    private ParcelInfo toParcelInfo(Parcel parcel) {
+        double prepaid = parcel.getDeliveryPrepaidAmount() != null ? parcel.getDeliveryPrepaidAmount() : 0;
+        double parcelAmount = Math.max(0, parcel.getDeliveryCost() + parcel.getInboundCost() - prepaid);
+        ParcelInfo info = ParcelInfo.builder()
+            .parcelId(parcel.getParcelId())
+            .receiverName(parcel.getReceiverName())
+            .receiverPhoneNumber(parcel.getRecieverPhoneNumber())
+            .receiverAddress(parcel.getReceiverAddress())
+            .senderName(parcel.getSenderName())
+            .parcelAmount(parcelAmount)
+            .prepaidAmount(prepaid)
+            .inboundCost(parcel.getInboundCost())
+            .deliveryCost(parcel.getDeliveryCost())
+            .senderPhoneNumber(parcel.getSenderPhoneNumber())
+            .isPOD(parcel.isPOD())
+            .isFragile(parcel.isFragile())
+            .storageCost(parcel.getStorageCost())
+            .pickUpCost(parcel.getPickUpCost())
+            .parcelWeight(parcel.getParcelWeight())
+            .pickedUp(parcel.isPickedUp())
+            .homeDelivery(parcel.isHomeDelivery())
+            .vehicleNumber(parcel.getVehicleNumber())
+            .driverName(parcel.getDriverName())
+            .driverPhoneNumber(parcel.getDriverPhoneNumber())
+            .driverId(parcel.getDriverId())
+            .officeId(parcel.getOfficeId())
+            .paymentMethod(parcel.getPaymentMethod())
+            .shelfName(parcel.getShelfName())
+            .inboudPayed(parcel.isInboudPayed())
+            .shelfId(parcel.getShelfId())
+            .typeofParcel(parcel.getTypeofParcel())
+            .ItemCost(parcel.getItemCost())
+            .pickupAddress(parcel.getPickupAddress())
+            .pickupContactName(parcel.getPickupContactName())
+            .pickupContactPhoneNumber(parcel.getPickupContactPhoneNumber())
+            .pickupInstructions(parcel.getPickupInstructions())
+            .deliveryAddress(parcel.getDeliveryAddress())
+            .deliveryContactName(parcel.getDeliveryContactName())
+            .deliveryContactPhoneNumber(parcel.getDeliveryContactPhoneNumber())
+            .specialInstructions(parcel.getSpecialInstructions())
+            .imageUrls(parcel.getImageUrls())
+            .build();
+        ParcelMapper.copyLocation(parcel, info);
+        return info;
+    }
+
+    /** Parcels that sit on more than one active assignment, with those assignments. */
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public List<Map<String, Object>> findDuplicateAssignments() {
+        String office = CurrentUser.scopedOfficeId(null);
+        Criteria match = Criteria.where("companyId").is(CurrentUser.companyId())
+            .and("status").in(DeliveryStatus.ASSIGNED, DeliveryStatus.ACCEPTED, DeliveryStatus.PICKED_UP);
+        if (office != null) match = match.and("officeId").is(office);
+        org.springframework.data.mongodb.core.aggregation.Aggregation agg = org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation(
+            org.springframework.data.mongodb.core.aggregation.Aggregation.match(match),
+            org.springframework.data.mongodb.core.aggregation.Aggregation.unwind("parcels"),
+            org.springframework.data.mongodb.core.aggregation.Aggregation.match(Criteria.where("parcels.delivered").ne(true).and("parcels.returned").ne(true)),
+            org.springframework.data.mongodb.core.aggregation.Aggregation.group("parcels.parcelId").count().as("count")
+                .push(new org.bson.Document("assignmentId", "$_id").append("riderName", "$riderInfo.riderName")
+                    .append("riderId", "$riderInfo.riderId").append("assignedAt", "$assignedAt")).as("assignments"),
+            org.springframework.data.mongodb.core.aggregation.Aggregation.match(Criteria.where("count").gt(1)));
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (org.bson.Document d : mongoTemplate.aggregate(agg, DeliveryAssignments.class, org.bson.Document.class).getMappedResults()) {
+            out.add(Map.of("parcelId", d.get("_id"), "assignments", d.get("assignments")));
+        }
+        return out;
+    }
+
+    /**
+     * Keeps each duplicated parcel on its newest active assignment and takes it off the others,
+     * then records activeAssignmentId on every parcel that is out with a rider. Safe to re-run.
+     */
+    @Override
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public Map<String, Object> fixDuplicateAssignments() {
+        int removed = 0;
+        for (Map<String, Object> dup : findDuplicateAssignments()) {
+            String parcelId = (String) dup.get("parcelId");
+            @SuppressWarnings("unchecked")
+            List<org.bson.Document> list = new ArrayList<>((List<org.bson.Document>) dup.get("assignments"));
+            list.sort((a, b) -> Long.compare(((Number) b.get("assignedAt")).longValue(), ((Number) a.get("assignedAt")).longValue()));
+            String keep = list.get(0).getString("assignmentId");
+            for (org.bson.Document other : list.subList(1, list.size())) {
+                deliveryAssignmentsRepository.findById(other.getString("assignmentId"))
+                    .ifPresent(a -> removeFromAssignment(a, parcelId, "Duplicate assignment removed"));
+                removed++;
+            }
+            mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(parcelId)),
+                new Update().set("activeAssignmentId", keep), Parcel.class);
+        }
+        int backfilled = 0;
+        String office = CurrentUser.scopedOfficeId(null);
+        Criteria c = Criteria.where("companyId").is(CurrentUser.companyId())
+            .and("status").in(DeliveryStatus.ASSIGNED, DeliveryStatus.ACCEPTED, DeliveryStatus.PICKED_UP);
+        if (office != null) c = c.and("officeId").is(office);
+        for (DeliveryAssignments a : mongoTemplate.find(new Query(c), DeliveryAssignments.class)) {
+            for (ParcelInfo p : a.getParcels()) {
+                if (p.isDelivered() || p.isReturned()) continue;
+                backfilled += (int) mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(p.getParcelId())
+                        .orOperator(Criteria.where("activeAssignmentId").exists(false), Criteria.where("activeAssignmentId").is(null))),
+                    new Update().set("activeAssignmentId", a.getAssignmentId()), Parcel.class).getModifiedCount();
+            }
+        }
+        return Map.of("duplicatesRemoved", removed, "parcelsLinked", backfilled);
+    }
+
+    private static org.springframework.web.server.ResponseStatusException badRequest(String m) {
+        return new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, m);
+    }
+
+    private static org.springframework.web.server.ResponseStatusException conflict(String m) {
+        return new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, m);
     }
 
     /**
@@ -427,6 +589,19 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             throw new WrongCredentialsException("Not authorized to update this assignment");
         }
 
+        // Riders don't accept or decline: an assigned parcel goes straight to PICKED_UP, DELIVERED
+        // or RETURNED. Only a manager can reassign or cancel.
+        DeliveryStatus requested = statusRequest.getStatus();
+        if (requested != DeliveryStatus.PICKED_UP && requested != DeliveryStatus.DELIVERED && requested != DeliveryStatus.RETURNED) {
+            throw badRequest("Riders can only mark parcels picked up, delivered or returned");
+        }
+        if (requested == DeliveryStatus.PICKED_UP) {
+            if (assignment.getStatus() == DeliveryStatus.ASSIGNED || assignment.getStatus() == DeliveryStatus.ACCEPTED) {
+                assignment.setStatus(DeliveryStatus.PICKED_UP);
+                assignment.setAcceptedAt(System.currentTimeMillis());
+            }
+        }
+
         if(statusRequest.getStatus() == DeliveryStatus.DELIVERED) {
            /* if( !statusRequest.getConfirmationCode().equals(assignment.getConfirmationCode())) {
                 throw new ActionNotAllowed("Invalid  confirmation code");
@@ -465,9 +640,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                         parcel.setDelivered(true);
                         parcel.setPaymentMethod(statusRequest.getPayementMethod());
                         parcel.setParcelStatus(ParcelStatus.DELIVERD);
+                        parcel.setActiveAssignmentId(null);
                         selectedParcel.setDelivered(true);
                         selectedParcel.setPaymentMethod(statusRequest.getPayementMethod());
                         captureMarkedPosition(selectedParcel, rider.getUserId());
+                        releaseParcel(selectedParcel.getParcelId());
 
                         parcelRepository.save(parcel);
 
@@ -513,6 +690,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     parcel.setDelivered(false);
                     parcel.setParcelAssigned(false);
                     parcel.setRiderId(null);
+                    parcel.setActiveAssignmentId(null);
                     parcelRepository.save(parcel);
 
                     double parcelAmount = parcelToCancel.getParcelAmount();
@@ -522,6 +700,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
                     parcelToCancel.setReturned(true);
                     captureMarkedPosition(parcelToCancel, rider.getUserId());
+                    releaseParcel(parcelToCancel.getParcelId());
 
                     boolean allReturned = assignment.getParcels().stream()
                         .allMatch(ParcelInfo::isReturned);
@@ -583,9 +762,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                         parcel.setDelivered(true);
                         parcel.setPaymentMethod(statusRequest.getPayementMethod());
                         parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.DELIVERD);
+                        parcel.setActiveAssignmentId(null);
                         selectedParcel.setDelivered(true);
                         selectedParcel.setPaymentMethod(statusRequest.getPayementMethod());
                         selectedParcel.setCompletedAt(System.currentTimeMillis());
+                        releaseParcel(selectedParcel.getParcelId());
 
                         parcelRepository.save(parcel);
 
@@ -628,6 +809,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
                     parcelToCancel.setReturned(true);
                     parcelToCancel.setCompletedAt(System.currentTimeMillis());
+                    releaseParcel(parcelToCancel.getParcelId());
 
                     boolean allReturned = assignment.getParcels().stream()
                         .allMatch(ParcelInfo::isReturned);
@@ -1255,12 +1437,20 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             }
         }
 
+        boolean isRider = user.getRole() == UserRole.RIDER;
+
         // Update assignment fields if provided
         if (updateRequest.getRiderInfo() != null) {
+            if (isRider) throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.FORBIDDEN, "Only a manager can reassign parcels");
             assignment.setRiderInfo(updateRequest.getRiderInfo());
         }
 
         if (updateRequest.getStatus() != null) {
+            if (isRider && updateRequest.getStatus() != DeliveryStatus.PICKED_UP
+                    && updateRequest.getStatus() != DeliveryStatus.DELIVERED && updateRequest.getStatus() != DeliveryStatus.RETURNED) {
+                throw badRequest("Riders can only mark parcels picked up, delivered or returned");
+            }
             assignment.setStatus(updateRequest.getStatus());
         }
 
@@ -1272,6 +1462,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
             assignment.setPayementMethod(updateRequest.getPayementMethod());
         }
 
+        if (!isRider) {
         assignment.setPayed(updateRequest.isPayed());
 
         if (updateRequest.getAmount() > 0) {
@@ -1284,6 +1475,7 @@ public class RiderServiceImplementation implements RiderServiceInterface {
 
         if (updateRequest.getDeliveryCost() > 0) {
             assignment.setDeliveryCost(updateRequest.getDeliveryCost());
+        }
         }
 
         // Update parcels if provided
@@ -1324,10 +1516,23 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                     if (updatedParcelInfo.getPaymentMethod() != null) {
                         parcel.setPaymentMethod(updatedParcelInfo.getPaymentMethod());
                     }
+                    if (updatedParcelInfo.isDelivered() || updatedParcelInfo.isReturned()) {
+                        parcel.setActiveAssignmentId(null);
+                    }
 
                     parcelRepository.save(parcel);
 
-                    assignment.getParcels().set(parcelIndex, updatedParcelInfo);
+                    if (isRider) {
+                        // Riders report status only; amounts and details stay as assigned.
+                        existingParcelInfo.setDelivered(updatedParcelInfo.isDelivered());
+                        existingParcelInfo.setReturned(updatedParcelInfo.isReturned());
+                        if (updatedParcelInfo.getPaymentMethod() != null) existingParcelInfo.setPaymentMethod(updatedParcelInfo.getPaymentMethod());
+                        if ((updatedParcelInfo.isDelivered() || updatedParcelInfo.isReturned()) && existingParcelInfo.getCompletedAt() == null) {
+                            existingParcelInfo.setCompletedAt(System.currentTimeMillis());
+                        }
+                    } else {
+                        assignment.getParcels().set(parcelIndex, updatedParcelInfo);
+                    }
                 }
             }
         }
@@ -1379,6 +1584,12 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         if (assignment.getRoutePlan() != null && assignment.getRoutePlan().getStopOrder() != null) {
             assignment.getRoutePlan().getStopOrder().remove(parcelId);
         }
+        if (assignment.getRemovedParcels() == null) assignment.setRemovedParcels(new ArrayList<>());
+        assignment.getRemovedParcels().add(new DeliveryAssignments.RemovedParcel(parcelId, "Removed by " + frontDesk.getName(), System.currentTimeMillis()));
+        if (assignment.getParcels().isEmpty()) {
+            assignment.setStatus(DeliveryStatus.CANCELLED);
+        }
+        releaseParcel(parcelId);
 
 
         deliveryAssignmentsRepository.save(assignment);

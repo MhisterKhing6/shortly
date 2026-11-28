@@ -22,6 +22,8 @@ public class CounterCashMovementsResponse {
     private List<CounterCollection> collections;
     private List<DriverPayout> driverCashPayouts;
     private List<DriverAdjustment> driverCashAdvances;
+    /** POD values paid on to senders in cash this day. */
+    private List<CounterCollection> podCashPayouts;
     private Totals totals;
 
     @Data
@@ -39,7 +41,8 @@ public class CounterCashMovementsResponse {
         private double shortOver;
         private double driverCashPayouts;
         private double driverCashAdvances;
-        /** counterCash − driverCashPayouts − driverCashAdvances: what should be in the drawer. */
+        private double podCashPayouts;
+        /** counterCash − driver cash payouts − driver cash advances − POD cash paid out: what should be in the drawer. */
         private double expectedCash;
         private double expectedMomo;
     }

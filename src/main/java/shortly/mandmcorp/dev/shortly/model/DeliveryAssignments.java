@@ -74,6 +74,18 @@ public class DeliveryAssignments {
     private String reconciledById;
     private String reconciledByName;
     private Long reconciledAt;
+
+    /** Parcels taken off this assignment (reassigned or removed), kept for the history. */
+    private List<RemovedParcel> removedParcels;
+
+    @lombok.Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class RemovedParcel {
+        private String parcelId;
+        private String reason;
+        private long removedAt;
+    }
     
     @CreatedDate
     private Long createdAt;

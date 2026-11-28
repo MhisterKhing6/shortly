@@ -21,6 +21,12 @@ public final class CurrentUser {
         return user;
     }
 
+    /** The logged-in user, or null on public endpoints. */
+    public static User getOrNull() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getPrincipal() instanceof User user ? user : null;
+    }
+
     /** The user's first office id, or null. */
     public static String officeId(User user) {
         return (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()) ? user.getOfficeIds().get(0) : null;

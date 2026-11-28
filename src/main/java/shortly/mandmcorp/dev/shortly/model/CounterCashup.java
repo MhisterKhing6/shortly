@@ -42,6 +42,7 @@ public class CounterCashup {
     private double counterCash;
     private double driverCashPayouts;
     private double driverCashAdvances;
+    private double podCashPayouts;
     private double shortOver;
 
     private long closedAt;
