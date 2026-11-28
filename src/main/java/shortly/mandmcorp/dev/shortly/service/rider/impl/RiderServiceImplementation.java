@@ -296,6 +296,11 @@ public class RiderServiceImplementation implements RiderServiceInterface {
                 .receiverLocationName(parcel.getReceiverLocationName())
                 .receiverPlaceId(parcel.getReceiverPlaceId())
                 .receiverLocationSource(parcel.getReceiverLocationSource())
+                .pickupLatitude(parcel.getPickupLatitude())
+                .pickupLongitude(parcel.getPickupLongitude())
+                .pickupLocationName(parcel.getPickupLocationName())
+                .pickupPlaceId(parcel.getPickupPlaceId())
+                .pickupLocationSource(parcel.getPickupLocationSource())
                 .build();
             newParcels.add(parcelInfo);
             assignment.setInboundCost(assignment.getInboundCost() + parcel.getInboundCost());

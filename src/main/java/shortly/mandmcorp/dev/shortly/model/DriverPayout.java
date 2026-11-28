@@ -38,7 +38,7 @@ public class DriverPayout {
     private List<String> lineIds = new ArrayList<>();
     private int tripCount;
     @Builder.Default
-    private List<Adjustment> adjustments = new ArrayList<>();
+    private List<DriverPayoutAdjustment> adjustments = new ArrayList<>();
     private double grossAmount;
     private double deductions;
     private double bonuses;
@@ -82,7 +82,7 @@ public class DriverPayout {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class Adjustment {
+    public static class DriverPayoutAdjustment {
         private DriverAdjustmentType type;
         private double amount;
         private String reason;

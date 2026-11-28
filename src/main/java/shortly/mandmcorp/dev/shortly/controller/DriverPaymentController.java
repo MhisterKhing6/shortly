@@ -101,7 +101,7 @@ public class DriverPaymentController {
 
     @GetMapping("/driver-payments/summary")
     @Operation(summary = "Ready, waiting, paid this week and on hold")
-    public DriverPaymentViews.Summary summary(@RequestParam(required = false) String officeId) {
+    public DriverPaymentViews.DriverPaymentsSummary summary(@RequestParam(required = false) String officeId) {
         return service.summary(officeId);
     }
 

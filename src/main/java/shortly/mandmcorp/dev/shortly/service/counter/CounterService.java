@@ -272,7 +272,7 @@ public class CounterService {
         CounterCashup cashup = getCashup(date, null);
         if (amount == null || amount == 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "amount is required");
         if (reason == null || reason.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "reason is required");
-        CounterCashup.Adjustment adj = new CounterCashup.Adjustment(r(amount), reason.trim(),
+        CounterCashup.CashupAdjustment adj = new CounterCashup.CashupAdjustment(r(amount), reason.trim(),
                 System.currentTimeMillis(), manager.getUserId(), manager.getName());
         mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(cashup.getId())),
                 new Update().push("adjustments", adj), CounterCashup.class);
@@ -315,7 +315,7 @@ public class CounterService {
             row.setClosedByName(cu.getClosedByName());
             row.setClosedAt(cu.getClosedAt());
             row.setNote(cu.getNote());
-            row.setAdjustmentTotal(r(cu.getAdjustments().stream().mapToDouble(CounterCashup.Adjustment::getAmount).sum()));
+            row.setAdjustmentTotal(r(cu.getAdjustments().stream().mapToDouble(CounterCashup.CashupAdjustment::getAmount).sum()));
         }
         List<CounterCashupReportRow> out = new ArrayList<>(rows.values());
         for (CounterCashupReportRow row : out) {

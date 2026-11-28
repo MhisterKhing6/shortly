@@ -49,12 +49,12 @@ public class CounterCashup {
     private String closedByName;
 
     @Builder.Default
-    private List<Adjustment> adjustments = new ArrayList<>();
+    private List<CashupAdjustment> adjustments = new ArrayList<>();
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class Adjustment {
+    public static class CashupAdjustment {
         private double amount;
         private String reason;
         private long createdAt;

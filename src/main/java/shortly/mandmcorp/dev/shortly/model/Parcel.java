@@ -69,6 +69,13 @@ public class Parcel {
     private String receiverLocationName;
     private String receiverPlaceId;
     private shortly.mandmcorp.dev.shortly.enums.LocationSource receiverLocationSource;
+
+    // Pickup pin: where the rider collects the parcel from the sender (pickup requests).
+    private Double pickupLatitude;
+    private Double pickupLongitude;
+    private String pickupLocationName;
+    private String pickupPlaceId;
+    private shortly.mandmcorp.dev.shortly.enums.LocationSource pickupLocationSource;
     private String alternativePhoneNumber;
     private String shelfName;
     private boolean inboudPayed;

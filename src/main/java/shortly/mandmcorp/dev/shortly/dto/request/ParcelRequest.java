@@ -24,6 +24,15 @@ public class ParcelRequest {
     @jakarta.validation.constraints.Size(max = 300, message = "receiverPlaceId must be at most 300 characters")
     private String receiverPlaceId;
     private shortly.mandmcorp.dev.shortly.enums.LocationSource receiverLocationSource;
+
+    // Pickup pin (pickup requests)
+    private Double pickupLatitude;
+    private Double pickupLongitude;
+    @jakarta.validation.constraints.Size(max = 200, message = "pickupLocationName must be at most 200 characters")
+    private String pickupLocationName;
+    @jakarta.validation.constraints.Size(max = 300, message = "pickupPlaceId must be at most 300 characters")
+    private String pickupPlaceId;
+    private shortly.mandmcorp.dev.shortly.enums.LocationSource pickupLocationSource;
     private String alternativePhoneNumber;
 
     private String parcelDescription;

@@ -362,7 +362,7 @@ public class DriverPaymentService {
     }
 
     @PreAuthorize("hasAnyRole('FRONTDESK', 'MANAGER', 'ADMIN')")
-    public DriverPaymentViews.Summary summary(String officeId) {
+    public DriverPaymentViews.DriverPaymentsSummary summary(String officeId) {
         String office = officeOrNull(officeId);
         String company = CurrentUser.companyId();
         Map<String, Balances> byDriver = balancesByDriver(company, office, null);
@@ -384,7 +384,7 @@ public class DriverPaymentService {
         double paid = week.stream().mapToDouble(DriverPayout::getNetAmount).sum();
         double momo = week.stream().filter(p -> p.getPaymentMethod() == CounterPaymentMethod.MOMO)
                 .mapToDouble(DriverPayout::getNetAmount).sum();
-        return DriverPaymentViews.Summary.builder()
+        return DriverPaymentViews.DriverPaymentsSummary.builder()
                 .readyAmount(r(ready)).readyDrivers(readyDrivers)
                 .waitingAmount(r(waiting)).waitingParcels(waitingCount)
                 .paidThisWeekAmount(r(paid)).paidThisWeekCount(week.size())
@@ -423,7 +423,7 @@ public class DriverPaymentService {
         }
 
         double gross = r(lines.stream().mapToDouble(DriverAssignment::getAmount).sum());
-        List<DriverPayout.Adjustment> applied = new ArrayList<>();
+        List<DriverPayout.DriverPayoutAdjustment> applied = new ArrayList<>();
         List<DriverAdjustment> toSettle = new ArrayList<>();
         double deductions = 0, bonuses = 0;
         for (PayoutAdjustment a : req.getAdjustments() == null ? List.<PayoutAdjustment>of() : req.getAdjustments()) {
@@ -446,7 +446,7 @@ public class DriverPaymentService {
                 if (isBlank(a.getReason())) a.setReason(open.getReason());
             }
             if (a.getType() == DriverAdjustmentType.BONUS) bonuses += amount; else deductions += amount;
-            applied.add(DriverPayout.Adjustment.builder().type(a.getType()).amount(amount).reason(a.getReason())
+            applied.add(DriverPayout.DriverPayoutAdjustment.builder().type(a.getType()).amount(amount).reason(a.getReason())
                     .parcelId(a.getParcelId()).adjustmentId(a.getAdjustmentId()).build());
         }
         double net = r(gross - deductions + bonuses);
@@ -496,7 +496,7 @@ public class DriverPaymentService {
         for (int i = 0; i < toSettle.size(); i++) {
             DriverAdjustment adj = toSettle.get(i);
             double amount = applied.stream().filter(x -> adj.getId().equals(x.getAdjustmentId()))
-                    .mapToDouble(DriverPayout.Adjustment::getAmount).sum();
+                    .mapToDouble(DriverPayout.DriverPayoutAdjustment::getAmount).sum();
             double repaid = r(adj.getRepaidAmount() + amount);
             boolean stillOpen = adj.getType() == DriverAdjustmentType.ADVANCE && repaid < adj.getAmount() - 0.001;
             mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(adj.getId())), new Update()
@@ -585,7 +585,7 @@ public class DriverPaymentService {
                 FindAndModifyOptions.options().returnNew(true), DriverPayout.class);
         if (claimed == null) throw conflict("This payout was already reversed");
         unclaim(payoutId);
-        for (DriverPayout.Adjustment a : payout.getAdjustments()) {
+        for (DriverPayout.DriverPayoutAdjustment a : payout.getAdjustments()) {
             if (a.getAdjustmentId() == null) continue;
             mongoTemplate.updateFirst(new Query(Criteria.where("_id").is(a.getAdjustmentId())),
                     new Update().inc("repaidAmount", -a.getAmount()).set("open", true).unset("appliedPayoutId").unset("appliedAt"),

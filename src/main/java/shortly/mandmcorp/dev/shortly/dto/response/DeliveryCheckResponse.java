@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 public class DeliveryCheckResponse {
     private String riderId;
     private String riderName;
-    private Summary summary;
+    private DeliveryCheckSummary summary;
     @Builder.Default
     private List<Delivery> deliveries = new ArrayList<>();
     private OffTask offTask;
@@ -27,7 +27,7 @@ public class DeliveryCheckResponse {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class Summary {
+    public static class DeliveryCheckSummary {
         private int deliveries;
         private int reached;
         private int notReached;

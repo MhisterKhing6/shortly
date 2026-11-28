@@ -20,6 +20,11 @@ public class DeliveryLocationValidator {
         validate(latitude, longitude, "Delivery location");
     }
 
+    /** Validates a pickup pin (where the rider collects from the sender). Both null is allowed. */
+    public void validatePickup(Double latitude, Double longitude) {
+        validate(latitude, longitude, "Pickup location");
+    }
+
     /** Validates station coordinates. Both null is allowed. */
     public void validateStation(Double latitude, Double longitude) {
         validate(latitude, longitude, "Station location");

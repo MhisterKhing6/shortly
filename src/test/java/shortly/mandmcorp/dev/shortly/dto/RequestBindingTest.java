@@ -61,4 +61,14 @@ class RequestBindingTest {
         assertEquals(5.6223, set.getReceiverLatitude());
         assertFalse(mapper.writeValueAsString(set).contains("receiverLocationProvided"));
     }
+
+    @Test
+    void pickupPinFollowsTheSameAbsentVersusNullRule() {
+        ParcelUpdateRequest absent = mapper.readValue("{\"receiverLatitude\":5.6,\"receiverLongitude\":-0.17}", ParcelUpdateRequest.class);
+        assertTrue(absent.isReceiverLocationProvided());
+        assertFalse(absent.isPickupLocationProvided());
+        ParcelUpdateRequest cleared = mapper.readValue("{\"pickupLatitude\":null,\"pickupLongitude\":null}", ParcelUpdateRequest.class);
+        assertTrue(cleared.isPickupLocationProvided());
+        assertFalse(cleared.isReceiverLocationProvided());
+    }
 }

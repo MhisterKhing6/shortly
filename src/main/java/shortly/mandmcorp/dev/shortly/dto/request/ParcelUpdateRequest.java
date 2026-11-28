@@ -85,4 +85,22 @@ public class ParcelUpdateRequest {
     public void setReceiverLocationName(String value) { this.receiverLocationName = value; this.receiverLocationProvided = true; }
     public void setReceiverPlaceId(String value) { this.receiverPlaceId = value; this.receiverLocationProvided = true; }
     public void setReceiverLocationSource(LocationSource value) { this.receiverLocationSource = value; this.receiverLocationProvided = true; }
+
+    // ---- Pickup pin: same absent/null rules as the delivery location ----
+    private Double pickupLatitude;
+    private Double pickupLongitude;
+    @Size(max = 200, message = "pickupLocationName must be at most 200 characters")
+    private String pickupLocationName;
+    @Size(max = 300, message = "pickupPlaceId must be at most 300 characters")
+    private String pickupPlaceId;
+    private LocationSource pickupLocationSource;
+
+    @JsonIgnore
+    private boolean pickupLocationProvided;
+
+    public void setPickupLatitude(Double value) { this.pickupLatitude = value; this.pickupLocationProvided = true; }
+    public void setPickupLongitude(Double value) { this.pickupLongitude = value; this.pickupLocationProvided = true; }
+    public void setPickupLocationName(String value) { this.pickupLocationName = value; this.pickupLocationProvided = true; }
+    public void setPickupPlaceId(String value) { this.pickupPlaceId = value; this.pickupLocationProvided = true; }
+    public void setPickupLocationSource(LocationSource value) { this.pickupLocationSource = value; this.pickupLocationProvided = true; }
 }

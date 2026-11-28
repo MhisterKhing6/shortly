@@ -94,7 +94,7 @@ public class DeliveryCheckService {
             if (rider.getDeviceImei() == null || rider.getDeviceImei().isBlank()) continue;
             try {
                 DeliveryCheckResponse r = checkRider(rider, TIME_FORMAT.format(startLdt), TIME_FORMAT.format(endLdt), begin, end);
-                DeliveryCheckResponse.Summary s = r.getSummary();
+                DeliveryCheckResponse.DeliveryCheckSummary s = r.getSummary();
                 DeliveryCheckResponse.OffTask o = r.getOffTask();
                 rows.add(DeliveryCheckSummaryRow.builder()
                         .riderId(rider.getUserId()).riderName(rider.getName())

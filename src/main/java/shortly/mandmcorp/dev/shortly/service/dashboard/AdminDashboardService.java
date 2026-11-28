@@ -72,7 +72,7 @@ public class AdminDashboardService {
                 "deliveryCost", "createdAt", parcelCriteria(officeId, start, end), Parcel.class);
         Map<String, Double> dailyCollMap = dailySumMap(
                 "amountPayed", "reconciledAt", reconcilCollectedDailyCriteria(officeId, start, end), Reconcilations.class);
-        List<DashboardStatsResponse.DailyRevenueTrend> revenueVsCollected =
+        List<DashboardStatsResponse.DashboardDailyRevenueTrend> revenueVsCollected =
                 buildRevenueTrend(dailyRevMap, dailyCollMap, start, end);
 
         Map<String, Long> dailyDelivered = dailyCountMap(
@@ -211,10 +211,10 @@ public class AdminDashboardService {
 
     // ---- Trend builders ----
 
-    private List<DashboardStatsResponse.DailyRevenueTrend> buildRevenueTrend(
+    private List<DashboardStatsResponse.DashboardDailyRevenueTrend> buildRevenueTrend(
             Map<String, Double> revMap, Map<String, Double> collMap, long startMs, long endMs) {
         return generateDates(startMs, endMs).stream()
-                .map(date -> DashboardStatsResponse.DailyRevenueTrend.builder()
+                .map(date -> DashboardStatsResponse.DashboardDailyRevenueTrend.builder()
                         .date(date)
                         .revenue(revMap.getOrDefault(date, 0.0))
                         .collected(collMap.getOrDefault(date, 0.0))

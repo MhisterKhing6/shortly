@@ -107,7 +107,7 @@ public final class DriverPaymentViews {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class Summary {
+    public static class DriverPaymentsSummary {
         private double readyAmount;
         private int readyDrivers;
         private double waitingAmount;

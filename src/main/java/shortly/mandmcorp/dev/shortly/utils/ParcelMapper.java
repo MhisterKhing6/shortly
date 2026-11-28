@@ -38,6 +38,11 @@ public class ParcelMapper {
         parcel.setReceiverLocationName(request.getReceiverLocationName());
         parcel.setReceiverPlaceId(request.getReceiverPlaceId());
         parcel.setReceiverLocationSource(request.getReceiverLocationSource());
+        parcel.setPickupLatitude(request.getPickupLatitude());
+        parcel.setPickupLongitude(request.getPickupLongitude());
+        parcel.setPickupLocationName(request.getPickupLocationName());
+        parcel.setPickupPlaceId(request.getPickupPlaceId());
+        parcel.setPickupLocationSource(request.getPickupLocationSource());
         parcel.setFragile(request.isFragile());
         parcel.setDeliveryCost(request.getDeliveryCost());
         parcel.setStorageCost(request.getStorageCost());
@@ -135,6 +140,11 @@ public class ParcelMapper {
         info.setReceiverLocationName(parcel.getReceiverLocationName());
         info.setReceiverPlaceId(parcel.getReceiverPlaceId());
         info.setReceiverLocationSource(parcel.getReceiverLocationSource());
+        info.setPickupLatitude(parcel.getPickupLatitude());
+        info.setPickupLongitude(parcel.getPickupLongitude());
+        info.setPickupLocationName(parcel.getPickupLocationName());
+        info.setPickupPlaceId(parcel.getPickupPlaceId());
+        info.setPickupLocationSource(parcel.getPickupLocationSource());
     }
 
     public Office getOfficeById(String officeId) {

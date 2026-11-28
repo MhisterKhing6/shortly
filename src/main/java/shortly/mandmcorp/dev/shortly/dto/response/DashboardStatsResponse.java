@@ -24,7 +24,7 @@ public class DashboardStatsResponse {
     /** Counter pickup money in the period (separate from the delivery figures above). */
     private CounterDashboardTotals counter;
 
-    private List<DailyRevenueTrend> revenueVsCollected;
+    private List<DashboardDailyRevenueTrend> revenueVsCollected;
     private List<DailyDeliveryTrend> deliveredVsFailed;
 
     private ParcelPipeline parcelPipeline;
@@ -32,7 +32,7 @@ public class DashboardStatsResponse {
     private List<TopRider> topRiders;
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
-    public static class DailyRevenueTrend {
+    public static class DashboardDailyRevenueTrend {
         private String date;
         private double revenue;
         private double collected;

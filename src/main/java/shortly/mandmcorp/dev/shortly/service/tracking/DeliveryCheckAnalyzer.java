@@ -13,7 +13,7 @@ import shortly.mandmcorp.dev.shortly.dto.response.DeliveryCheckResponse.Detour;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryCheckResponse.OffTask;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryCheckResponse.OffTaskStop;
 import shortly.mandmcorp.dev.shortly.dto.response.DeliveryCheckResponse.Result;
-import shortly.mandmcorp.dev.shortly.dto.response.DeliveryCheckResponse.Summary;
+import shortly.mandmcorp.dev.shortly.dto.response.DeliveryCheckResponse.DeliveryCheckSummary;
 import shortly.mandmcorp.dev.shortly.utils.GeoUtils;
 
 /**
@@ -81,7 +81,7 @@ public class DeliveryCheckAnalyzer {
 
         List<Delivery> deliveries = new ArrayList<>();
         List<Reached> reachedList = new ArrayList<>();
-        Summary summary = new Summary();
+        DeliveryCheckSummary summary = new DeliveryCheckSummary();
         for (DeliveryInput in : inputs) {
             Delivery d = checkDelivery(in, points);
             deliveries.add(d);

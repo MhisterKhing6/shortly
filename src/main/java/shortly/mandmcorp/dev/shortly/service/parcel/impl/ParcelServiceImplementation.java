@@ -421,6 +421,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     public Parcel addParcel(ParcelRequest parcelRequest) {
       
         locationValidator.validateDropoff(parcelRequest.getReceiverLatitude(), parcelRequest.getReceiverLongitude());
+        locationValidator.validatePickup(parcelRequest.getPickupLatitude(), parcelRequest.getPickupLongitude());
         Parcel parcel = parcelMapper.toEntity(parcelRequest);
         parcel.setParcelStatus(shortly.mandmcorp.dev.shortly.enums.ParcelStatus.RECEIVED);
         if ((parcelRequest.getOfficeId() != null) && (!parcelRequest.isParcelTransfer())) {
@@ -783,9 +784,18 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         parcel.setReceiverLocationSource(updateRequest.getReceiverLocationSource());
     }
 
+    if (updateRequest.isPickupLocationProvided()) {
+        locationValidator.validatePickup(updateRequest.getPickupLatitude(), updateRequest.getPickupLongitude());
+        parcel.setPickupLatitude(updateRequest.getPickupLatitude());
+        parcel.setPickupLongitude(updateRequest.getPickupLongitude());
+        parcel.setPickupLocationName(updateRequest.getPickupLocationName());
+        parcel.setPickupPlaceId(updateRequest.getPickupPlaceId());
+        parcel.setPickupLocationSource(updateRequest.getPickupLocationSource());
+    }
+
     Parcel savedParcel = parcelRepository.save(parcel);
 
-    if (updateRequest.isReceiverLocationProvided()) {
+    if (updateRequest.isReceiverLocationProvided() || updateRequest.isPickupLocationProvided()) {
         syncLocationToOpenAssignments(savedParcel, locationChanged);
     }
 
