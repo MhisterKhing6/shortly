@@ -103,4 +103,10 @@ public class ParcelUpdateRequest {
     public void setPickupLocationName(String value) { this.pickupLocationName = value; this.pickupLocationProvided = true; }
     public void setPickupPlaceId(String value) { this.pickupPlaceId = value; this.pickupLocationProvided = true; }
     public void setPickupLocationSource(LocationSource value) { this.pickupLocationSource = value; this.pickupLocationProvided = true; }
+
+    /** Accept "isPOD", "POD" and "pod" for the POD flag (see ParcelRequest.setPOD). */
+    @com.fasterxml.jackson.annotation.JsonAlias({ "POD", "pod" })
+    public void setIsPOD(Boolean value) {
+        this.isPOD = value;
+    }
 }

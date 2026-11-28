@@ -109,4 +109,14 @@ public class ParcelRequest {
     private Integer pricingTableVersion;
     /** Required when deliveryCost differs from the suggested price. OTHER: explain in specialInstructions. */
     private shortly.mandmcorp.dev.shortly.enums.PriceOverrideReason priceOverrideReason;
+
+    /**
+     * The POD flag is "POD" in JSON under Jackson 3 (Lombok's setPOD), while the API docs said "pod"
+     * and older clients sent "isPOD". Accept all three so a POD parcel is never saved as non-POD.
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("POD")
+    @com.fasterxml.jackson.annotation.JsonAlias({ "pod", "isPOD" })
+    public void setPOD(boolean value) {
+        this.isPOD = value;
+    }
 }

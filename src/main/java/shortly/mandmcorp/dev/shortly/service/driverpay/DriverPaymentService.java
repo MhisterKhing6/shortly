@@ -834,9 +834,9 @@ public class DriverPaymentService {
 
     /** Open balances per driver from the fee lines, plus net paid in the last 30 days. */
     private Map<String, Balances> balancesByDriver(String company, String office, String driverId) {
-        Criteria c = Criteria.where("companyId").is(company).and("state").in(OPEN_STATES).and("driverId").ne(null);
+        Criteria c = Criteria.where("companyId").is(company).and("state").in(OPEN_STATES);
+        c = driverId != null ? c.and("driverId").is(driverId) : c.and("driverId").ne(null);
         if (office != null) c = c.and("officeId").is(office);
-        if (driverId != null) c = c.and("driverId").is(driverId);
         Map<String, Balances> out = new HashMap<>();
         for (Document d : mongoTemplate.aggregate(Aggregation.newAggregation(
                 Aggregation.match(c),

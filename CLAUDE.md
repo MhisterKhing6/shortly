@@ -38,6 +38,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`: R2 API token credentials (not AWS IAM keys)
 - `R2_BUCKET`: R2 bucket for parcel images (default `mnm-parcel-images`)
 - `R2_PUBLIC_BASE_URL`: Public base URL for serving uploaded images — an `r2.dev` subdomain or a custom domain bound to the bucket (R2 buckets aren't publicly readable by default)
+- `APP_FRONTEND_URL`: frontend address used in email/SMS links (falls back to `FRONTEND_HOST`)
+- `GOOGLE_MAPS_API_KEY` (road distances for delivery pricing; optional), `PAYSTACK_SECRET_KEY` (customer delivery booking), `RECEIVER_ARRIVAL_SMS` (default false)
 - `JIMI_APP_KEY`, `JIMI_APP_SECRET`, `JIMI_USER_ID`, `JIMI_USER_PASSWORD_MD5`: Jimi/TrackSolid GPS API credentials (`JIMI_BASE_URL` has a default)
 - `MAILTRAP_API_TOKEN`: Mailtrap Sending API token (`MAILTRAP_API_URL`, `MAILTRAP_FROM_NAME` have defaults)
 - `MAIL_FROM`: sender email address for outbound mail (default `no-reply@shortly.com`)
@@ -109,6 +111,12 @@ String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()
 
 **Driver payments (Part M)**: `DriverAssignment` is the driver *fee line*. `state` (WAITING → READY → PAID, or ON_HOLD / NOT_PAYABLE) replaces `payed`, which is kept equal to `state == PAID` for old clients. Lifecycle hooks live in `DriverFeeLineService`: READY on counter pickup or rider reconciliation (or at intake when the station's `driverPayPolicy` is ON_ARRIVAL), and NOT_PAYABLE on parcel delete or status REVERSED. Payouts (`DriverPaymentService`) claim lines with a conditional update rather than a transaction (no Mongo transaction manager is configured), and roll back the claim on failure. Drivers are matched by phone normalised with `PhoneNumberUtils.normalizeGhana`. `Parcel.driverRecordId` links to `Driver`; the older `Parcel.driverId` is unrelated. Run `POST /api-admin/driver-payments/migrate` once after deploying, so legacy fee lines get a driver and a state.
 
+**Transactions and retries**: `MongoTransactionConfig` provides a `TransactionTemplate` (needs a replica set; Atlas is one). Parcel assignment, driver payouts/reversals, vendor batches, POD payouts and customer bookings run in transactions and also use conditional updates (`Parcel.activeAssignmentId`, fee-line `state`/`payoutId`), so a concurrent duplicate gets a 409. `IdempotencyService` backs the `Idempotency-Key` header (24 h, collection `idempotency_keys`). Indexes for these collections are created by `config/IndexInitializer` at startup — `auto-index-creation` is off, so `@Indexed`/`@CompoundIndex` alone create nothing.
+
+**JSON quirks (Jackson 3 under Spring Boot 4)**: `spring.jackson.deserialization.fail-on-null-for-primitives` is false so request bodies may omit primitive fields. A Lombok boolean named `isX` serialises as `X` (e.g. the POD flag is `"POD"`); `ParcelRequest`/`VendorParcelRequest` accept `POD`, `pod` and `isPOD`. Unreadable bodies return a JSON 400 (`/error` is permitted, otherwise errors surface as an empty 403).
+
+**Public customer data**: `/api-user/parcel-search`, `/api-user/customer-links/{token}` and `/api-tracking/*/track` return `CustomerViews.CustomerParcel` only — never return a `Parcel` entity from a public endpoint.
+
 **Jimi GPS calls** go through `JimiTokenService` first (caches/refreshes an OAuth token in the `jimi_access_tokens` collection, singleton doc id `"jimi-token"`) before `JimiApiService` signs (MD5) and sends the actual location/track request — never call the Jimi REST API without going through the token service.
 
 ### Authentication & Security
@@ -126,6 +134,7 @@ String officeId = (user.getOfficeIds() != null && !user.getOfficeIds().isEmpty()
 - `rider_status`, `verification_tokens`, `contacts`, `user-actions`
 - `fuel_requests`, `jimi_access_tokens`
 - `counter_collections`, `counter_cashups`, `drivers`, `driver_trips`, `driver_payouts`, `driver_adjustments`, `driverAssignment` (fee lines), `counters` (sequences: barcodes, payout receipt numbers)
+- `idempotency_keys`, `customer_access`, `customer_delivery_requests`, `delivery_pricing_tables`, `delivery_quotes`, `distance_cache`, `driver_payment_issues`, `vendor_applications`
 - `companies`, `email_verification_tokens` (company registration flow — distinct from `verification_tokens`, see above)
 
 ### Indexes

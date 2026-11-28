@@ -112,6 +112,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
+    /** Unreadable JSON (wrong type, bad enum value...) is a 400 with a message, not a bare error page. */
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadable(org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        Throwable root = ex.getMostSpecificCause();
+        String detail = root != null && root.getMessage() != null ? root.getMessage().split("\\R")[0] : null;
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .message("Invalid request body" + (detail != null ? ": " + detail : ""))
+                .data(null)
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
         ErrorResponse errorResponse = ErrorResponse.builder()

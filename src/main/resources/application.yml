@@ -13,6 +13,10 @@ spring:
   jackson:
     mapper:
       accept-case-insensitive-enums: true
+    deserialization:
+      # Jackson 3 (Spring Boot 4) rejects a missing/null value for a primitive field; request bodies
+      # here omit optional numbers and flags, so treat them as 0/false as Jackson 2 did.
+      fail-on-null-for-primitives: false
 
 app:
   # Frontend address used in email and SMS links (verify-email, /receive). Set per environment;
