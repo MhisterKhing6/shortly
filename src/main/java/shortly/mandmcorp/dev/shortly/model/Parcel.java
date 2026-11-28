@@ -127,6 +127,23 @@ public class Parcel {
     private Double deliveryPrepaidAmount;
     private String deliveryPaymentReference;
     private String customerDeliveryRequestId;
+    /** Customer-booked delivery for parcels not yet arrived: deliver on/at once they have. */
+    private String scheduledDeliveryDate;
+    private String scheduledDeliveryTime;
+
+    // Delivery pricing (5c): server figures at intake; deliveryCost is what was charged.
+    private Double distanceKm;
+    /** ROAD or ESTIMATE. */
+    private String distanceSource;
+    private Double suggestedDeliveryCost;
+    private Integer pricingTableVersion;
+    private String pricingZone;
+    /** Review bucket: zone:<name>, band:<upToKm>, band:over or per_km. */
+    private String pricingBucketKey;
+    private shortly.mandmcorp.dev.shortly.enums.PriceOverrideReason priceOverrideReason;
+    /** Staff member who registered the parcel. */
+    private String registeredById;
+    private String registeredByName;
     
     private java.util.List<String> imageUrls;
 

@@ -101,4 +101,12 @@ public class ParcelRequest {
     private String driverId;
     /** Trip opened with POST /driver-trips. When absent, the driver's open trip for this vehicle and day is used. */
     private String tripId;
+
+    // Delivery pricing (home deliveries with a pin). The server re-quotes and stores its own figures.
+    private Double distanceKm;
+    private String distanceSource;
+    private Double suggestedDeliveryCost;
+    private Integer pricingTableVersion;
+    /** Required when deliveryCost differs from the suggested price. OTHER: explain in specialInstructions. */
+    private shortly.mandmcorp.dev.shortly.enums.PriceOverrideReason priceOverrideReason;
 }

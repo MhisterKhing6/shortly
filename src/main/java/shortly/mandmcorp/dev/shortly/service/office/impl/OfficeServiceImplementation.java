@@ -171,6 +171,7 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         if(updateRequest.getPickupChargeEnabled() != null) {
             applyPickupCharge(office, updateRequest.getPickupChargeEnabled(), updateRequest.getPickupChargeAmount());
         }
+        if(updateRequest.getOpeningHours() != null) office.setOpeningHours(updateRequest.getOpeningHours());
         if(updateRequest.getDriverPayPolicy() != null) {
             office.setDriverPayPolicy(updateRequest.getDriverPayPolicy());
         }

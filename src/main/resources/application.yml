@@ -60,3 +60,14 @@ jimi:
   userId: ${JIMI_USER_ID}
   userPasswordMd5: ${JIMI_USER_PASSWORD_MD5}
 
+shortly:
+  google:
+    # Google Routes API key for road distances (delivery pricing). Empty = straight line x 1.35.
+    maps-api-key: ${GOOGLE_MAPS_API_KEY:}
+  paystack:
+    # Secret key used to verify customer delivery payments.
+    secret-key: ${PAYSTACK_SECRET_KEY:}
+  sms:
+    # Text receivers a "parcel arrived" SMS with the /receive link (costs an SMS per parcel).
+    receiver-arrival-enabled: ${RECEIVER_ARRIVAL_SMS:false}
+

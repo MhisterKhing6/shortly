@@ -53,6 +53,7 @@ public class UserController {
     private final UserServiceInterface userService;
     private final ContactServiceInterface contactService;
     private final OfficeServiceInterface officeService;
+    private final shortly.mandmcorp.dev.shortly.service.customer.CustomerPortalService customerPortalService;
     private final RiderServiceInterface riderService;
 
      
@@ -87,11 +88,42 @@ public class UserController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "return user result"),
     })
-    public List<Parcel> searParcel(@RequestParam String phoneNumber) {
+    public List<shortly.mandmcorp.dev.shortly.dto.response.CustomerViews.CustomerParcel> searParcel(@RequestParam String phoneNumber) {
         if(phoneNumber == null || phoneNumber.isEmpty()) {
             throw new ActionNotAllowed("phone number required");
         }
-        return officeService.getParcelsByAddressNumber(phoneNumber);
+        // Customer view only: no staff phones, call-centre notes or company data.
+        return customerPortalService.search(phoneNumber);
+    }
+
+    @GetMapping("/customer-links/{token}")
+    @Operation(summary = "Customer link from the SMS", description = "The phone's open parcels (customer view). 404 if expired or unknown.")
+    public shortly.mandmcorp.dev.shortly.dto.response.CustomerViews.LinkResponse customerLink(@org.springframework.web.bind.annotation.PathVariable String token) {
+        return customerPortalService.link(token);
+    }
+
+    @PostMapping("/customer-otp/send")
+    @Operation(summary = "Text a one-time code to the receiver", description = "6 digits, 5 minutes. At most 3 per phone per 15 minutes; 404 if the phone has no parcels.")
+    public java.util.Map<String, String> sendCustomerOtp(@RequestBody shortly.mandmcorp.dev.shortly.dto.response.CustomerViews.PhoneRequest request) {
+        return customerPortalService.sendOtp(request.getPhoneNumber());
+    }
+
+    @PostMapping("/customer-otp/verify")
+    @Operation(summary = "Check the one-time code", description = "Returns a token like the SMS link's, valid a few hours. Locked after 5 wrong tries.")
+    public java.util.Map<String, String> verifyCustomerOtp(@RequestBody shortly.mandmcorp.dev.shortly.dto.response.CustomerViews.PhoneRequest request) {
+        return customerPortalService.verifyOtp(request.getPhoneNumber(), request.getCode());
+    }
+
+    @PostMapping("/delivery-requests/quote")
+    @Operation(summary = "Price a customer delivery", description = "Station table + road distance; several parcels: dearest parcel's price + extraParcelFee each. Valid 30 minutes. 401 token/phone mismatch, 403 not their parcel, 409 finished/with a rider/already booked.")
+    public shortly.mandmcorp.dev.shortly.dto.response.CustomerViews.QuoteResponse deliveryQuote(@RequestBody shortly.mandmcorp.dev.shortly.dto.response.CustomerViews.QuoteRequest request) {
+        return customerPortalService.quote(request);
+    }
+
+    @PostMapping("/delivery-requests")
+    @Operation(summary = "Book a paid customer delivery", description = "Verifies the Paystack payment (success, GHS, at least the quoted total, reference used once), then marks the parcels for home delivery as prepaid. If it can't be applied after payment, the request is kept as FLAGGED for the station.")
+    public java.util.Map<String, String> bookDelivery(@RequestBody shortly.mandmcorp.dev.shortly.dto.response.CustomerViews.BookingRequest request) {
+        return customerPortalService.book(request);
     }
 
     @PostMapping("/request-password-reset")

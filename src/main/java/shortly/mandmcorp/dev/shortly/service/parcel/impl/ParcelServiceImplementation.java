@@ -87,6 +87,14 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final shortly.mandmcorp.dev.shortly.service.driverpay.DriverFeeLineService driverFeeLineService;
     private final shortly.mandmcorp.dev.shortly.service.common.IdempotencyService idempotencyService;
     private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
+    private final shortly.mandmcorp.dev.shortly.service.pricing.DeliveryPricingService deliveryPricingService;
+    private final shortly.mandmcorp.dev.shortly.service.customer.CustomerPortalService customerPortalService;
+    private final org.springframework.core.env.Environment environment;
+
+    /** Receiver "your parcel has arrived" SMS with the /receive link; off unless RECEIVER_ARRIVAL_SMS=true. */
+    private boolean arrivalSmsEnabled() {
+        return Boolean.parseBoolean(environment.getProperty("shortly.sms.receiver-arrival-enabled", "false"));
+    }
 
     /**
      * Resolves the barcode for a new parcel: honors a non-blank user-supplied value
@@ -534,6 +542,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             parcel.setOfficeId(officeId);
             Parcel savedParcel = parcelRepository.save(parcel);
             updated.add(savedParcel);
+            customerPortalService.sendArrivalSms(savedParcel, arrivalSmsEnabled());
 
             if (UCC_GOIL_HUB_OFFICE_ID.equals(officeId) && savedParcel.getDriverPhoneNumber() != null
                     && !savedParcel.getDriverPhoneNumber().isBlank()) {
@@ -615,6 +624,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
             }
 
         applyStationPickupCharge(parcel, parcelRequest);
+        // Distance pricing (5c): the server re-quotes home deliveries with a pin and stores its figures.
+        deliveryPricingService.applyIntakePricing(parcel, parcelRequest);
 
         parcel.setImageUrls(r2Service.uploadImages(parcelRequest.getImages()));
         parcel.setBarCode(resolveBarCode(parcelRequest.getBarCode()));
@@ -624,6 +635,10 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
 
         // Save the parcel first so it gets its generated ID before building ParcelInfo
         Parcel savedParcel = parcelRepository.save(parcel);
+        if (!savedParcel.isParcelTransfer() && savedParcel.getOfficeId() != null
+                && savedParcel.getTypeofParcel() != ParcelTypes.PICKUP) {
+            customerPortalService.sendArrivalSms(savedParcel, arrivalSmsEnabled());
+        }
 
         // Driver who brought the parcel in: link the driver record and the trip.
         shortly.mandmcorp.dev.shortly.model.Driver driverRecord = resolveIntakeDriver(parcelRequest, savedParcel);
@@ -1345,7 +1360,9 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
         parcel.setShelfId(shelfId);
         parcel.setShelfName(shelf.getName());
         parcel.setOfficeId(officeId);
-        return parcelRepository.save(parcel);
+        Parcel arrived = parcelRepository.save(parcel);
+        customerPortalService.sendArrivalSms(arrived, arrivalSmsEnabled());
+        return arrived;
     }
 
     @Override

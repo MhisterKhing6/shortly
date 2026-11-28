@@ -20,4 +20,6 @@ public class OfficeRequest {
     private String locationId;
     /** When driver fees become payable: ON_COLLECTION (default) or ON_ARRIVAL. */
     private shortly.mandmcorp.dev.shortly.enums.DriverPayPolicy driverPayPolicy;
+    /** Shown to customers, e.g. "Mon–Sat 8:00–18:00". */
+    private String openingHours;
 }

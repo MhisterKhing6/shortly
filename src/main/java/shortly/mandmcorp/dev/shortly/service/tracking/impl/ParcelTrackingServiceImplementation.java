@@ -35,6 +35,8 @@ public class ParcelTrackingServiceImplementation implements ParcelTrackingServic
     private final ParcelRepository parcelRepository;
     private final UserRepository userRepository;
     private final shortly.mandmcorp.dev.shortly.service.driverpay.DriverFeeLineService driverFeeLineService;
+    private final shortly.mandmcorp.dev.shortly.service.customer.CustomerPortalService customerPortalService;
+    private final shortly.mandmcorp.dev.shortly.repository.OfficeRepository officeRepository;
 
     @Override
     public PublicTrackingResponse getPublicTracking(String parcelId) {
@@ -105,17 +107,29 @@ public class ParcelTrackingServiceImplementation implements ParcelTrackingServic
     }
 
     private PublicTrackingResponse mapToPublicResponse(Parcel parcel) {
+        shortly.mandmcorp.dev.shortly.dto.response.CustomerViews.CustomerParcel view = customerPortalService.view(parcel);
+        String fromName = parcel.getFrom() != null ? parcel.getFrom().getOfficeName()
+                : officeName(parcel.getFromOfficeId() != null ? parcel.getFromOfficeId() : (parcel.isParcelTransfer() ? null : parcel.getOfficeId()));
+        String toName = parcel.getTo() != null ? parcel.getTo().getOfficeName()
+                : officeName(parcel.getToOfficeId() != null ? parcel.getToOfficeId() : parcel.getOfficeId());
         return PublicTrackingResponse.builder()
+                .office(view.getOffice())
+                .parcel(view)
                 .parcelId(parcel.getParcelId())
                 .parcelStatus(parcel.getParcelStatus())
                 .typeofParcel(parcel.getTypeofParcel())
                 .isDelivered(parcel.isDelivered())
                 .isParcelAssigned(parcel.isParcelAssigned())
-                .fromOfficeName(parcel.getFrom() != null ? parcel.getFrom().getOfficeName() : null)
-                .toOfficeName(parcel.getTo() != null ? parcel.getTo().getOfficeName() : null)
+                .fromOfficeName(fromName)
+                .toOfficeName(toName)
                 .createdAt(parcel.getCreatedAt())
                 .updatedAt(parcel.getUpdatedAt())
                 .build();
+    }
+
+    private String officeName(String officeId) {
+        if (officeId == null) return null;
+        return officeRepository.findById(officeId).map(shortly.mandmcorp.dev.shortly.model.Office::getName).orElse(null);
     }
 
     private CustomerTrackingResponse mapToCustomerResponse(Parcel parcel) {
