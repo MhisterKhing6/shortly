@@ -31,6 +31,7 @@ public class AdminFinanceController {
 
     private final CounterService counterService;
     private final DriverPaymentService driverPaymentService;
+    private final shortly.mandmcorp.dev.shortly.service.vendor.VendorApplicationService vendorApplicationService;
     private final shortly.mandmcorp.dev.shortly.service.driverpay.DriverPaymentIntegrityService integrityService;
     private final shortly.mandmcorp.dev.shortly.service.rider.RiderServiceInterface riderService;
 
@@ -108,5 +109,19 @@ public class AdminFinanceController {
     @TrackUserAction(action = "POD_PAYOUT", description = "Paid POD money out to a sender")
     public List<CounterCollection> payOutPod(@org.springframework.web.bind.annotation.RequestBody shortly.mandmcorp.dev.shortly.dto.request.PodPayoutRequest request) {
         return counterService.payOutPod(request);
+    }
+
+    @GetMapping("/partner-applications")
+    @Operation(summary = "Become-a-partner requests", description = "Newest first; filter by status (NEW, CONTACTED, APPROVED, REJECTED).")
+    public List<shortly.mandmcorp.dev.shortly.model.VendorApplication> partnerApplications(@RequestParam(required = false) String status) {
+        return vendorApplicationService.list(status);
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/partner-applications/{id}")
+    @Operation(summary = "Follow up a partner request", description = "status CONTACTED, APPROVED or REJECTED. With APPROVED and createVendor=true, also creates the Vendor user for that phone number.")
+    @TrackUserAction(action = "REVIEW_PARTNER_APPLICATION", description = "Admin followed up a partner request")
+    public shortly.mandmcorp.dev.shortly.model.VendorApplication reviewPartnerApplication(@org.springframework.web.bind.annotation.PathVariable String id,
+            @org.springframework.web.bind.annotation.RequestBody shortly.mandmcorp.dev.shortly.dto.request.VendorApplicationRequests.Review request) {
+        return vendorApplicationService.review(id, request);
     }
 }

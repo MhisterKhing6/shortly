@@ -15,7 +15,9 @@ spring:
       accept-case-insensitive-enums: true
 
 app:
-  frontend-base-url: ${FRONTEND_HOST:http://localhost:3000}
+  # Frontend address used in email and SMS links (verify-email, /receive). Set per environment;
+  # falls back to FRONTEND_HOST (the CORS origin) when not set.
+  frontend-base-url: ${APP_FRONTEND_URL:${FRONTEND_HOST:http://localhost:3000}}
   email-verification-path: ${EMAIL_VERIFICATION_PATH:/verify-email}
   mail-from: ${MAIL_FROM:no-reply@shortly.com}
   email-verification-expiry-ms: ${EMAIL_VERIFICATION_EXPIRY_MS:86400000}

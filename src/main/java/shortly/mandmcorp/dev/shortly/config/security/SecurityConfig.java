@@ -34,6 +34,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(
                 request -> request.requestMatchers("/api-user/**").permitAll()
                 .requestMatchers("/api-company/register", "/api-company/verify-email", "/api-company/resend-verification").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api-vendor/applications").permitAll()
                 .requestMatchers("/health/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api-tracking/*/track").permitAll()

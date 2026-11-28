@@ -226,8 +226,16 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
             ? locationRepository.findByNameContainingIgnoreCase(locationName)
             : locationRepository.findAll();
         
+        // Only the caller's company: its locations and stations (vendors included).
+        User caller = shortly.mandmcorp.dev.shortly.utils.CurrentUser.getOrNull();
+        String company = caller != null ? caller.getCompanyId() : null;
         return locations.stream().map(location -> {
-            List<Office> offices = officeRepository.findByLocation(location);
+            List<Office> offices = officeRepository.findByLocation(location).stream()
+                .filter(o -> caller == null || java.util.Objects.equals(o.getCompanyId(), company))
+                .collect(Collectors.toList());
+            if (caller != null && offices.isEmpty() && !java.util.Objects.equals(location.getCompanyId(), company)) {
+                return null;
+            }
             
             if(officeName != null && !officeName.isEmpty()) {
                 offices = offices.stream()
@@ -243,7 +251,7 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
             response.setOffices(offices.stream().map(officeMapper::toResponse).collect(Collectors.toList()));
             
             return response;
-        }).collect(Collectors.toList());
+        }).filter(java.util.Objects::nonNull).collect(Collectors.toList());
     }
     
     @Override
@@ -303,7 +311,7 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         newAddress.setLatitude(request.getLatitude());
         newAddress.setLongitude(request.getLongitude());
         newAddress.setLocationName(request.getLocationName());
-        newAddress.setOfficeId(frontDesk.getOfficeIds().get(0));
+        newAddress.setOfficeId(requireOffice(frontDesk));
         addressRepository.save(newAddress);
         return newAddress;
     }
@@ -314,7 +322,8 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
             throw new WrongCredentialsException("User not authenticated");
         }
         User frontDesk = (User) auth.getPrincipal();
-        String officeId = frontDesk.getOfficeIds().get(0);
+        String officeId = shortly.mandmcorp.dev.shortly.utils.CurrentUser.officeId(frontDesk);
+        if (officeId == null) return List.of();
          if (name == null || name.isBlank()) {
             return addressRepository.findAllByOfficeId(officeId);
             }
@@ -380,6 +389,12 @@ public class OfficeServiceImplementation implements OfficeServiceInterface {
         }
         locationRepository.delete(location);
         return new UserResponse("Location deleted", locationId);
+    }
+
+    private static String requireOffice(User user) {
+        String officeId = shortly.mandmcorp.dev.shortly.utils.CurrentUser.officeId(user);
+        if (officeId == null) throw badRequest("Add a station to your account first");
+        return officeId;
     }
 
     private void applyPickupCharge(Office office, boolean enabled, Double amount) {

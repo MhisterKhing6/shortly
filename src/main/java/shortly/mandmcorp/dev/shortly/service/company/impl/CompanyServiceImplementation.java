@@ -81,6 +81,7 @@ public class CompanyServiceImplementation implements CompanyServiceInterface {
         Company company = new Company();
         company.setCompanyName(request.getCompanyName());
         company.setDisplayName(request.getCompanyName());
+        company.setPlan(request.getPlan() == null || request.getPlan().isBlank() ? null : request.getPlan().trim().toUpperCase());
         company.setManagerName(request.getRegisterUserName());
         company.setManagerPhoneNumber(request.getPhoneNumber());
         company.setEmail(request.getWorkEmail());

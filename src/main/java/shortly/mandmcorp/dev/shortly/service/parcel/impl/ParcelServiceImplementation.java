@@ -85,6 +85,8 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     private final shortly.mandmcorp.dev.shortly.utils.DeliveryLocationValidator locationValidator;
     private final shortly.mandmcorp.dev.shortly.service.counter.CounterService counterService;
     private final shortly.mandmcorp.dev.shortly.service.driverpay.DriverFeeLineService driverFeeLineService;
+    private final shortly.mandmcorp.dev.shortly.service.common.IdempotencyService idempotencyService;
+    private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
 
     /**
      * Resolves the barcode for a new parcel: honors a non-blank user-supplied value
@@ -225,14 +227,126 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
     @Override
     @PreAuthorize("hasRole('VENDOR')")
     public Parcel addVendorParcel(VendorParcelRequest request) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User vendor = (User) auth.getPrincipal();
+        return addVendorParcel(request, null);
+    }
 
+    /** One partner parcel. A repeat with the same Idempotency-Key (24 h) returns the first parcel. */
+    @Override
+    @PreAuthorize("hasRole('VENDOR')")
+    public Parcel addVendorParcel(VendorParcelRequest request, String idempotencyKey) {
+        return idempotencyService.run("vendor-parcel", idempotencyKey,
+                () -> {
+                    User vendor = shortly.mandmcorp.dev.shortly.utils.CurrentUser.get();
+                    Parcel parcel = prepareVendorParcel(request, vendor, null);
+                    return saveVendorParcel(parcel, request);
+                },
+                p -> List.of(p.getParcelId()),
+                rec -> parcelRepository.findById(rec.getResultIds().get(0)).orElseThrow(() -> new EntityNotFound("Parcel not found")));
+    }
+
+    /**
+     * A batch of partner parcels, all or nothing: every parcel is validated first, and if any is
+     * invalid nothing is saved and the 400 names it ("Parcel 2 (Kofi Owusu): ...").
+     */
+    @Override
+    @PreAuthorize("hasRole('VENDOR')")
+    public List<Parcel> addVendorParcels(List<VendorParcelRequest> requests, String idempotencyKey) {
+        if (requests == null || requests.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "parcels is required");
+        if (requests.size() > 500) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At most 500 parcels per batch");
+        return idempotencyService.run("vendor-batch", idempotencyKey,
+                () -> {
+                    User vendor = shortly.mandmcorp.dev.shortly.utils.CurrentUser.get();
+                    List<Parcel> prepared = new ArrayList<>();
+                    java.util.Set<String> batchCodes = new java.util.HashSet<>();
+                    for (int i = 0; i < requests.size(); i++) {
+                        VendorParcelRequest r = requests.get(i);
+                        String label = "Parcel " + (i + 1) + (r != null && r.getReceiverName() != null ? " (" + r.getReceiverName() + ")" : "");
+                        if (r == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + ": empty");
+                        if (r.getBarCode() != null && !r.getBarCode().isBlank() && !batchCodes.add(r.getBarCode().trim())) {
+                            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + ": barcode is used twice in this batch");
+                        }
+                        prepared.add(prepareVendorParcel(r, vendor, label));
+                    }
+                    List<Parcel> saved = new ArrayList<>();
+                    try {
+                        transactionTemplate.executeWithoutResult(tx -> {
+                            for (int i = 0; i < prepared.size(); i++) saved.add(saveVendorParcel(prepared.get(i), requests.get(i)));
+                        });
+                    } catch (org.springframework.dao.DuplicateKeyException e) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "A barcode in this batch was just used by another parcel; nothing was saved");
+                    }
+                    return saved;
+                },
+                list -> list.stream().map(Parcel::getParcelId).toList(),
+                rec -> rec.getResultIds().stream()
+                        .map(id -> parcelRepository.findById(id).orElseThrow(() -> new EntityNotFound("Parcel not found"))).toList());
+    }
+
+    /** Edit a partner parcel while it is still PENDING (not yet received), by the partner who sent it. */
+    @Override
+    @PreAuthorize("hasRole('VENDOR')")
+    public Parcel updateVendorParcel(String parcelId, VendorParcelRequest request) {
+        User vendor = shortly.mandmcorp.dev.shortly.utils.CurrentUser.get();
+        Parcel existing = parcelRepository.findById(parcelId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parcel not found"));
+        if (!java.util.Objects.equals(existing.getVendorId(), vendor.getPhoneNumber())
+                || !java.util.Objects.equals(existing.getCompanyId(), vendor.getCompanyId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only edit parcels you sent");
+        }
+        if (existing.getParcelStatus() != shortly.mandmcorp.dev.shortly.enums.ParcelStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This parcel has already been received at the station and can't be edited; call the station");
+        }
+        String keepBarCode = existing.getBarCode();
+        boolean barCodeChanged = request.getBarCode() != null && !request.getBarCode().isBlank()
+                && !request.getBarCode().trim().equals(keepBarCode);
+        VendorParcelRequest check = request;
+        if (!barCodeChanged) {
+            // don't treat the parcel's own barcode as a duplicate
+            check = copyWithoutBarCode(request);
+        }
+        Parcel updated = prepareVendorParcel(check, vendor, null);
+        updated.setParcelId(existing.getParcelId());
+        updated.setCreatedAt(existing.getCreatedAt());
+        updated.setBarCode(barCodeChanged ? resolveBarCode(request.getBarCode()) : keepBarCode);
+        updated.setImageUrls(request.getImages() != null && !request.getImages().isEmpty()
+                ? r2Service.uploadImages(request.getImages()) : existing.getImageUrls());
+        return parcelRepository.save(updated);
+    }
+
+    /** Validates a partner parcel and builds it (no images uploaded, no barcode assigned, not saved). */
+    private Parcel prepareVendorParcel(VendorParcelRequest request, User vendor, String label) {
+        String prefix = label == null ? "" : label + ": ";
+        if (request.getReceiverName() == null || request.getReceiverName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, prefix + "receiver name is required");
+        }
+        if (request.getRecieverPhoneNumber() == null || request.getRecieverPhoneNumber().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, prefix + "receiver phone number is required");
+        }
+        if (request.getDestinationStationId() == null || request.getDestinationStationId().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, prefix + "destination station is required");
+        }
         Office destinationOffice = officeRepository.findById(request.getDestinationStationId())
-                .orElseThrow(() -> new EntityNotFound("'" + request.getDestinationStationId() + "' is not a valid destination station ID"));
+                .filter(o -> java.util.Objects.equals(o.getCompanyId(), vendor.getCompanyId()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, prefix + "destination station not found"));
 
         if (request.isPOD() && request.getDeliveryFee() <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Delivery fee is required when POD is selected");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, prefix + "delivery fee is required when POD is selected");
+        }
+        try {
+            locationValidator.validateDropoff(request.getReceiverLatitude(), request.getReceiverLongitude());
+        } catch (ResponseStatusException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, prefix + e.getReason());
+        }
+        if (request.getBarCode() != null && !request.getBarCode().isBlank()) {
+            String code = request.getBarCode().trim();
+            Parcel same = parcelRepository.findByBarCode(code);
+            if (same != null) {
+                boolean recentOwn = java.util.Objects.equals(same.getVendorId(), vendor.getPhoneNumber())
+                        && same.getCreatedAt() != null && System.currentTimeMillis() - same.getCreatedAt() < 24 * 3_600_000L;
+                throw new ResponseStatusException(recentOwn ? HttpStatus.CONFLICT : HttpStatus.BAD_REQUEST,
+                        prefix + (recentOwn ? "you already sent a parcel with barcode " + code + " in the last 24 hours"
+                                : "barcode " + code + " already exists"));
+            }
         }
 
         OfficeInfo toOfficeInfo = new OfficeInfo();
@@ -240,7 +354,7 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         toOfficeInfo.setOfficeName(destinationOffice.getName());
 
         Parcel parcel = new Parcel();
-        parcel.setReceiverName(request.getReceiverName());
+        parcel.setReceiverName(request.getReceiverName().trim());
         parcel.setRecieverPhoneNumber(request.getRecieverPhoneNumber());
         parcel.setAlternativePhoneNumber(request.getRecieverAlternativePhoneNumber());
         parcel.setReceiverAddress(request.getReceiverAddress());
@@ -259,10 +373,26 @@ public class ParcelServiceImplementation implements ParcelServiceInterface {
         parcel.setParcelTransfer(true);
         parcel.setToOfficeId(destinationOffice.getId());
         parcel.setTo(toOfficeInfo);
+        parcel.setReceiverLatitude(request.getReceiverLatitude());
+        parcel.setReceiverLongitude(request.getReceiverLongitude());
+        parcel.setReceiverLocationName(request.getReceiverLocationName());
+        parcel.setReceiverPlaceId(request.getReceiverPlaceId());
+        parcel.setReceiverLocationSource(request.getReceiverLocationSource());
+        if (request.getReceiverLatitude() != null) parcel.setHomeDelivery(true);
+        return parcel;
+    }
+
+    private Parcel saveVendorParcel(Parcel parcel, VendorParcelRequest request) {
         parcel.setImageUrls(r2Service.uploadImages(request.getImages()));
         parcel.setBarCode(resolveBarCode(request.getBarCode()));
-
         return parcelRepository.save(parcel);
+    }
+
+    private static VendorParcelRequest copyWithoutBarCode(VendorParcelRequest r) {
+        VendorParcelRequest c = new VendorParcelRequest();
+        org.springframework.beans.BeanUtils.copyProperties(r, c);
+        c.setBarCode(null);
+        return c;
     }
 
     @Override
@@ -1077,7 +1207,8 @@ public Parcel updateParcel(String parcelId, ParcelUpdateRequest updateRequest) {
             criteria.add(Criteria.where("isItemOwnerPaid").is(false));
             criteria.add(Criteria.where("typeofParcel").is(ParcelTypes.ONLINE));
             criteria.add(Criteria.where("isDelivered").is(true));
-            String officeId = user.getOfficeIds().get(0);
+            String officeId = shortly.mandmcorp.dev.shortly.utils.CurrentUser.officeId(user);
+            if (officeId == null) return new PageImpl<>(new ArrayList<>(), pageable, 0);
             criteria.add(Criteria.where("toOfficeId").is(officeId));
             query.addCriteria(new Criteria().andOperator(criteria.toArray(new Criteria[0])));
             org.springframework.data.domain.Sort sort;

@@ -17,6 +17,9 @@ import shortly.mandmcorp.dev.shortly.model.Parcel;
 public interface ParcelServiceInterface {
     Parcel addParcel(ParcelRequest parcelRequest);
     Parcel addVendorParcel(VendorParcelRequest request);
+    Parcel addVendorParcel(VendorParcelRequest request, String idempotencyKey);
+    java.util.List<Parcel> addVendorParcels(java.util.List<VendorParcelRequest> requests, String idempotencyKey);
+    Parcel updateVendorParcel(String parcelId, VendorParcelRequest request);
     List<Parcel> markParcelsAsReceived(ParcelReceivedRequest request);
     VendorDashboardResponse getVendorDashboard(String search, ParcelStatus status);
     VendorEarningsResponse getVendorEarnings();

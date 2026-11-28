@@ -25,4 +25,7 @@ public class CompanyRegistrationRequest {
         message = "Password must be more than 6 characters and contain both letters and numbers"
     )
     private String password;
+
+    /** Optional plan chosen at signup: STARTER, GROWTH or ENTERPRISE. Stored as sent. */
+    private String plan;
 }

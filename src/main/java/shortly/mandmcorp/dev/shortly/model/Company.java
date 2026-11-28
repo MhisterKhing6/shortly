@@ -51,4 +51,10 @@ public class Company {
 
     @LastModifiedDate
     private Long updatedAt;
+
+    /** Plan chosen at signup (STARTER, GROWTH, ENTERPRISE). */
+    private String plan;
+
+    /** Site hostnames that belong to this company (e.g. mandmservicescorp.org), for public forms. */
+    private java.util.List<String> domains;
 }

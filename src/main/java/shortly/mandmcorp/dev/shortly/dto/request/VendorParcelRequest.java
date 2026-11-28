@@ -37,4 +37,11 @@ public class VendorParcelRequest {
     private boolean isPOD = false;
 
     private java.util.List<String> images;
+
+    // Optional delivery pin (gives partner parcels a map pin and a distance-based price)
+    private Double receiverLatitude;
+    private Double receiverLongitude;
+    private String receiverLocationName;
+    private String receiverPlaceId;
+    private shortly.mandmcorp.dev.shortly.enums.LocationSource receiverLocationSource;
 }

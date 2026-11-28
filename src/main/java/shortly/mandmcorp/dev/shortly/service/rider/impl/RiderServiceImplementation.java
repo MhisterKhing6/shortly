@@ -1557,7 +1557,8 @@ public class RiderServiceImplementation implements RiderServiceInterface {
         DeliveryAssignments assignment = deliveryAssignmentsRepository.findById(assignmentId)
             .orElseThrow(() -> new EntityNotFound("Delivery assignment not found: " + assignmentId));
 
-        if(frontDesk.getOfficeIds().get(0) != null && !assignment.getOfficeId().equals(frontDesk.getOfficeIds().get(0))) {
+        String callerOffice = CurrentUser.officeId(frontDesk);
+        if(frontDesk.getRole() != UserRole.ADMIN && (callerOffice == null || !callerOffice.equals(assignment.getOfficeId()))) {
             throw new WrongCredentialsException("User does not have permission to remove parcel from assignment");
         }
         ParcelInfo parcelInfoToRemove = null;

@@ -32,6 +32,8 @@ public class VendorController {
 
     private final ParcelServiceInterface parcelService;
 
+    private final shortly.mandmcorp.dev.shortly.service.vendor.VendorApplicationService vendorApplicationService;
+
     @GetMapping("/parcel-status-dashboard")
     @Operation(summary = "Vendor parcel dashboard", description = "Returns all vendor parcels grouped by destination station, with status summary. Optionally filter by status or search by parcel ID, receiver name, or receiver phone number.")
     @SecurityRequirement(name = "Bearer Authentication")
@@ -79,7 +81,34 @@ public class VendorController {
         @ApiResponse(responseCode = "403", description = "Access denied — vendor role required")
     })
     @TrackUserAction(action = "VENDOR_SUBMIT_PARCEL", description = "Vendor submitted a parcel for delivery")
-    public Parcel addVendorParcel(@RequestBody @Valid VendorParcelRequest request) {
-        return parcelService.addVendorParcel(request);
+    public Parcel addVendorParcel(@RequestBody @Valid VendorParcelRequest request,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return parcelService.addVendorParcel(request, idempotencyKey);
+    }
+
+    @PostMapping("/parcels/batch")
+    @Operation(summary = "Submit several partner parcels", description = "All or nothing: every parcel is checked first; if any is invalid nothing is saved and the 400 names it (\"Parcel 2 (Kofi Owusu): destination station not found\"). Returns the parcels in the same order. Idempotency-Key supported.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @TrackUserAction(action = "VENDOR_SUBMIT_BATCH", description = "Vendor submitted a batch of parcels")
+    public java.util.List<Parcel> addVendorParcels(@RequestBody shortly.mandmcorp.dev.shortly.dto.request.VendorApplicationRequests.Batch request,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return parcelService.addVendorParcels(request.getParcels(), idempotencyKey);
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/parcels/{parcelId}")
+    @Operation(summary = "Edit a partner parcel", description = "Only while it is still PENDING (409 otherwise), and only by the partner who sent it (403).")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @TrackUserAction(action = "VENDOR_EDIT_PARCEL", description = "Vendor edited a parcel")
+    public Parcel updateVendorParcel(@org.springframework.web.bind.annotation.PathVariable String parcelId,
+            @RequestBody VendorParcelRequest request) {
+        return parcelService.updateVendorParcel(parcelId, request);
+    }
+
+    @PostMapping("/applications")
+    @Operation(summary = "Become a partner (public)", description = "No login. At most 3 requests per phone per day.")
+    public java.util.Map<String, String> apply(@RequestBody shortly.mandmcorp.dev.shortly.dto.request.VendorApplicationRequests.Apply request,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Origin", required = false) String origin,
+            @org.springframework.web.bind.annotation.RequestHeader(value = "Referer", required = false) String referer) {
+        return vendorApplicationService.apply(request, origin != null ? origin : referer);
     }
 }

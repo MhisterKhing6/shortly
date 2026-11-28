@@ -34,6 +34,7 @@ List<Parcel> findByDriverPhoneNumberAndIsPOD(
 List<Parcel> findByRecieverPhoneNumberAndIsDeliveredFalse(String recieverPhoneNumber);
 
 boolean existsByBarCode(String barCode);
+Parcel findByBarCode(String barCode);
 boolean existsByOfficeId(String officeId);
 
 }
